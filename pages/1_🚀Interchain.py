@@ -12,10 +12,10 @@ st.set_page_config(
     page_icon="🚀",
     layout="wide"
 )
-# =========================
-# --- Sidebar Footer Slightly Left-Aligned ---
-# =========================
 
+# =========================
+# SIDEBAR FOOTER
+# =========================
 st.sidebar.markdown(
     """
     <style>
@@ -25,7 +25,7 @@ st.sidebar.markdown(
         width: 250px;
         font-size: 13px;
         color: gray;
-        margin-left: 5px; # -- MOVE LEFT
+        margin-left: 5px;
         text-align: left;  
     }
     .sidebar-footer img {
@@ -44,13 +44,13 @@ st.sidebar.markdown(
     <div class="sidebar-footer">
         <div>
             <a href="https://x.com/axelar" target="_blank">
-                <img src="https://img.cryptorank.io/coins/axelar1663924228506.png" alt="Axelar Logo">
+                <img src="https://img.cryptorank.io/coins/axelar1663924228506.png">
                 Powered by Axelar
             </a>
         </div>
         <div style="margin-top: 5px;">
             <a href="https://x.com/0xeman_raz" target="_blank">
-                <img src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg" alt="Eman Raz">
+                <img src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg">
                 Built by Eman Raz
             </a>
         </div>
@@ -59,12 +59,11 @@ st.sidebar.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🚀 Interchain Analysis")
-
+st.title("🚀 Axelar GMP & Token Transfers Dashboard")
 st.info("All data is loaded from Axelar public API (no database required).")
 
 # =========================
-# LOAD API DATA
+# LOAD DATA
 # =========================
 @st.cache_data
 def load_data():
@@ -131,48 +130,89 @@ with col2:
     st.markdown(card.format("Total Volume", f"${grouped['total_volume'].sum():,.0f}"), unsafe_allow_html=True)
 
 with col3:
-    st.markdown(card.format("Avg Volume / Tx", f"${(grouped['total_volume'].sum()/max(grouped['total_txs'].sum(),1)):,.2f}"), unsafe_allow_html=True)
+    st.markdown(card.format(
+        "Avg Volume / Tx",
+        f"${(grouped['total_volume'].sum()/max(grouped['total_txs'].sum(),1)):,.2f}"
+    ), unsafe_allow_html=True)
 
 # =========================
-# CHARTS SECTION
+# COLORS
 # =========================
-st.subheader("📊 Transactions Over Time")
-
-fig1 = go.Figure()
-fig1.add_bar(x=grouped["period"], y=grouped["gmp_num_txs"], name="GMP")
-fig1.add_bar(x=grouped["period"], y=grouped["transfers_num_txs"], name="Transfers")
-fig1.update_layout(barmode="stack")
-
-st.plotly_chart(fig1, use_container_width=True)
-
-st.subheader("💰 Volume Over Time")
-
-fig2 = go.Figure()
-fig2.add_bar(x=grouped["period"], y=grouped["gmp_volume"], name="GMP")
-fig2.add_bar(x=grouped["period"], y=grouped["transfers_volume"], name="Transfers")
-fig2.update_layout(barmode="stack")
-
-st.plotly_chart(fig2, use_container_width=True)
+GMP_COLOR = "#ff7400"
+TRANSFER_COLOR = "#00a1f7"
 
 # =========================
-# DONUT CHARTS
+# CHARTS ROW 1
 # =========================
-st.subheader("📌 Share of Activity")
+col1, col2 = st.columns(2)
 
-tx_df = pd.DataFrame({
-    "Service": ["GMP", "Transfers"],
-    "Value": [grouped["gmp_num_txs"].sum(), grouped["transfers_num_txs"].sum()]
-})
+with col1:
+    fig1 = go.Figure()
+    fig1.add_bar(x=grouped["period"], y=grouped["gmp_num_txs"], name="GMP", marker_color=GMP_COLOR)
+    fig1.add_bar(x=grouped["period"], y=grouped["transfers_num_txs"], name="Transfers", marker_color=TRANSFER_COLOR)
+    fig1.update_layout(
+        barmode="stack",
+        title=dict(text="Transactions Over Time", x=0.5)
+    )
+    st.plotly_chart(fig1, use_container_width=True)
 
-fig3 = px.pie(tx_df, names="Service", values="Value", hole=0.5, title="Transactions Share")
+with col2:
+    fig2 = go.Figure()
+    fig2.add_bar(x=grouped["period"], y=grouped["gmp_volume"], name="GMP", marker_color=GMP_COLOR)
+    fig2.add_bar(x=grouped["period"], y=grouped["transfers_volume"], name="Transfers", marker_color=TRANSFER_COLOR)
+    fig2.update_layout(
+        barmode="stack",
+        title=dict(text="Volume Over Time", x=0.5)
+    )
+    st.plotly_chart(fig2, use_container_width=True)
 
-st.plotly_chart(fig3, use_container_width=True)
+# =========================
+# CHARTS ROW 2 (DONUTS)
+# =========================
+col1, col2 = st.columns(2)
 
-vol_df = pd.DataFrame({
-    "Service": ["GMP", "Transfers"],
-    "Value": [grouped["gmp_volume"].sum(), grouped["transfers_volume"].sum()]
-})
+with col1:
+    tx_df = pd.DataFrame({
+        "Service": ["GMP", "Transfers"],
+        "Value": [
+            grouped["gmp_num_txs"].sum(),
+            grouped["transfers_num_txs"].sum()
+        ]
+    })
 
-fig4 = px.pie(vol_df, names="Service", values="Value", hole=0.5, title="Volume Share")
+    fig3 = px.pie(
+        tx_df,
+        names="Service",
+        values="Value",
+        hole=0.5,
+        title="Transactions Share",
+        color="Service",
+        color_discrete_map={
+            "GMP": GMP_COLOR,
+            "Transfers": TRANSFER_COLOR
+        }
+    )
+    st.plotly_chart(fig3, use_container_width=True)
 
-st.plotly_chart(fig4, use_container_width=True)
+with col2:
+    vol_df = pd.DataFrame({
+        "Service": ["GMP", "Transfers"],
+        "Value": [
+            grouped["gmp_volume"].sum(),
+            grouped["transfers_volume"].sum()
+        ]
+    })
+
+    fig4 = px.pie(
+        vol_df,
+        names="Service",
+        values="Value",
+        hole=0.5,
+        title="Volume Share",
+        color="Service",
+        color_discrete_map={
+            "GMP": GMP_COLOR,
+            "Transfers": TRANSFER_COLOR
+        }
+    )
+    st.plotly_chart(fig4, use_container_width=True)
