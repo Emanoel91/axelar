@@ -86,7 +86,7 @@ with col1:
     timeframe = st.selectbox("Timeframe", ["month", "week", "day"])
 
 with col2:
-    start_date = st.date_input("Start Date", pd.to_datetime("2022-01-01"))
+    start_date = st.date_input("Start Date", pd.to_datetime("2025-01-01"))
 
 with col3:
     end_date = st.date_input("End Date", pd.to_datetime("2027-01-01"))
