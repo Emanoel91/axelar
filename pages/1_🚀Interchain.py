@@ -152,7 +152,7 @@ with col1:
     fig1.add_bar(x=grouped["period"], y=grouped["transfers_num_txs"], name="Transfers", marker_color=TRANSFER_COLOR)
     fig1.update_layout(
         barmode="stack",
-        title=dict(text="Transactions Over Time", x=0.5)
+        title=dict(text="Transactions Over Time", x=0.1)
     )
     st.plotly_chart(fig1, use_container_width=True)
 
