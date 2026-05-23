@@ -152,7 +152,7 @@ SELECT count(distinct chain)-1 as "Unique Chains"
 FROM axelar_service
 where chain is not null
     """
-    df = pd.read_sql(query, conn)
+    df = pd.read_sql(query)
     return df
 
 # === Axelar Cross-chain Stats =====================
@@ -202,7 +202,7 @@ round(avg(fee),2) as "Avg Gas Fee", round(median(fee),2) as "Median Gas Fee"
 from axelar_service
 where created_at::date>='{start_str}' and created_at::date<='{end_str}'
     """
-    df = pd.read_sql(query, conn)
+    df = pd.read_sql(query)
     return df
 
 # === Load Kpi =====================================
@@ -326,7 +326,7 @@ group by 1, 2
 order by 1
 
     """
-    df = pd.read_sql(query, conn)
+    df = pd.read_sql(query)
     return df
 
 # === Load Data ========================================================
@@ -442,7 +442,7 @@ FROM axelar_service
 where created_at::date>='{start_str}' and created_at::date<='{end_str}'
 group by 1
     """
-    df = pd.read_sql(query, conn)
+    df = pd.read_sql(query)
     return df
 
 # === Load Data ===================================================================
@@ -546,7 +546,7 @@ from axelar_services
 group by 1,4
 order by 1
     """
-    df = pd.read_sql(query, conn)
+    df = pd.read_sql(query)
     return df
     
 # === Load Data ==================================================================
@@ -640,7 +640,7 @@ from axelar_services
 group by 4
 order by 2 desc 
     """
-    df = pd.read_sql(query, conn)
+    df = pd.read_sql(query)
     return df
 
 
