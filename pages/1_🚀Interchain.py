@@ -152,7 +152,7 @@ with col1:
     fig1.add_bar(x=grouped["period"], y=grouped["transfers_num_txs"], name="Transfers", marker_color=TRANSFER_COLOR)
     fig1.update_layout(
         barmode="stack",
-        title=dict(text="Transactions Over Time", x=0.1)
+        title=dict(text="Transactions Over Time")
     )
     st.plotly_chart(fig1, use_container_width=True)
 
@@ -162,7 +162,7 @@ with col2:
     fig2.add_bar(x=grouped["period"], y=grouped["transfers_volume"], name="Transfers", marker_color=TRANSFER_COLOR)
     fig2.update_layout(
         barmode="stack",
-        title=dict(text="Volume Over Time", x=0.5)
+        title=dict(text="Volume Over Time")
     )
     st.plotly_chart(fig2, use_container_width=True)
 
