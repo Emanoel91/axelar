@@ -59,7 +59,7 @@ st.sidebar.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🚀 Axelar GMP & Token Transfers Dashboard")
+st.title("🚀 Interchain Analysis")
 
 st.info("All data is loaded from Axelar public API (no database required).")
 
