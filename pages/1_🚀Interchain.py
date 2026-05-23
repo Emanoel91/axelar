@@ -1,17 +1,24 @@
+```python
 import streamlit as st
 import pandas as pd
 import requests
 import plotly.graph_objects as go
 import plotly.express as px
 
-# --- Page Config -------------------------------------------------------------------------------------
+# ======================================================================================
+# PAGE CONFIG
+# ======================================================================================
+
 st.set_page_config(
     page_title="Axelar Master Dashboard",
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
 
-# --- Sidebar Footer ----------------------------------------------------------------------------------
+# ======================================================================================
+# SIDEBAR FOOTER
+# ======================================================================================
+
 st.sidebar.markdown(
     """
     <style>
@@ -40,6 +47,7 @@ st.sidebar.markdown(
     </style>
 
     <div class="sidebar-footer">
+
         <div>
             <a href="https://x.com/axelar" target="_blank">
                 <img src="https://img.cryptorank.io/coins/axelar1663924228506.png">
@@ -47,24 +55,31 @@ st.sidebar.markdown(
             </a>
         </div>
 
-        <div style="margin-top: 5px;">
+        <div style="margin-top:5px;">
             <a href="https://x.com/0xeman_raz" target="_blank">
                 <img src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg">
                 Built by Eman Raz
             </a>
         </div>
+
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# --- Title --------------------------------------------------------------------------------------------
+# ======================================================================================
+# TITLE
+# ======================================================================================
+
 st.title("🚀 GMP & Token Transfers")
 
 st.info("📊 Charts initially display data for a default time range.")
 st.info("⏳ On-chain data retrieval may take a few moments.")
 
-# --- Time Frame Selection -----------------------------------------------------------------------------
+# ======================================================================================
+# TIMEFRAME
+# ======================================================================================
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -85,7 +100,10 @@ with col3:
         value=pd.to_datetime("2025-09-30")
     )
 
-# --- Header -------------------------------------------------------------------------------------------
+# ======================================================================================
+# HEADER
+# ======================================================================================
+
 st.markdown(
     """
     <div style="background-color:#ff7f27; padding:1px; border-radius:10px;">
@@ -99,9 +117,13 @@ st.markdown(
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- Load API Data ------------------------------------------------------------------------------------
+# ======================================================================================
+# LOAD API DATA
+# ======================================================================================
+
 @st.cache_data
 def load_data():
+
     url = "https://api.axelarscan.io/api/interchainChart"
 
     response = requests.get(url)
@@ -119,13 +141,19 @@ def load_data():
 
 df = load_data()
 
-# --- Filter Date Range --------------------------------------------------------------------------------
+# ======================================================================================
+# FILTER DATES
+# ======================================================================================
+
 df = df[
     (df["timestamp"] >= pd.to_datetime(start_date)) &
     (df["timestamp"] <= pd.to_datetime(end_date))
 ]
 
-# --- Resample -----------------------------------------------------------------------------------------
+# ======================================================================================
+# RESAMPLE DATA
+# ======================================================================================
+
 if timeframe == "week":
 
     df["period"] = (
@@ -146,12 +174,17 @@ else:
 
     df["period"] = df["timestamp"]
 
-# --- Group Data ---------------------------------------------------------------------------------------
+# ======================================================================================
+# GROUP DATA
+# ======================================================================================
+
 grouped = df.groupby("period").agg({
+
     "gmp_num_txs": "sum",
     "gmp_volume": "sum",
     "transfers_num_txs": "sum",
     "transfers_volume": "sum"
+
 }).reset_index()
 
 grouped["total_txs"] = (
@@ -164,7 +197,10 @@ grouped["total_volume"] = (
     grouped["transfers_volume"]
 )
 
-# --- KPI Cards ----------------------------------------------------------------------------------------
+# ======================================================================================
+# KPI SECTION
+# ======================================================================================
+
 card_style = """
 <div style="
     background-color: #f9f9f9;
@@ -199,9 +235,12 @@ total_volume = (
     grouped["transfers_volume"].sum()
 )
 
-col1, col2 = st.columns(2)
+avg_tx_size = total_volume / total_num_txs
+
+col1, col2, col3 = st.columns(3)
 
 with col1:
+
     st.markdown(
         card_style.format(
             label="🚀 Number of Transfers",
@@ -211,6 +250,7 @@ with col1:
     )
 
 with col2:
+
     st.markdown(
         card_style.format(
             label="💸 Volume of Transfers",
@@ -219,9 +259,22 @@ with col2:
         unsafe_allow_html=True
     )
 
+with col3:
+
+    st.markdown(
+        card_style.format(
+            label="📊 Average Transfer Size",
+            value=f"${avg_tx_size:,.2f}"
+        ),
+        unsafe_allow_html=True
+    )
+
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- Header -------------------------------------------------------------------------------------------
+# ======================================================================================
+# HEADER
+# ======================================================================================
+
 st.markdown(
     """
     <div style="background-color:#ff7f27; padding:1px; border-radius:10px;">
@@ -233,7 +286,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Transactions Count Chart -------------------------------------------------------------------------
+# ======================================================================================
+# CHART 1 — TRANSACTION COUNT
+# ======================================================================================
+
 fig1 = go.Figure()
 
 fig1.add_trace(
@@ -267,7 +323,7 @@ fig1.add_trace(
 fig1.update_layout(
     barmode="stack",
     title="Number of Transfers by Service Over Time",
-    yaxis=dict(title="Txns count"),
+    yaxis=dict(title="Transactions"),
     legend=dict(
         orientation="h",
         yanchor="bottom",
@@ -277,7 +333,10 @@ fig1.update_layout(
     )
 )
 
-# --- Volume Chart -------------------------------------------------------------------------------------
+# ======================================================================================
+# CHART 2 — VOLUME
+# ======================================================================================
+
 fig2 = go.Figure()
 
 fig2.add_trace(
@@ -321,7 +380,10 @@ fig2.update_layout(
     )
 )
 
-# --- Display Charts -----------------------------------------------------------------------------------
+# ======================================================================================
+# DISPLAY CHARTS
+# ======================================================================================
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -330,7 +392,10 @@ with col1:
 with col2:
     st.plotly_chart(fig2, use_container_width=True)
 
-# --- Normalized Transactions --------------------------------------------------------------------------
+# ======================================================================================
+# NORMALIZED TRANSACTIONS
+# ======================================================================================
+
 df_norm_tx = grouped.copy()
 
 df_norm_tx["gmp_norm"] = (
@@ -376,7 +441,10 @@ fig3.update_layout(
     )
 )
 
-# --- Normalized Volume --------------------------------------------------------------------------------
+# ======================================================================================
+# NORMALIZED VOLUME
+# ======================================================================================
+
 df_norm_vol = grouped.copy()
 
 df_norm_vol["gmp_norm"] = (
@@ -422,7 +490,10 @@ fig4.update_layout(
     )
 )
 
-# --- Display Normalized Charts ------------------------------------------------------------------------
+# ======================================================================================
+# DISPLAY NORMALIZED CHARTS
+# ======================================================================================
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -431,7 +502,10 @@ with col1:
 with col2:
     st.plotly_chart(fig4, use_container_width=True)
 
-# --- Donut Charts -------------------------------------------------------------------------------------
+# ======================================================================================
+# DONUT CHARTS
+# ======================================================================================
+
 total_gmp_tx = grouped["gmp_num_txs"].sum()
 total_transfer_tx = grouped["transfers_num_txs"].sum()
 
@@ -458,7 +532,10 @@ donut_tx.update_traces(
     showlegend=False
 )
 
-# --- Volume Donut -------------------------------------------------------------------------------------
+# ======================================================================================
+# DONUT VOLUME
+# ======================================================================================
+
 total_gmp_vol = grouped["gmp_volume"].sum()
 total_transfer_vol = grouped["transfers_volume"].sum()
 
@@ -485,7 +562,10 @@ donut_vol.update_traces(
     showlegend=False
 )
 
-# --- Display Donuts -----------------------------------------------------------------------------------
+# ======================================================================================
+# DISPLAY DONUTS
+# ======================================================================================
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -493,3 +573,4 @@ with col1:
 
 with col2:
     st.plotly_chart(donut_vol, use_container_width=True)
+```
