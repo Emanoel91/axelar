@@ -14,6 +14,24 @@ st.set_page_config(
 )
 
 # =========================
+# THEME TOGGLE (LIGHT / DARK)
+# =========================
+theme = st.sidebar.radio("Theme", ["Light", "Dark"])
+
+if theme == "Dark":
+    st.markdown("""
+    <style>
+        body, .stApp {
+            background-color: #0e1117;
+            color: white;
+        }
+        div[data-testid="stMetricValue"] {
+            color: white;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+# =========================
 # SIDEBAR FOOTER
 # =========================
 st.sidebar.markdown(
@@ -31,13 +49,8 @@ st.sidebar.markdown(
     .sidebar-footer img {
         width: 16px;
         height: 16px;
-        vertical-align: middle;
         border-radius: 50%;
         margin-right: 5px;
-    }
-    .sidebar-footer a {
-        color: gray;
-        text-decoration: none;
     }
     </style>
 
@@ -60,7 +73,7 @@ st.sidebar.markdown(
 )
 
 st.title("🚀 Axelar GMP & Token Transfers Dashboard")
-st.info("All data is loaded from Axelar public API (no database required).")
+st.info("Live data from Axelar API")
 
 # =========================
 # LOAD DATA
@@ -83,7 +96,7 @@ df = load_data()
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    timeframe = st.selectbox("Timeframe", ["month", "week", "day"])
+    timeframe = st.selectbox("Timeframe", ["day", "week", "month"])
 
 with col2:
     start_date = st.date_input("Start Date", pd.to_datetime("2022-01-01"))
@@ -112,27 +125,62 @@ grouped["total_txs"] = grouped["gmp_num_txs"] + grouped["transfers_num_txs"]
 grouped["total_volume"] = grouped["gmp_volume"] + grouped["transfers_volume"]
 
 # =========================
+# KPI CALC (CURRENT VS PREVIOUS)
+# =========================
+latest = grouped.tail(1)
+prev = grouped.tail(2).head(1)
+
+def calc_delta(curr, prev):
+    if prev == 0:
+        return 0
+    return ((curr - prev) / prev) * 100
+
+tx_curr = latest["total_txs"].values[0]
+tx_prev = prev["total_txs"].values[0]
+
+vol_curr = latest["total_volume"].values[0]
+vol_prev = prev["total_volume"].values[0]
+
+avg_curr = vol_curr / max(tx_curr, 1)
+avg_prev = vol_prev / max(tx_prev, 1)
+
+# =========================
 # KPI CARDS
 # =========================
-card = """
-<div style="padding:15px;border-radius:12px;background:#f5f5f5;text-align:center;">
-<h3>{}</h3>
-<h2>{}</h2>
-</div>
-"""
+def kpi_card(title, value, delta):
+    color = "green" if delta >= 0 else "red"
+    arrow = "▲" if delta >= 0 else "▼"
+    return f"""
+    <div style="padding:15px;border-radius:12px;background:#1c1f26;text-align:center;">
+        <h4>{title}</h4>
+        <h2>{value}</h2>
+        <p style="color:{color};font-size:14px;">
+            {arrow} {delta:.2f}%
+        </p>
+    </div>
+    """
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown(card.format("Total Transactions", f"{grouped['total_txs'].sum():,}"), unsafe_allow_html=True)
+    st.markdown(kpi_card(
+        "Total Transactions",
+        f"{tx_curr:,}",
+        calc_delta(tx_curr, tx_prev)
+    ), unsafe_allow_html=True)
 
 with col2:
-    st.markdown(card.format("Total Volume", f"${grouped['total_volume'].sum():,.0f}"), unsafe_allow_html=True)
+    st.markdown(kpi_card(
+        "Total Volume",
+        f"${vol_curr:,.0f}",
+        calc_delta(vol_curr, vol_prev)
+    ), unsafe_allow_html=True)
 
 with col3:
-    st.markdown(card.format(
+    st.markdown(kpi_card(
         "Avg Volume / Tx",
-        f"${(grouped['total_volume'].sum()/max(grouped['total_txs'].sum(),1)):,.2f}"
+        f"${avg_curr:,.2f}",
+        calc_delta(avg_curr, avg_prev)
     ), unsafe_allow_html=True)
 
 # =========================
@@ -142,7 +190,7 @@ GMP_COLOR = "#ff7400"
 TRANSFER_COLOR = "#00a1f7"
 
 # =========================
-# CHARTS ROW 1
+# CHARTS ROW 1 (ANIMATED STYLE)
 # =========================
 col1, col2 = st.columns(2)
 
@@ -150,20 +198,26 @@ with col1:
     fig1 = go.Figure()
     fig1.add_bar(x=grouped["period"], y=grouped["gmp_num_txs"], name="GMP", marker_color=GMP_COLOR)
     fig1.add_bar(x=grouped["period"], y=grouped["transfers_num_txs"], name="Transfers", marker_color=TRANSFER_COLOR)
+
     fig1.update_layout(
         barmode="stack",
-        title=dict(text="Transactions Over Time")
+        title=dict(text="Transactions Over Time", x=0.5),
+        transition_duration=500
     )
+
     st.plotly_chart(fig1, use_container_width=True)
 
 with col2:
     fig2 = go.Figure()
     fig2.add_bar(x=grouped["period"], y=grouped["gmp_volume"], name="GMP", marker_color=GMP_COLOR)
     fig2.add_bar(x=grouped["period"], y=grouped["transfers_volume"], name="Transfers", marker_color=TRANSFER_COLOR)
+
     fig2.update_layout(
         barmode="stack",
-        title=dict(text="Volume Over Time")
+        title=dict(text="Volume Over Time", x=0.5),
+        transition_duration=500
     )
+
     st.plotly_chart(fig2, use_container_width=True)
 
 # =========================
@@ -192,6 +246,7 @@ with col1:
             "Transfers": TRANSFER_COLOR
         }
     )
+
     st.plotly_chart(fig3, use_container_width=True)
 
 with col2:
@@ -215,4 +270,5 @@ with col2:
             "Transfers": TRANSFER_COLOR
         }
     )
+
     st.plotly_chart(fig4, use_container_width=True)
