@@ -29,6 +29,22 @@ GLOBAL
 }
 
 /* =========================
+SIDEBAR (NEW STYLE)
+========================= */
+
+section[data-testid="stSidebar"] * {
+    font-size: 13px !important;   /* smaller text */
+    font-weight: 600 !important;  /* bold */
+}
+
+/* Optional: make sidebar markdown links cleaner */
+section[data-testid="stSidebar"] a {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+}
+
+/* =========================
 METRIC CARDS
 ========================= */
 
@@ -123,7 +139,7 @@ with st.sidebar:
 
     with col2:
         st.markdown(
-            'Powered by ''[Axelar](https://x.com/axelar)'
+            'Powered by [Axelar](https://x.com/axelar)'
         )
 
     col1, col2 = st.columns([1, 6])
@@ -136,7 +152,7 @@ with st.sidebar:
 
     with col2:
         st.markdown(
-            'Built by ''[Eman Raz](https://x.com/0xeman_raz)'
+            'Built by [Eman Raz](https://x.com/0xeman_raz)'
         )
 
 # =====================================================
@@ -373,7 +389,6 @@ with col4:
 # COLORS
 # =====================================================
 GMP_COLOR = "#ff7400"
-
 TRANSFER_COLOR = "#00a1f7"
 
 # =====================================================
