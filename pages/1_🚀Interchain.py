@@ -136,7 +136,7 @@ with st.sidebar:
 
     with col2:
         st.markdown(
-            '[Built by Eman Raz](https://x.com/0xeman_raz)'
+            'Built by ''[Eman Raz](https://x.com/0xeman_raz)'
         )
 
 # =====================================================
