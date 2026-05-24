@@ -99,11 +99,36 @@ SIDEBAR FOOTER
     text-align: left;
 }
 
+.sidebar-footer-item {
+
+    display: flex;
+
+    align-items: center;
+
+    margin-bottom: 10px;
+}
+
+.sidebar-footer img {
+
+    width: 18px;
+
+    height: 18px;
+
+    border-radius: 50%;
+
+    margin-right: 8px;
+}
+
 .sidebar-footer a {
 
     color: gray !important;
 
     text-decoration: none;
+}
+
+.sidebar-footer a:hover {
+
+    color: white !important;
 }
 
 /* =========================
@@ -135,15 +160,48 @@ RESPONSIVE
 """, unsafe_allow_html=True)
 
 # =====================================================
-# SIDEBAR
+# SIDEBAR FOOTER
 # =====================================================
-with st.sidebar:
+st.sidebar.markdown(
+    """
+    <div class="sidebar-footer">
 
-    st.markdown("### Axelar")
+        <div class="sidebar-footer-item">
 
-    st.write("Powered by Axelar")
+            <img
+                src="https://axelarscan.io/logos/logo.png"
+                alt="Axelar"
+            >
 
-    st.write("Built by Eman Raz")
+            <span>
+                Powered by
+                <a href="https://x.com/axelar" target="_blank">
+                    Axelar
+                </a>
+            </span>
+
+        </div>
+
+        <div class="sidebar-footer-item">
+
+            <img
+                src="https://pbs.twimg.com/profile_images/2058533217540423680/JomSr3XY_400x400.jpg"
+                alt="Eman Raz"
+            >
+
+            <span>
+                Built by
+                <a href="https://x.com/0xeman_raz" target="_blank">
+                    Eman Raz
+                </a>
+            </span>
+
+        </div>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # =====================================================
 # TITLE
