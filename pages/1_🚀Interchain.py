@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # =====================================================
-# GLOBAL CSS
+# CSS
 # =====================================================
 st.markdown("""
 <style>
@@ -29,10 +29,10 @@ GLOBAL
 }
 
 /* =========================
-KPI CARDS
+METRIC CARDS
 ========================= */
 
-.kpi-box {
+[data-testid="metric-container"] {
 
     background: linear-gradient(
         145deg,
@@ -40,21 +40,19 @@ KPI CARDS
         #111111
     );
 
-    border-radius: 18px;
-
-    padding: 22px;
-
     border: 1px solid rgba(255,255,255,0.05);
+
+    padding: 20px;
+
+    border-radius: 18px;
 
     box-shadow:
         0 4px 15px rgba(0,0,0,0.25);
 
-    transition: all 0.25s ease;
-
-    min-height: 125px;
+    transition: 0.25s ease;
 }
 
-.kpi-box:hover {
+[data-testid="metric-container"]:hover {
 
     transform: translateY(-4px);
 
@@ -64,24 +62,20 @@ KPI CARDS
         0 8px 24px rgba(255,116,0,0.15);
 }
 
-.kpi-label {
+/* metric label */
+[data-testid="metric-container"] label {
 
-    font-size: 14px;
+    color: #9f9f9f !important;
 
-    color: #9f9f9f;
-
-    margin-bottom: 12px;
+    font-size: 15px !important;
 }
 
-.kpi-value {
-
-    font-size: 34px;
-
-    font-weight: 700;
+/* metric value */
+[data-testid="metric-container"] [data-testid="stMetricValue"] {
 
     color: white;
 
-    line-height: 1.1;
+    font-size: 32px;
 }
 
 /* =========================
@@ -94,7 +88,7 @@ SIDEBAR FOOTER
 
     bottom: 20px;
 
-    width: 250px;
+    width: 230px;
 
     font-size: 13px;
 
@@ -103,19 +97,6 @@ SIDEBAR FOOTER
     margin-left: 5px;
 
     text-align: left;
-}
-
-.sidebar-footer img {
-
-    width: 16px;
-
-    height: 16px;
-
-    vertical-align: middle;
-
-    border-radius: 50%;
-
-    margin-right: 5px;
 }
 
 .sidebar-footer a {
@@ -131,22 +112,22 @@ RESPONSIVE
 
 @media (max-width: 1200px) {
 
-    .kpi-value {
-        font-size: 28px;
+    [data-testid="metric-container"] [data-testid="stMetricValue"] {
+
+        font-size: 26px;
     }
 }
 
 @media (max-width: 768px) {
 
-    .kpi-value {
-        font-size: 22px;
+    [data-testid="metric-container"] {
+
+        padding: 16px;
     }
 
-    .kpi-box {
+    [data-testid="metric-container"] [data-testid="stMetricValue"] {
 
-        padding: 18px;
-
-        min-height: 100px;
+        font-size: 22px;
     }
 }
 
@@ -154,36 +135,15 @@ RESPONSIVE
 """, unsafe_allow_html=True)
 
 # =====================================================
-# SIDEBAR FOOTER
+# SIDEBAR
 # =====================================================
-st.sidebar.markdown(
-    """
-    <div class="sidebar-footer">
+with st.sidebar:
 
-        <div>
-            <a href="https://x.com/axelar" target="_blank">
-                <img
-                    src="https://img.cryptorank.io/coins/axelar1663924228506.png"
-                    alt="Axelar Logo"
-                >
-                Powered by Axelar
-            </a>
-        </div>
+    st.markdown("### Axelar")
 
-        <div style="margin-top: 5px;">
-            <a href="https://x.com/0xeman_raz" target="_blank">
-                <img
-                    src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg"
-                    alt="Eman Raz"
-                >
-                Built by Eman Raz
-            </a>
-        </div>
+    st.write("Powered by Axelar")
 
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+    st.write("Built by Eman Raz")
 
 # =====================================================
 # TITLE
@@ -347,42 +307,20 @@ avg_weekly_volume = weekly_grouped["weekly_volume"].mean()
 avg_weekly_txs = weekly_grouped["weekly_txs"].mean()
 
 # =====================================================
-# KPI FUNCTION
-# =====================================================
-def kpi(label, value):
-
-    st.markdown(
-        f"""
-        <div class="kpi-box">
-
-            <div class="kpi-label">
-                {label}
-            </div>
-
-            <div class="kpi-value">
-                {value}
-            </div>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-# =====================================================
 # KPI ROW 1
 # =====================================================
 col1, col2, col3 = st.columns(3)
 
 with col1:
 
-    kpi(
+    st.metric(
         "Total Transactions",
         f"{grouped['total_txs'].sum():,}"
     )
 
 with col2:
 
-    kpi(
+    st.metric(
         "Total Volume",
         f"${grouped['total_volume'].sum():,.0f}"
     )
@@ -394,7 +332,7 @@ with col3:
         max(grouped["total_txs"].sum(), 1)
     )
 
-    kpi(
+    st.metric(
         "Avg Volume / Tx",
         f"${avg_volume_per_tx:,.2f}"
     )
@@ -411,28 +349,28 @@ col1, col2, col3, col4 = st.columns(4)
 
 with col1:
 
-    kpi(
+    st.metric(
         "Avg Daily Volume",
         f"${avg_daily_volume:,.0f}"
     )
 
 with col2:
 
-    kpi(
+    st.metric(
         "Avg Weekly Volume",
         f"${avg_weekly_volume:,.0f}"
     )
 
 with col3:
 
-    kpi(
+    st.metric(
         "Avg Daily Transactions",
         f"{avg_daily_txs:,.0f}"
     )
 
 with col4:
 
-    kpi(
+    st.metric(
         "Avg Weekly Transactions",
         f"{avg_weekly_txs:,.0f}"
     )
@@ -468,10 +406,8 @@ with col1:
     )
 
     fig1.update_layout(
-        title="Transactions Over Time",
         barmode="stack",
-        template="plotly_dark",
-        height=450
+        title=dict(text="Transactions Over Time")
     )
 
     st.plotly_chart(
@@ -498,10 +434,8 @@ with col2:
     )
 
     fig2.update_layout(
-        title="Volume Over Time",
         barmode="stack",
-        template="plotly_dark",
-        height=450
+        title=dict(text="Volume Over Time")
     )
 
     st.plotly_chart(
@@ -528,18 +462,13 @@ with col1:
         tx_df,
         names="Service",
         values="Value",
-        hole=0.55,
+        hole=0.5,
         title="Transactions Share",
         color="Service",
         color_discrete_map={
             "GMP": GMP_COLOR,
             "Transfers": TRANSFER_COLOR
         }
-    )
-
-    fig3.update_layout(
-        template="plotly_dark",
-        height=420
     )
 
     st.plotly_chart(
@@ -561,18 +490,13 @@ with col2:
         vol_df,
         names="Service",
         values="Value",
-        hole=0.55,
+        hole=0.5,
         title="Volume Share",
         color="Service",
         color_discrete_map={
             "GMP": GMP_COLOR,
             "Transfers": TRANSFER_COLOR
         }
-    )
-
-    fig4.update_layout(
-        template="plotly_dark",
-        height=420
     )
 
     st.plotly_chart(
