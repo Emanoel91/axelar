@@ -26,9 +26,8 @@ st.sidebar.markdown(
         font-size: 13px;
         color: gray;
         margin-left: 5px;
-        text-align: left;
+        text-align: left;  
     }
-
     .sidebar-footer img {
         width: 16px;
         height: 16px;
@@ -36,30 +35,9 @@ st.sidebar.markdown(
         border-radius: 50%;
         margin-right: 5px;
     }
-
     .sidebar-footer a {
         color: gray;
         text-decoration: none;
-    }
-
-    .kpi-card {
-        padding: 18px;
-        border-radius: 14px;
-        background: #f5f5f5;
-        text-align: center;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    }
-
-    .kpi-card h3 {
-        margin: 0;
-        font-size: 16px;
-        color: #666;
-    }
-
-    .kpi-card h2 {
-        margin-top: 10px;
-        margin-bottom: 0;
-        font-size: 28px;
     }
     </style>
 
@@ -70,7 +48,6 @@ st.sidebar.markdown(
                 Powered by Axelar
             </a>
         </div>
-
         <div style="margin-top: 5px;">
             <a href="https://x.com/0xeman_raz" target="_blank">
                 <img src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg">
