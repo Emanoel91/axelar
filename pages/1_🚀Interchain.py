@@ -123,7 +123,7 @@ with st.sidebar:
 
     with col2:
         st.markdown(
-            '[Powered by Axelar](https://x.com/axelar)'
+            '[Axelar](https://x.com/axelar)'
         )
 
     col1, col2 = st.columns([1, 6])
