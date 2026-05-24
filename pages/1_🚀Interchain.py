@@ -26,8 +26,9 @@ st.sidebar.markdown(
         font-size: 13px;
         color: gray;
         margin-left: 5px;
-        text-align: left;  
+        text-align: left;
     }
+
     .sidebar-footer img {
         width: 16px;
         height: 16px;
@@ -35,9 +36,30 @@ st.sidebar.markdown(
         border-radius: 50%;
         margin-right: 5px;
     }
+
     .sidebar-footer a {
         color: gray;
         text-decoration: none;
+    }
+
+    .kpi-card {
+        padding: 18px;
+        border-radius: 14px;
+        background: #f5f5f5;
+        text-align: center;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .kpi-card h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #666;
+    }
+
+    .kpi-card h2 {
+        margin-top: 10px;
+        margin-bottom: 0;
+        font-size: 28px;
     }
     </style>
 
@@ -48,6 +70,7 @@ st.sidebar.markdown(
                 Powered by Axelar
             </a>
         </div>
+
         <div style="margin-top: 5px;">
             <a href="https://x.com/0xeman_raz" target="_blank">
                 <img src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg">
@@ -68,12 +91,16 @@ st.info("All data is loaded from Axelar public API (no database required).")
 @st.cache_data
 def load_data():
     url = "https://api.axelarscan.io/api/interchainChart"
+
     r = requests.get(url, timeout=30)
     data = r.json()["data"]
 
     df = pd.DataFrame(data)
+
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+
     return df
+
 
 df = load_data()
 
@@ -83,57 +110,193 @@ df = load_data()
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    timeframe = st.selectbox("Timeframe", ["month", "week", "day"])
+    timeframe = st.selectbox(
+        "Timeframe",
+        ["month", "week", "day"]
+    )
 
 with col2:
-    start_date = st.date_input("Start Date", pd.to_datetime("2025-01-01"))
+    start_date = st.date_input(
+        "Start Date",
+        pd.to_datetime("2025-01-01")
+    )
 
 with col3:
-    end_date = st.date_input("End Date", pd.to_datetime("2027-01-01"))
+    end_date = st.date_input(
+        "End Date",
+        pd.to_datetime("2027-01-01")
+    )
 
+# =========================
+# FILTER DATA
+# =========================
 df = df[
     (df["timestamp"] >= pd.to_datetime(start_date)) &
     (df["timestamp"] <= pd.to_datetime(end_date))
 ]
 
 # =========================
-# RESAMPLE
+# RESAMPLE MAIN DATA
 # =========================
 if timeframe == "week":
     df["period"] = df["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
+
 elif timeframe == "month":
     df["period"] = df["timestamp"].dt.to_period("M").apply(lambda r: r.start_time)
+
 else:
     df["period"] = df["timestamp"]
 
 grouped = df.groupby("period").sum(numeric_only=True).reset_index()
 
-grouped["total_txs"] = grouped["gmp_num_txs"] + grouped["transfers_num_txs"]
-grouped["total_volume"] = grouped["gmp_volume"] + grouped["transfers_volume"]
+grouped["total_txs"] = (
+    grouped["gmp_num_txs"] +
+    grouped["transfers_num_txs"]
+)
+
+grouped["total_volume"] = (
+    grouped["gmp_volume"] +
+    grouped["transfers_volume"]
+)
 
 # =========================
-# KPI CARDS
+# DAILY / WEEKLY AVERAGES
+# =========================
+daily_df = df.copy()
+daily_df["day"] = daily_df["timestamp"].dt.date
+
+daily_grouped = (
+    daily_df.groupby("day")
+    .sum(numeric_only=True)
+    .reset_index()
+)
+
+daily_grouped["daily_volume"] = (
+    daily_grouped["gmp_volume"] +
+    daily_grouped["transfers_volume"]
+)
+
+daily_grouped["daily_txs"] = (
+    daily_grouped["gmp_num_txs"] +
+    daily_grouped["transfers_num_txs"]
+)
+
+avg_daily_volume = daily_grouped["daily_volume"].mean()
+avg_daily_txs = daily_grouped["daily_txs"].mean()
+
+weekly_df = df.copy()
+weekly_df["week"] = (
+    weekly_df["timestamp"]
+    .dt.to_period("W")
+    .apply(lambda r: r.start_time)
+)
+
+weekly_grouped = (
+    weekly_df.groupby("week")
+    .sum(numeric_only=True)
+    .reset_index()
+)
+
+weekly_grouped["weekly_volume"] = (
+    weekly_grouped["gmp_volume"] +
+    weekly_grouped["transfers_volume"]
+)
+
+weekly_grouped["weekly_txs"] = (
+    weekly_grouped["gmp_num_txs"] +
+    weekly_grouped["transfers_num_txs"]
+)
+
+avg_weekly_volume = weekly_grouped["weekly_volume"].mean()
+avg_weekly_txs = weekly_grouped["weekly_txs"].mean()
+
+# =========================
+# KPI CARD TEMPLATE
 # =========================
 card = """
-<div style="padding:15px;border-radius:12px;background:#f5f5f5;text-align:center;">
-<h3>{}</h3>
-<h2>{}</h2>
+<div class="kpi-card">
+    <h3>{}</h3>
+    <h2>{}</h2>
 </div>
 """
 
+# =========================
+# KPI ROW 1
+# =========================
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown(card.format("Total Transactions", f"{grouped['total_txs'].sum():,}"), unsafe_allow_html=True)
+    st.markdown(
+        card.format(
+            "Total Transactions",
+            f"{grouped['total_txs'].sum():,}"
+        ),
+        unsafe_allow_html=True
+    )
 
 with col2:
-    st.markdown(card.format("Total Volume", f"${grouped['total_volume'].sum():,.0f}"), unsafe_allow_html=True)
+    st.markdown(
+        card.format(
+            "Total Volume",
+            f"${grouped['total_volume'].sum():,.0f}"
+        ),
+        unsafe_allow_html=True
+    )
 
 with col3:
-    st.markdown(card.format(
-        "Avg Volume / Tx",
-        f"${(grouped['total_volume'].sum()/max(grouped['total_txs'].sum(),1)):,.2f}"
-    ), unsafe_allow_html=True)
+    avg_volume_per_tx = (
+        grouped["total_volume"].sum() /
+        max(grouped["total_txs"].sum(), 1)
+    )
+
+    st.markdown(
+        card.format(
+            "Avg Volume / Tx",
+            f"${avg_volume_per_tx:,.2f}"
+        ),
+        unsafe_allow_html=True
+    )
+
+# =========================
+# KPI ROW 2 (NEW)
+# =========================
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.markdown(
+        card.format(
+            "Avg Daily Volume",
+            f"${avg_daily_volume:,.0f}"
+        ),
+        unsafe_allow_html=True
+    )
+
+with col2:
+    st.markdown(
+        card.format(
+            "Avg Weekly Volume",
+            f"${avg_weekly_volume:,.0f}"
+        ),
+        unsafe_allow_html=True
+    )
+
+with col3:
+    st.markdown(
+        card.format(
+            "Avg Daily Transactions",
+            f"{avg_daily_txs:,.0f}"
+        ),
+        unsafe_allow_html=True
+    )
+
+with col4:
+    st.markdown(
+        card.format(
+            "Avg Weekly Transactions",
+            f"{avg_weekly_txs:,.0f}"
+        ),
+        unsafe_allow_html=True
+    )
 
 # =========================
 # COLORS
@@ -148,22 +311,50 @@ col1, col2 = st.columns(2)
 
 with col1:
     fig1 = go.Figure()
-    fig1.add_bar(x=grouped["period"], y=grouped["gmp_num_txs"], name="GMP", marker_color=GMP_COLOR)
-    fig1.add_bar(x=grouped["period"], y=grouped["transfers_num_txs"], name="Transfers", marker_color=TRANSFER_COLOR)
+
+    fig1.add_bar(
+        x=grouped["period"],
+        y=grouped["gmp_num_txs"],
+        name="GMP",
+        marker_color=GMP_COLOR
+    )
+
+    fig1.add_bar(
+        x=grouped["period"],
+        y=grouped["transfers_num_txs"],
+        name="Transfers",
+        marker_color=TRANSFER_COLOR
+    )
+
     fig1.update_layout(
         barmode="stack",
         title=dict(text="Transactions Over Time")
     )
+
     st.plotly_chart(fig1, use_container_width=True)
 
 with col2:
     fig2 = go.Figure()
-    fig2.add_bar(x=grouped["period"], y=grouped["gmp_volume"], name="GMP", marker_color=GMP_COLOR)
-    fig2.add_bar(x=grouped["period"], y=grouped["transfers_volume"], name="Transfers", marker_color=TRANSFER_COLOR)
+
+    fig2.add_bar(
+        x=grouped["period"],
+        y=grouped["gmp_volume"],
+        name="GMP",
+        marker_color=GMP_COLOR
+    )
+
+    fig2.add_bar(
+        x=grouped["period"],
+        y=grouped["transfers_volume"],
+        name="Transfers",
+        marker_color=TRANSFER_COLOR
+    )
+
     fig2.update_layout(
         barmode="stack",
         title=dict(text="Volume Over Time")
     )
+
     st.plotly_chart(fig2, use_container_width=True)
 
 # =========================
@@ -192,6 +383,7 @@ with col1:
             "Transfers": TRANSFER_COLOR
         }
     )
+
     st.plotly_chart(fig3, use_container_width=True)
 
 with col2:
@@ -215,4 +407,5 @@ with col2:
             "Transfers": TRANSFER_COLOR
         }
     )
+
     st.plotly_chart(fig4, use_container_width=True)
