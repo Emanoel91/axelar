@@ -4,86 +4,222 @@ import requests
 import plotly.graph_objects as go
 import plotly.express as px
 
-# =========================
+# =========================================================
 # PAGE CONFIG
-# =========================
+# =========================================================
 st.set_page_config(
     page_title="Axelar Dashboard",
     page_icon="🚀",
     layout="wide"
 )
 
-# =========================
+# =========================================================
+# GLOBAL CSS
+# =========================================================
+st.markdown("""
+<style>
+
+/* =========================
+MAIN
+========================= */
+
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* =========================
+KPI CARDS
+========================= */
+
+.kpi-card {
+    background: linear-gradient(
+        145deg,
+        rgba(30,30,30,0.95),
+        rgba(15,15,15,0.95)
+    );
+
+    border: 1px solid rgba(255,255,255,0.06);
+
+    padding: 22px;
+    border-radius: 20px;
+
+    transition: all 0.25s ease;
+
+    backdrop-filter: blur(10px);
+
+    min-height: 135px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    box-shadow:
+        0 4px 20px rgba(0,0,0,0.25);
+
+    overflow: hidden;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    border: 1px solid rgba(255,116,0,0.35);
+
+    box-shadow:
+        0 10px 28px rgba(255,116,0,0.15);
+}
+
+.kpi-title {
+    font-size: 14px;
+    color: #a0a0a0;
+    margin-bottom: 10px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+.kpi-value {
+    font-size: 34px;
+    font-weight: 700;
+    color: white;
+    line-height: 1.1;
+}
+
+.kpi-sub {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #888;
+}
+
+/* =========================
+SIDEBAR FOOTER
+========================= */
+
+.sidebar-footer {
+    position: fixed;
+    bottom: 20px;
+    width: 230px;
+    font-size: 13px;
+    color: gray;
+}
+
+.sidebar-footer img {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.sidebar-footer a {
+    color: gray;
+    text-decoration: none;
+}
+
+/* =========================
+PLOTLY
+========================= */
+
+.js-plotly-plot {
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+/* =========================
+RESPONSIVE
+========================= */
+
+@media (max-width: 1200px) {
+
+    .kpi-value {
+        font-size: 26px;
+    }
+
+    .kpi-card {
+        min-height: 120px;
+        padding: 18px;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .kpi-value {
+        font-size: 22px;
+    }
+
+    .kpi-title {
+        font-size: 12px;
+    }
+
+    .kpi-card {
+        min-height: 105px;
+        padding: 16px;
+    }
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================================
 # SIDEBAR FOOTER
-# =========================
+# =========================================================
 st.sidebar.markdown(
     """
-    <style>
-    .sidebar-footer {
-        position: fixed;
-        bottom: 20px;
-        width: 250px;
-        font-size: 13px;
-        color: gray;
-        margin-left: 5px;
-        text-align: left;  
-    }
-    .sidebar-footer img {
-        width: 16px;
-        height: 16px;
-        vertical-align: middle;
-        border-radius: 50%;
-        margin-right: 5px;
-    }
-    .sidebar-footer a {
-        color: gray;
-        text-decoration: none;
-    }
-    </style>
-
     <div class="sidebar-footer">
+
         <div>
             <a href="https://x.com/axelar" target="_blank">
                 <img src="https://img.cryptorank.io/coins/axelar1663924228506.png">
                 Powered by Axelar
             </a>
         </div>
-        <div style="margin-top: 5px;">
+
+        <div style="margin-top: 8px;">
             <a href="https://x.com/0xeman_raz" target="_blank">
                 <img src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg">
                 Built by Eman Raz
             </a>
         </div>
+
     </div>
     """,
     unsafe_allow_html=True
 )
 
+# =========================================================
+# HEADER
+# =========================================================
 st.title("🚀 Interchain Analysis")
-st.info("All data is loaded from Axelar public API (no database required).")
 
-# =========================
+st.info(
+    "All data is loaded from Axelar public API (no database required)."
+)
+
+# =========================================================
 # LOAD DATA
-# =========================
+# =========================================================
 @st.cache_data
 def load_data():
+
     url = "https://api.axelarscan.io/api/interchainChart"
 
     r = requests.get(url, timeout=30)
+
     data = r.json()["data"]
 
     df = pd.DataFrame(data)
 
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+    df["timestamp"] = pd.to_datetime(
+        df["timestamp"],
+        unit="ms"
+    )
 
     return df
 
 
 df = load_data()
 
-# =========================
+# =========================================================
 # FILTERS
-# =========================
+# =========================================================
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -104,27 +240,41 @@ with col3:
         pd.to_datetime("2027-01-01")
     )
 
-# =========================
+# =========================================================
 # FILTER DATA
-# =========================
+# =========================================================
 df = df[
     (df["timestamp"] >= pd.to_datetime(start_date)) &
     (df["timestamp"] <= pd.to_datetime(end_date))
 ]
 
-# =========================
-# RESAMPLE MAIN DATA
-# =========================
+# =========================================================
+# RESAMPLE
+# =========================================================
 if timeframe == "week":
-    df["period"] = df["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
+
+    df["period"] = (
+        df["timestamp"]
+        .dt.to_period("W")
+        .apply(lambda r: r.start_time)
+    )
 
 elif timeframe == "month":
-    df["period"] = df["timestamp"].dt.to_period("M").apply(lambda r: r.start_time)
+
+    df["period"] = (
+        df["timestamp"]
+        .dt.to_period("M")
+        .apply(lambda r: r.start_time)
+    )
 
 else:
     df["period"] = df["timestamp"]
 
-grouped = df.groupby("period").sum(numeric_only=True).reset_index()
+grouped = (
+    df.groupby("period")
+    .sum(numeric_only=True)
+    .reset_index()
+)
 
 grouped["total_txs"] = (
     grouped["gmp_num_txs"] +
@@ -136,10 +286,11 @@ grouped["total_volume"] = (
     grouped["transfers_volume"]
 )
 
-# =========================
-# DAILY / WEEKLY AVERAGES
-# =========================
+# =========================================================
+# DAILY / WEEKLY METRICS
+# =========================================================
 daily_df = df.copy()
+
 daily_df["day"] = daily_df["timestamp"].dt.date
 
 daily_grouped = (
@@ -162,6 +313,7 @@ avg_daily_volume = daily_grouped["daily_volume"].mean()
 avg_daily_txs = daily_grouped["daily_txs"].mean()
 
 weekly_df = df.copy()
+
 weekly_df["week"] = (
     weekly_df["timestamp"]
     .dt.to_period("W")
@@ -187,106 +339,105 @@ weekly_grouped["weekly_txs"] = (
 avg_weekly_volume = weekly_grouped["weekly_volume"].mean()
 avg_weekly_txs = weekly_grouped["weekly_txs"].mean()
 
-# =========================
-# KPI CARD TEMPLATE
-# =========================
-card = """
-<div class="kpi-card">
-    <h3>{}</h3>
-    <h2>{}</h2>
-</div>
-"""
+# =========================================================
+# KPI FUNCTION
+# =========================================================
+def kpi_card(title, value, subtitle=""):
 
-# =========================
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+
+            <div class="kpi-title">
+                {title}
+            </div>
+
+            <div class="kpi-value">
+                {value}
+            </div>
+
+            <div class="kpi-sub">
+                {subtitle}
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# =========================================================
 # KPI ROW 1
-# =========================
+# =========================================================
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown(
-        card.format(
-            "Total Transactions",
-            f"{grouped['total_txs'].sum():,}"
-        ),
-        unsafe_allow_html=True
+    kpi_card(
+        "Total Transactions",
+        f"{grouped['total_txs'].sum():,}"
     )
 
 with col2:
-    st.markdown(
-        card.format(
-            "Total Volume",
-            f"${grouped['total_volume'].sum():,.0f}"
-        ),
-        unsafe_allow_html=True
+    kpi_card(
+        "Total Volume",
+        f"${grouped['total_volume'].sum():,.0f}"
     )
 
 with col3:
+
     avg_volume_per_tx = (
         grouped["total_volume"].sum() /
         max(grouped["total_txs"].sum(), 1)
     )
 
-    st.markdown(
-        card.format(
-            "Avg Volume / Tx",
-            f"${avg_volume_per_tx:,.2f}"
-        ),
-        unsafe_allow_html=True
+    kpi_card(
+        "Avg Volume / Tx",
+        f"${avg_volume_per_tx:,.2f}"
     )
 
-# =========================
-# KPI ROW 2 (NEW)
-# =========================
+# =========================================================
+# KPI ROW 2
+# =========================================================
+st.markdown("")
+
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.markdown(
-        card.format(
-            "Avg Daily Volume",
-            f"${avg_daily_volume:,.0f}"
-        ),
-        unsafe_allow_html=True
+    kpi_card(
+        "Avg Daily Volume",
+        f"${avg_daily_volume:,.0f}"
     )
 
 with col2:
-    st.markdown(
-        card.format(
-            "Avg Weekly Volume",
-            f"${avg_weekly_volume:,.0f}"
-        ),
-        unsafe_allow_html=True
+    kpi_card(
+        "Avg Weekly Volume",
+        f"${avg_weekly_volume:,.0f}"
     )
 
 with col3:
-    st.markdown(
-        card.format(
-            "Avg Daily Transactions",
-            f"{avg_daily_txs:,.0f}"
-        ),
-        unsafe_allow_html=True
+    kpi_card(
+        "Avg Daily Transactions",
+        f"{avg_daily_txs:,.0f}"
     )
 
 with col4:
-    st.markdown(
-        card.format(
-            "Avg Weekly Transactions",
-            f"{avg_weekly_txs:,.0f}"
-        ),
-        unsafe_allow_html=True
+    kpi_card(
+        "Avg Weekly Transactions",
+        f"{avg_weekly_txs:,.0f}"
     )
 
-# =========================
+# =========================================================
 # COLORS
-# =========================
+# =========================================================
 GMP_COLOR = "#ff7400"
 TRANSFER_COLOR = "#00a1f7"
 
-# =========================
-# CHARTS ROW 1
-# =========================
+# =========================================================
+# CHARTS
+# =========================================================
 col1, col2 = st.columns(2)
 
 with col1:
+
     fig1 = go.Figure()
 
     fig1.add_bar(
@@ -305,12 +456,18 @@ with col1:
 
     fig1.update_layout(
         barmode="stack",
-        title=dict(text="Transactions Over Time")
+        title="Transactions Over Time",
+        template="plotly_dark",
+        height=450
     )
 
-    st.plotly_chart(fig1, use_container_width=True)
+    st.plotly_chart(
+        fig1,
+        use_container_width=True
+    )
 
 with col2:
+
     fig2 = go.Figure()
 
     fig2.add_bar(
@@ -329,17 +486,23 @@ with col2:
 
     fig2.update_layout(
         barmode="stack",
-        title=dict(text="Volume Over Time")
+        title="Volume Over Time",
+        template="plotly_dark",
+        height=450
     )
 
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(
+        fig2,
+        use_container_width=True
+    )
 
-# =========================
-# CHARTS ROW 2 (DONUTS)
-# =========================
+# =========================================================
+# DONUTS
+# =========================================================
 col1, col2 = st.columns(2)
 
 with col1:
+
     tx_df = pd.DataFrame({
         "Service": ["GMP", "Transfers"],
         "Value": [
@@ -352,7 +515,7 @@ with col1:
         tx_df,
         names="Service",
         values="Value",
-        hole=0.5,
+        hole=0.55,
         title="Transactions Share",
         color="Service",
         color_discrete_map={
@@ -361,9 +524,18 @@ with col1:
         }
     )
 
-    st.plotly_chart(fig3, use_container_width=True)
+    fig3.update_layout(
+        template="plotly_dark",
+        height=420
+    )
+
+    st.plotly_chart(
+        fig3,
+        use_container_width=True
+    )
 
 with col2:
+
     vol_df = pd.DataFrame({
         "Service": ["GMP", "Transfers"],
         "Value": [
@@ -376,7 +548,7 @@ with col2:
         vol_df,
         names="Service",
         values="Value",
-        hole=0.5,
+        hole=0.55,
         title="Volume Share",
         color="Service",
         color_discrete_map={
@@ -385,4 +557,12 @@ with col2:
         }
     )
 
-    st.plotly_chart(fig4, use_container_width=True)
+    fig4.update_layout(
+        template="plotly_dark",
+        height=420
+    )
+
+    st.plotly_chart(
+        fig4,
+        use_container_width=True
+    )
