@@ -79,59 +79,6 @@ METRIC CARDS
 }
 
 /* =========================
-SIDEBAR FOOTER
-========================= */
-
-.sidebar-footer {
-
-    position: fixed;
-
-    bottom: 20px;
-
-    width: 230px;
-
-    font-size: 13px;
-
-    color: gray;
-
-    margin-left: 5px;
-
-    text-align: left;
-}
-
-.sidebar-footer-item {
-
-    display: flex;
-
-    align-items: center;
-
-    margin-bottom: 10px;
-}
-
-.sidebar-footer img {
-
-    width: 18px;
-
-    height: 18px;
-
-    border-radius: 50%;
-
-    margin-right: 8px;
-}
-
-.sidebar-footer a {
-
-    color: gray !important;
-
-    text-decoration: none;
-}
-
-.sidebar-footer a:hover {
-
-    color: white !important;
-}
-
-/* =========================
 RESPONSIVE
 ========================= */
 
@@ -160,48 +107,37 @@ RESPONSIVE
 """, unsafe_allow_html=True)
 
 # =====================================================
-# SIDEBAR FOOTER
+# SIDEBAR
 # =====================================================
-st.sidebar.markdown(
-    """
-    <div class="sidebar-footer">
+with st.sidebar:
 
-        <div class="sidebar-footer-item">
+    st.markdown("### ")
 
-            <img
-                src="https://axelarscan.io/logos/logo.png"
-                alt="Axelar"
-            >
+    col1, col2 = st.columns([1, 6])
 
-            <span>
-                Powered by
-                <a href="https://x.com/axelar" target="_blank">
-                    Axelar
-                </a>
-            </span>
+    with col1:
+        st.image(
+            "https://axelarscan.io/logos/logo.png",
+            width=18
+        )
 
-        </div>
+    with col2:
+        st.markdown(
+            '[Powered by Axelar](https://x.com/axelar)'
+        )
 
-        <div class="sidebar-footer-item">
+    col1, col2 = st.columns([1, 6])
 
-            <img
-                src="https://pbs.twimg.com/profile_images/2058533217540423680/JomSr3XY_400x400.jpg"
-                alt="Eman Raz"
-            >
+    with col1:
+        st.image(
+            "https://pbs.twimg.com/profile_images/2058533217540423680/JomSr3XY_400x400.jpg",
+            width=18
+        )
 
-            <span>
-                Built by
-                <a href="https://x.com/0xeman_raz" target="_blank">
-                    Eman Raz
-                </a>
-            </span>
-
-        </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+    with col2:
+        st.markdown(
+            '[Built by Eman Raz](https://x.com/0xeman_raz)'
+        )
 
 # =====================================================
 # TITLE
