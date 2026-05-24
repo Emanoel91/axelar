@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # =====================================================
-# GLOBAL CSS
+# CSS
 # =====================================================
 st.markdown("""
 <style>
@@ -32,73 +32,74 @@ GLOBAL
 KPI CARD
 ========================= */
 
-.kpi-card {
-    background: linear-gradient(145deg, #1f1f1f, #111111);
-    border: 1px solid rgba(255,255,255,0.06);
+.kpi-box {
+    background: linear-gradient(145deg, #1c1c1c, #111111);
     border-radius: 18px;
     padding: 22px;
-    min-height: 130px;
-
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-
-    transition: 0.25s ease;
-
-    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-}
-
-.kpi-card:hover {
-    transform: translateY(-3px);
-    border: 1px solid rgba(255,116,0,0.4);
+    border: 1px solid rgba(255,255,255,0.05);
 
     box-shadow:
-        0 10px 25px rgba(255,116,0,0.18);
+        0 4px 15px rgba(0,0,0,0.25);
+
+    transition: all 0.25s ease;
+
+    min-height: 125px;
 }
 
-.kpi-title {
+.kpi-box:hover {
+
+    transform: translateY(-4px);
+
+    border: 1px solid rgba(255,116,0,0.35);
+
+    box-shadow:
+        0 8px 24px rgba(255,116,0,0.15);
+}
+
+.kpi-label {
+
     font-size: 14px;
-    color: #9e9e9e;
-    margin-bottom: 10px;
-    font-weight: 500;
+    color: #9f9f9f;
+    margin-bottom: 12px;
 }
 
 .kpi-value {
+
     font-size: 34px;
     font-weight: 700;
     color: white;
+
     line-height: 1.1;
 }
 
-.kpi-sub {
-    margin-top: 6px;
-    font-size: 12px;
-    color: #7f7f7f;
-}
-
 /* =========================
-SIDEBAR FOOTER
+SIDEBAR
 ========================= */
 
-.sidebar-footer {
-    position: fixed;
-    bottom: 20px;
-    width: 220px;
-    font-size: 13px;
-    color: gray;
+.sidebar-card {
+
+    padding: 12px 0;
 }
 
-.sidebar-footer img {
-    width: 16px;
-    height: 16px;
+.sidebar-link {
+
+    text-decoration: none;
+    color: #9f9f9f !important;
+    font-size: 14px;
+}
+
+.sidebar-link:hover {
+
+    color: white !important;
+}
+
+.sidebar-img {
+
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     vertical-align: middle;
-    margin-right: 6px;
-}
-
-.sidebar-footer a {
-    color: gray !important;
-    text-decoration: none;
+    margin-right: 8px;
 }
 
 /* =========================
@@ -110,10 +111,6 @@ RESPONSIVE
     .kpi-value {
         font-size: 28px;
     }
-
-    .kpi-card {
-        min-height: 115px;
-    }
 }
 
 @media (max-width: 768px) {
@@ -122,12 +119,8 @@ RESPONSIVE
         font-size: 22px;
     }
 
-    .kpi-title {
-        font-size: 12px;
-    }
-
-    .kpi-card {
-        padding: 16px;
+    .kpi-box {
+        padding: 18px;
         min-height: 100px;
     }
 }
@@ -136,30 +129,31 @@ RESPONSIVE
 """, unsafe_allow_html=True)
 
 # =====================================================
-# SIDEBAR FOOTER
+# SIDEBAR
 # =====================================================
-st.sidebar.markdown(
-    """
-    <div class="sidebar-footer">
+with st.sidebar:
 
-        <div>
-            <a href="https://x.com/axelar" target="_blank">
-                <img src="https://img.cryptorank.io/coins/axelar1663924228506.png">
-                Powered by Axelar
-            </a>
-        </div>
+    st.markdown("## Axelar")
 
-        <div style="margin-top:8px;">
-            <a href="https://x.com/0xeman_raz" target="_blank">
-                <img src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg">
-                Built by Eman Raz
-            </a>
-        </div>
-
+    st.markdown("""
+    <div class="sidebar-card">
+        <a class="sidebar-link" href="https://x.com/axelar" target="_blank">
+            <img class="sidebar-img"
+            src="https://img.cryptorank.io/coins/axelar1663924228506.png">
+            Powered by Axelar
+        </a>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="sidebar-card">
+        <a class="sidebar-link" href="https://x.com/0xeman_raz" target="_blank">
+            <img class="sidebar-img"
+            src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg">
+            Built by Eman Raz
+        </a>
+    </div>
+    """, unsafe_allow_html=True)
 
 # =====================================================
 # TITLE
@@ -268,7 +262,7 @@ grouped["total_volume"] = (
 )
 
 # =====================================================
-# DAILY / WEEKLY STATS
+# DAILY/WEEKLY
 # =====================================================
 daily_df = df.copy()
 
@@ -323,28 +317,15 @@ avg_weekly_txs = weekly_grouped["weekly_txs"].mean()
 # =====================================================
 # KPI FUNCTION
 # =====================================================
-def render_kpi(title, value, subtitle=""):
-
-    html = f"""
-    <div class="kpi-card">
-
-        <div class="kpi-title">
-            {title}
-        </div>
-
-        <div class="kpi-value">
-            {value}
-        </div>
-
-        <div class="kpi-sub">
-            {subtitle}
-        </div>
-
-    </div>
-    """
+def kpi(label, value):
 
     st.markdown(
-        html,
+        f"""
+        <div class="kpi-box">
+            <div class="kpi-label">{label}</div>
+            <div class="kpi-value">{value}</div>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -355,14 +336,14 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
 
-    render_kpi(
+    kpi(
         "Total Transactions",
         f"{grouped['total_txs'].sum():,}"
     )
 
 with col2:
 
-    render_kpi(
+    kpi(
         "Total Volume",
         f"${grouped['total_volume'].sum():,.0f}"
     )
@@ -374,42 +355,45 @@ with col3:
         max(grouped["total_txs"].sum(), 1)
     )
 
-    render_kpi(
+    kpi(
         "Avg Volume / Tx",
         f"${avg_volume_per_tx:,.2f}"
     )
 
 # =====================================================
-# KPI ROW 2
+# SPACING
 # =====================================================
 st.markdown("<br>", unsafe_allow_html=True)
 
+# =====================================================
+# KPI ROW 2
+# =====================================================
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
 
-    render_kpi(
+    kpi(
         "Avg Daily Volume",
         f"${avg_daily_volume:,.0f}"
     )
 
 with col2:
 
-    render_kpi(
+    kpi(
         "Avg Weekly Volume",
         f"${avg_weekly_volume:,.0f}"
     )
 
 with col3:
 
-    render_kpi(
+    kpi(
         "Avg Daily Transactions",
         f"{avg_daily_txs:,.0f}"
     )
 
 with col4:
 
-    render_kpi(
+    kpi(
         "Avg Weekly Transactions",
         f"{avg_weekly_txs:,.0f}"
     )
@@ -421,7 +405,7 @@ GMP_COLOR = "#ff7400"
 TRANSFER_COLOR = "#00a1f7"
 
 # =====================================================
-# CHART ROW 1
+# CHARTS
 # =====================================================
 col1, col2 = st.columns(2)
 
@@ -486,7 +470,7 @@ with col2:
     )
 
 # =====================================================
-# DONUT CHARTS
+# DONUTS
 # =====================================================
 col1, col2 = st.columns(2)
 
