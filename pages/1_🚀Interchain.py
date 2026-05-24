@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # =====================================================
-# CSS
+# GLOBAL CSS
 # =====================================================
 st.markdown("""
 <style>
@@ -29,13 +29,21 @@ GLOBAL
 }
 
 /* =========================
-KPI CARD
+KPI CARDS
 ========================= */
 
 .kpi-box {
-    background: linear-gradient(145deg, #1c1c1c, #111111);
+
+    background: linear-gradient(
+        145deg,
+        #1c1c1c,
+        #111111
+    );
+
     border-radius: 18px;
+
     padding: 22px;
+
     border: 1px solid rgba(255,255,255,0.05);
 
     box-shadow:
@@ -59,64 +67,124 @@ KPI CARD
 .kpi-label {
 
     font-size: 14px;
+
     color: #9f9f9f;
+
     margin-bottom: 12px;
 }
 
 .kpi-value {
 
     font-size: 34px;
+
     font-weight: 700;
+
     color: white;
 
     line-height: 1.1;
 }
 
 /* =========================
-SIDEBAR
+SIDEBAR FOOTER
 ========================= */
+
+.sidebar-footer {
+
+    position: fixed;
+
+    bottom: 20px;
+
+    width: 250px;
+
+    font-size: 13px;
+
+    color: gray;
+
+    margin-left: 5px;
+
+    text-align: left;
+}
+
+.sidebar-footer img {
+
+    width: 16px;
+
+    height: 16px;
+
+    vertical-align: middle;
+
+    border-radius: 50%;
+
+    margin-right: 5px;
+}
+
+.sidebar-footer a {
+
+    color: gray !important;
+
+    text-decoration: none;
+}
+
+/* =========================
+RESPONSIVE
+========================= */
+
+@media (max-width: 1200px) {
+
+    .kpi-value {
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .kpi-value {
+        font-size: 22px;
+    }
+
+    .kpi-box {
+
+        padding: 18px;
+
+        min-height: 100px;
+    }
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =====================================================
+# SIDEBAR FOOTER
+# =====================================================
 st.sidebar.markdown(
     """
-    <style>
-    .sidebar-footer {
-        position: fixed;
-        bottom: 20px;
-        width: 250px;
-        font-size: 13px;
-        color: gray;
-        margin-left: 5px; # -- MOVE LEFT
-        text-align: left;  
-    }
-    .sidebar-footer img {
-        width: 16px;
-        height: 16px;
-        vertical-align: middle;
-        border-radius: 50%;
-        margin-right: 5px;
-    }
-    .sidebar-footer a {
-        color: gray;
-        text-decoration: none;
-    }
-    </style>
-
     <div class="sidebar-footer">
+
         <div>
             <a href="https://x.com/axelar" target="_blank">
-                <img src="https://img.cryptorank.io/coins/axelar1663924228506.png" alt="Axelar Logo">
+                <img
+                    src="https://img.cryptorank.io/coins/axelar1663924228506.png"
+                    alt="Axelar Logo"
+                >
                 Powered by Axelar
             </a>
         </div>
+
         <div style="margin-top: 5px;">
             <a href="https://x.com/0xeman_raz" target="_blank">
-                <img src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg" alt="Eman Raz">
+                <img
+                    src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg"
+                    alt="Eman Raz"
+                >
                 Built by Eman Raz
             </a>
         </div>
+
     </div>
     """,
     unsafe_allow_html=True
 )
+
 # =====================================================
 # TITLE
 # =====================================================
@@ -224,7 +292,7 @@ grouped["total_volume"] = (
 )
 
 # =====================================================
-# DAILY/WEEKLY
+# DAILY / WEEKLY STATS
 # =====================================================
 daily_df = df.copy()
 
@@ -247,6 +315,7 @@ daily_grouped["daily_txs"] = (
 )
 
 avg_daily_volume = daily_grouped["daily_volume"].mean()
+
 avg_daily_txs = daily_grouped["daily_txs"].mean()
 
 weekly_df = df.copy()
@@ -274,6 +343,7 @@ weekly_grouped["weekly_txs"] = (
 )
 
 avg_weekly_volume = weekly_grouped["weekly_volume"].mean()
+
 avg_weekly_txs = weekly_grouped["weekly_txs"].mean()
 
 # =====================================================
@@ -284,8 +354,15 @@ def kpi(label, value):
     st.markdown(
         f"""
         <div class="kpi-box">
-            <div class="kpi-label">{label}</div>
-            <div class="kpi-value">{value}</div>
+
+            <div class="kpi-label">
+                {label}
+            </div>
+
+            <div class="kpi-value">
+                {value}
+            </div>
+
         </div>
         """,
         unsafe_allow_html=True
@@ -323,7 +400,7 @@ with col3:
     )
 
 # =====================================================
-# SPACING
+# SPACE
 # =====================================================
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -364,10 +441,11 @@ with col4:
 # COLORS
 # =====================================================
 GMP_COLOR = "#ff7400"
+
 TRANSFER_COLOR = "#00a1f7"
 
 # =====================================================
-# CHARTS
+# CHARTS ROW 1
 # =====================================================
 col1, col2 = st.columns(2)
 
@@ -432,7 +510,7 @@ with col2:
     )
 
 # =====================================================
-# DONUTS
+# DONUT CHARTS
 # =====================================================
 col1, col2 = st.columns(2)
 
