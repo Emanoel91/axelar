@@ -137,29 +137,6 @@ grouped["total_txs"] = grouped["gmp_num_txs"] + grouped["transfers_num_txs"]
 grouped["total_volume"] = grouped["gmp_volume"] + grouped["transfers_volume"]
 
 # =====================================================
-# BASE STATS
-# =====================================================
-daily_df = df.copy()
-daily_df["day"] = daily_df["timestamp"].dt.date
-
-daily_grouped = daily_df.groupby("day").sum(numeric_only=True).reset_index()
-daily_grouped["daily_volume"] = daily_grouped["gmp_volume"] + daily_grouped["transfers_volume"]
-daily_grouped["daily_txs"] = daily_grouped["gmp_num_txs"] + daily_grouped["transfers_num_txs"]
-
-avg_daily_volume = daily_grouped["daily_volume"].mean()
-avg_daily_txs = daily_grouped["daily_txs"].mean()
-
-weekly_df = df.copy()
-weekly_df["week"] = weekly_df["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
-
-weekly_grouped = weekly_df.groupby("week").sum(numeric_only=True).reset_index()
-weekly_grouped["weekly_volume"] = weekly_grouped["gmp_volume"] + weekly_grouped["transfers_volume"]
-weekly_grouped["weekly_txs"] = weekly_grouped["gmp_num_txs"] + weekly_grouped["transfers_num_txs"]
-
-avg_weekly_volume = weekly_grouped["weekly_volume"].mean()
-avg_weekly_txs = weekly_grouped["weekly_txs"].mean()
-
-# =====================================================
 # KPI ROW 1
 # =====================================================
 col1, col2, col3 = st.columns(3)
@@ -180,19 +157,23 @@ with col3:
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Avg Daily Volume", f"${avg_daily_volume:,.0f}")
+    st.metric("Avg Daily Volume", f"${df.groupby(df['timestamp'].dt.date).sum(numeric_only=True).eval('gmp_volume + transfers_volume').mean():,.0f}")
 
 with col2:
-    st.metric("Avg Weekly Volume", f"${avg_weekly_volume:,.0f}")
+    weekly_df = df.copy()
+    weekly_df["week"] = weekly_df["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
+    w = weekly_df.groupby("week").sum(numeric_only=True)
+    st.metric("Avg Weekly Volume", f"${(w['gmp_volume']+w['transfers_volume']).mean():,.0f}")
 
 with col3:
-    st.metric("Avg Daily Transactions", f"{avg_daily_txs:,.0f}")
+    daily_txs = df.groupby(df["timestamp"].dt.date).sum(numeric_only=True)
+    st.metric("Avg Daily Transactions", f"{(daily_txs['gmp_num_txs']+daily_txs['transfers_num_txs']).mean():,.0f}")
 
 with col4:
-    st.metric("Avg Weekly Transactions", f"{avg_weekly_txs:,.0f}")
+    st.metric("Avg Weekly Transactions", f"{(w['gmp_num_txs']+w['transfers_num_txs']).mean():,.0f}")
 
 # =====================================================
-# KPI ROW 3 (NEW - % CHANGES)
+# KPI ROW 3 (UPDATED)
 # =====================================================
 
 def pct_change(series):
@@ -200,7 +181,7 @@ def pct_change(series):
         return 0
     return ((series.iloc[-1] - series.iloc[-2]) / max(series.iloc[-2], 1)) * 100
 
-# WEEKLY (from raw data)
+# WEEKLY
 df_w = df_raw.copy()
 df_w["week"] = df_w["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
 w_group = df_w.groupby("week").sum(numeric_only=True).reset_index()
@@ -220,49 +201,48 @@ m_group["vol"] = m_group["gmp_volume"] + m_group["transfers_volume"]
 monthly_tx_change = pct_change(m_group["tx"])
 monthly_vol_change = pct_change(m_group["vol"])
 
+def arrow(val):
+    if val >= 0:
+        return f"⬆ مقدار تغییر: {val:.2f}%"
+    else:
+        return f"⬇ مقدار تغییر: {val:.2f}%"
+
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.metric(
         "Weekly Volume % Change",
         f"{weekly_vol_change:.2f}%",
-        delta=weekly_vol_change,
-        delta_color="normal"
+        arrow(weekly_vol_change)
     )
 
 with col2:
     st.metric(
         "Weekly Tx % Change",
         f"{weekly_tx_change:.2f}%",
-        delta=weekly_tx_change,
-        delta_color="normal"
+        arrow(weekly_tx_change)
     )
 
 with col3:
     st.metric(
         "Monthly Volume % Change",
         f"{monthly_vol_change:.2f}%",
-        delta=monthly_vol_change,
-        delta_color="normal"
+        arrow(monthly_vol_change)
     )
 
 with col4:
     st.metric(
         "Monthly Tx % Change",
         f"{monthly_tx_change:.2f}%",
-        delta=monthly_tx_change,
-        delta_color="normal"
+        arrow(monthly_tx_change)
     )
-
-# =====================================================
-# COLORS
-# =====================================================
-GMP_COLOR = "#ff7400"
-TRANSFER_COLOR = "#00a1f7"
 
 # =====================================================
 # CHARTS
 # =====================================================
+GMP_COLOR = "#ff7400"
+TRANSFER_COLOR = "#00a1f7"
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -279,9 +259,6 @@ with col2:
     fig2.update_layout(barmode="stack", title="Volume Over Time")
     st.plotly_chart(fig2, use_container_width=True)
 
-# =====================================================
-# DONUT CHARTS
-# =====================================================
 col1, col2 = st.columns(2)
 
 with col1:
