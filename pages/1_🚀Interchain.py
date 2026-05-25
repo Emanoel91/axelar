@@ -70,7 +70,6 @@ df = df_raw.copy()
 # SIDEBAR
 # =====================================================
 with st.sidebar:
-    st.markdown("### ")
     col1, col2 = st.columns([1, 6])
 
     with col1:
@@ -94,7 +93,6 @@ with st.sidebar:
 # TITLE
 # =====================================================
 st.title("🚀 Interchain Analysis")
-
 st.info("All data is loaded from Axelar public API (no database required).")
 
 # =====================================================
@@ -192,7 +190,7 @@ with col4:
     st.metric("Avg Weekly Transactions", f"{avg_weekly_txs:,.0f}")
 
 # =====================================================
-# KPI ROW 3 (NEW - % CHANGES)
+# KPI ROW 3 (FIXED)
 # =====================================================
 
 def pct_change(series):
@@ -200,33 +198,53 @@ def pct_change(series):
         return 0
     return ((series.iloc[-1] - series.iloc[-2]) / max(series.iloc[-2], 1)) * 100
 
-# WEEKLY (from raw data)
+
+def last_diff(series):
+    if len(series) < 2:
+        return 0
+    return series.iloc[-1] - series.iloc[-2]
+
+
+# WEEKLY
 df_w = df_raw.copy()
 df_w["week"] = df_w["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
+
 w_group = df_w.groupby("week").sum(numeric_only=True).reset_index()
+w_group = w_group.sort_values("week")
+
 w_group["tx"] = w_group["gmp_num_txs"] + w_group["transfers_num_txs"]
 w_group["vol"] = w_group["gmp_volume"] + w_group["transfers_volume"]
 
 weekly_tx_change = pct_change(w_group["tx"])
 weekly_vol_change = pct_change(w_group["vol"])
 
+weekly_tx_diff = last_diff(w_group["tx"])
+weekly_vol_diff = last_diff(w_group["vol"])
+
 # MONTHLY
 df_m = df_raw.copy()
 df_m["month"] = df_m["timestamp"].dt.to_period("M").apply(lambda r: r.start_time)
+
 m_group = df_m.groupby("month").sum(numeric_only=True).reset_index()
+m_group = m_group.sort_values("month")
+
 m_group["tx"] = m_group["gmp_num_txs"] + m_group["transfers_num_txs"]
 m_group["vol"] = m_group["gmp_volume"] + m_group["transfers_volume"]
 
 monthly_tx_change = pct_change(m_group["tx"])
 monthly_vol_change = pct_change(m_group["vol"])
 
+monthly_tx_diff = last_diff(m_group["tx"])
+monthly_vol_diff = last_diff(m_group["vol"])
+
+# DISPLAY
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.metric(
         "Weekly Volume % Change",
         f"{weekly_vol_change:.2f}%",
-        delta=weekly_vol_change,
+        delta=f"{weekly_vol_diff:,.0f}",
         delta_color="normal"
     )
 
@@ -234,7 +252,7 @@ with col2:
     st.metric(
         "Weekly Tx % Change",
         f"{weekly_tx_change:.2f}%",
-        delta=weekly_tx_change,
+        delta=f"{weekly_tx_diff:,.0f}",
         delta_color="normal"
     )
 
@@ -242,7 +260,7 @@ with col3:
     st.metric(
         "Monthly Volume % Change",
         f"{monthly_vol_change:.2f}%",
-        delta=monthly_vol_change,
+        delta=f"{monthly_vol_diff:,.0f}",
         delta_color="normal"
     )
 
@@ -250,7 +268,7 @@ with col4:
     st.metric(
         "Monthly Tx % Change",
         f"{monthly_tx_change:.2f}%",
-        delta=monthly_tx_change,
+        delta=f"{monthly_tx_diff:,.0f}",
         delta_color="normal"
     )
 
