@@ -70,12 +70,32 @@ df = df_raw.copy()
 # SIDEBAR
 # =====================================================
 with st.sidebar:
-    st.markdown("### Axelar Dashboard")
+    st.markdown("### ")
+    col1, col2 = st.columns([1, 6])
+
+    with col1:
+        st.image("https://axelarscan.io/logos/logo.png", width=18)
+
+    with col2:
+        st.markdown('Powered by [Axelar](https://x.com/axelar)')
+
+    col1, col2 = st.columns([1, 6])
+
+    with col1:
+        st.image(
+            "https://pbs.twimg.com/profile_images/2058533217540423680/JomSr3XY_400x400.jpg",
+            width=18
+        )
+
+    with col2:
+        st.markdown('Built by [Eman Raz](https://x.com/0xeman_raz)')
 
 # =====================================================
 # TITLE
 # =====================================================
 st.title("🚀 Interchain Analysis")
+
+st.info("All data is loaded from Axelar public API (no database required).")
 
 # =====================================================
 # FILTERS
@@ -91,18 +111,23 @@ with col2:
 with col3:
     end_date = st.date_input("End Date", pd.to_datetime("2027-01-01"))
 
+# =====================================================
+# FILTER DATA
+# =====================================================
 df = df[
     (df["timestamp"] >= pd.to_datetime(start_date)) &
     (df["timestamp"] <= pd.to_datetime(end_date))
 ]
 
 # =====================================================
-# GROUPING
+# RESAMPLE
 # =====================================================
 if timeframe == "week":
     df["period"] = df["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
+
 elif timeframe == "month":
     df["period"] = df["timestamp"].dt.to_period("M").apply(lambda r: r.start_time)
+
 else:
     df["period"] = df["timestamp"]
 
@@ -110,6 +135,29 @@ grouped = df.groupby("period").sum(numeric_only=True).reset_index()
 
 grouped["total_txs"] = grouped["gmp_num_txs"] + grouped["transfers_num_txs"]
 grouped["total_volume"] = grouped["gmp_volume"] + grouped["transfers_volume"]
+
+# =====================================================
+# BASE STATS
+# =====================================================
+daily_df = df.copy()
+daily_df["day"] = daily_df["timestamp"].dt.date
+
+daily_grouped = daily_df.groupby("day").sum(numeric_only=True).reset_index()
+daily_grouped["daily_volume"] = daily_grouped["gmp_volume"] + daily_grouped["transfers_volume"]
+daily_grouped["daily_txs"] = daily_grouped["gmp_num_txs"] + daily_grouped["transfers_num_txs"]
+
+avg_daily_volume = daily_grouped["daily_volume"].mean()
+avg_daily_txs = daily_grouped["daily_txs"].mean()
+
+weekly_df = df.copy()
+weekly_df["week"] = weekly_df["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
+
+weekly_grouped = weekly_df.groupby("week").sum(numeric_only=True).reset_index()
+weekly_grouped["weekly_volume"] = weekly_grouped["gmp_volume"] + weekly_grouped["transfers_volume"]
+weekly_grouped["weekly_txs"] = weekly_grouped["gmp_num_txs"] + weekly_grouped["transfers_num_txs"]
+
+avg_weekly_volume = weekly_grouped["weekly_volume"].mean()
+avg_weekly_txs = weekly_grouped["weekly_txs"].mean()
 
 # =====================================================
 # KPI ROW 1
@@ -129,32 +177,22 @@ with col3:
 # =====================================================
 # KPI ROW 2
 # =====================================================
-daily = df.copy()
-daily["day"] = daily["timestamp"].dt.date
-d = daily.groupby("day").sum(numeric_only=True)
-
-weekly = df.copy()
-weekly["week"] = weekly["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
-w = weekly.groupby("week").sum(numeric_only=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Avg Daily Volume", f"${(d['gmp_volume']+d['transfers_volume']).mean():,.0f}")
+    st.metric("Avg Daily Volume", f"${avg_daily_volume:,.0f}")
 
 with col2:
-    st.metric("Avg Weekly Volume", f"${(w['gmp_volume']+w['transfers_volume']).mean():,.0f}")
+    st.metric("Avg Weekly Volume", f"${avg_weekly_volume:,.0f}")
 
 with col3:
-    st.metric("Avg Daily Transactions", f"{(d['gmp_num_txs']+d['transfers_num_txs']).mean():,.0f}")
+    st.metric("Avg Daily Transactions", f"{avg_daily_txs:,.0f}")
 
 with col4:
-    st.metric("Avg Weekly Transactions", f"{(w['gmp_num_txs']+w['transfers_num_txs']).mean():,.0f}")
+    st.metric("Avg Weekly Transactions", f"{avg_weekly_txs:,.0f}")
 
 # =====================================================
-# KPI ROW 3 (ONLY FIXED AS REQUESTED)
+# KPI ROW 3 (NEW - % CHANGES)
 # =====================================================
 
 def pct_change(series):
@@ -162,77 +200,69 @@ def pct_change(series):
         return 0
     return ((series.iloc[-1] - series.iloc[-2]) / max(series.iloc[-2], 1)) * 100
 
-
-def delta_change(series):
-    if len(series) < 2:
-        return 0
-    return series.iloc[-1] - series.iloc[-2]
-
-
-# WEEKLY
+# WEEKLY (from raw data)
 df_w = df_raw.copy()
 df_w["week"] = df_w["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
-w_group = df_w.groupby("week").sum(numeric_only=True)
+w_group = df_w.groupby("week").sum(numeric_only=True).reset_index()
 w_group["tx"] = w_group["gmp_num_txs"] + w_group["transfers_num_txs"]
 w_group["vol"] = w_group["gmp_volume"] + w_group["transfers_volume"]
+
+weekly_tx_change = pct_change(w_group["tx"])
+weekly_vol_change = pct_change(w_group["vol"])
 
 # MONTHLY
 df_m = df_raw.copy()
 df_m["month"] = df_m["timestamp"].dt.to_period("M").apply(lambda r: r.start_time)
-m_group = df_m.groupby("month").sum(numeric_only=True)
+m_group = df_m.groupby("month").sum(numeric_only=True).reset_index()
 m_group["tx"] = m_group["gmp_num_txs"] + m_group["transfers_num_txs"]
 m_group["vol"] = m_group["gmp_volume"] + m_group["transfers_volume"]
 
-weekly_vol_pct = pct_change(w_group["vol"])
-weekly_tx_pct = pct_change(w_group["tx"])
-monthly_vol_pct = pct_change(m_group["vol"])
-monthly_tx_pct = pct_change(m_group["tx"])
-
-weekly_vol_delta = delta_change(w_group["vol"])
-weekly_tx_delta = delta_change(w_group["tx"])
-monthly_vol_delta = delta_change(m_group["vol"])
-monthly_tx_delta = delta_change(m_group["tx"])
-
-
-def render_kpi(title, pct, delta):
-    color = "green" if delta >= 0 else "red"
-    arrow = "⬆" if delta >= 0 else "⬇"
-
-    st.markdown(f"""
-    <div style="padding:14px;border-radius:12px;background:#111;">
-        <div style="color:#aaa;font-size:14px;">{title}</div>
-
-        <div style="color:white;font-size:22px;font-weight:600;">
-            {pct:.2f}%
-        </div>
-
-        <div style="color:{color};font-size:15px;">
-            {arrow} {delta:,.0f}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
+monthly_tx_change = pct_change(m_group["tx"])
+monthly_vol_change = pct_change(m_group["vol"])
 
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    render_kpi("Weekly Volume % Change", weekly_vol_pct, weekly_vol_delta)
+    st.metric(
+        "Weekly Volume % Change",
+        f"{weekly_vol_change:.2f}%",
+        delta=weekly_vol_change,
+        delta_color="normal"
+    )
 
 with col2:
-    render_kpi("Weekly Tx % Change", weekly_tx_pct, weekly_tx_delta)
+    st.metric(
+        "Weekly Tx % Change",
+        f"{weekly_tx_change:.2f}%",
+        delta=weekly_tx_change,
+        delta_color="normal"
+    )
 
 with col3:
-    render_kpi("Monthly Volume % Change", monthly_vol_pct, monthly_vol_delta)
+    st.metric(
+        "Monthly Volume % Change",
+        f"{monthly_vol_change:.2f}%",
+        delta=monthly_vol_change,
+        delta_color="normal"
+    )
 
 with col4:
-    render_kpi("Monthly Tx % Change", monthly_tx_pct, monthly_tx_delta)
+    st.metric(
+        "Monthly Tx % Change",
+        f"{monthly_tx_change:.2f}%",
+        delta=monthly_tx_change,
+        delta_color="normal"
+    )
 
 # =====================================================
-# CHARTS
+# COLORS
 # =====================================================
 GMP_COLOR = "#ff7400"
 TRANSFER_COLOR = "#00a1f7"
 
+# =====================================================
+# CHARTS
+# =====================================================
 col1, col2 = st.columns(2)
 
 with col1:
@@ -249,6 +279,9 @@ with col2:
     fig2.update_layout(barmode="stack", title="Volume Over Time")
     st.plotly_chart(fig2, use_container_width=True)
 
+# =====================================================
+# DONUT CHARTS
+# =====================================================
 col1, col2 = st.columns(2)
 
 with col1:
