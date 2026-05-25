@@ -14,6 +14,43 @@ st.set_page_config(
 )
 
 # =====================================================
+# CSS
+# =====================================================
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+[data-testid="metric-container"] {
+    background: linear-gradient(145deg, #1c1c1c, #111111);
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    transition: 0.25s ease;
+}
+
+[data-testid="metric-container"]:hover {
+    transform: translateY(-4px);
+    border: 1px solid rgba(255,116,0,0.35);
+    box-shadow: 0 8px 24px rgba(255,116,0,0.15);
+}
+
+[data-testid="metric-container"] label {
+    color: #9f9f9f !important;
+    font-size: 15px !important;
+}
+
+[data-testid="metric-container"] [data-testid="stMetricValue"] {
+    color: white;
+    font-size: 32px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# =====================================================
 # LOAD DATA
 # =====================================================
 @st.cache_data
@@ -30,7 +67,7 @@ df_raw = load_data()
 df = df_raw.copy()
 
 # =====================================================
-# SIDEBAR (kept unchanged logic)
+# SIDEBAR
 # =====================================================
 with st.sidebar:
     st.markdown("### Axelar Dashboard")
@@ -117,7 +154,7 @@ with col4:
     st.metric("Avg Weekly Transactions", f"{(w['gmp_num_txs']+w['transfers_num_txs']).mean():,.0f}")
 
 # =====================================================
-# KPI ROW 3 (FIXED EXACT LOGIC)
+# KPI ROW 3 (ONLY FIXED AS REQUESTED)
 # =====================================================
 
 def pct_change(series):
@@ -132,48 +169,44 @@ def delta_change(series):
     return series.iloc[-1] - series.iloc[-2]
 
 
-# ---------------- WEEKLY ----------------
+# WEEKLY
 df_w = df_raw.copy()
 df_w["week"] = df_w["timestamp"].dt.to_period("W").apply(lambda r: r.start_time)
-
 w_group = df_w.groupby("week").sum(numeric_only=True)
 w_group["tx"] = w_group["gmp_num_txs"] + w_group["transfers_num_txs"]
 w_group["vol"] = w_group["gmp_volume"] + w_group["transfers_volume"]
 
-weekly_vol_pct = pct_change(w_group["vol"])
-weekly_tx_pct = pct_change(w_group["tx"])
-weekly_vol_delta = delta_change(w_group["vol"])
-weekly_tx_delta = delta_change(w_group["tx"])
-
-# ---------------- MONTHLY ----------------
+# MONTHLY
 df_m = df_raw.copy()
 df_m["month"] = df_m["timestamp"].dt.to_period("M").apply(lambda r: r.start_time)
-
 m_group = df_m.groupby("month").sum(numeric_only=True)
 m_group["tx"] = m_group["gmp_num_txs"] + m_group["transfers_num_txs"]
 m_group["vol"] = m_group["gmp_volume"] + m_group["transfers_volume"]
 
+weekly_vol_pct = pct_change(w_group["vol"])
+weekly_tx_pct = pct_change(w_group["tx"])
 monthly_vol_pct = pct_change(m_group["vol"])
 monthly_tx_pct = pct_change(m_group["tx"])
+
+weekly_vol_delta = delta_change(w_group["vol"])
+weekly_tx_delta = delta_change(w_group["tx"])
 monthly_vol_delta = delta_change(m_group["vol"])
 monthly_tx_delta = delta_change(m_group["tx"])
 
-# ---------------- UI RENDER ----------------
+
 def render_kpi(title, pct, delta):
     color = "green" if delta >= 0 else "red"
     arrow = "⬆" if delta >= 0 else "⬇"
 
     st.markdown(f"""
     <div style="padding:14px;border-radius:12px;background:#111;">
-        <div style="color:#aaa;font-size:14px;">
-            {title}
-        </div>
+        <div style="color:#aaa;font-size:14px;">{title}</div>
 
         <div style="color:white;font-size:22px;font-weight:600;">
             {pct:.2f}%
         </div>
 
-        <div style="color:{color};font-size:15px;margin-top:4px;">
+        <div style="color:{color};font-size:15px;">
             {arrow} {delta:,.0f}
         </div>
     </div>
