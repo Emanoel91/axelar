@@ -836,3 +836,306 @@ with col2:
         fig_cohort_tx,
         use_container_width=True
     )
+___________________________________________________________________________________________________________
+___________________________________________________________________________________________________________
+# =====================================================
+# ADVANCED ANALYTICS
+# =====================================================
+
+st.markdown("---")
+st.header("📈 Advanced Analytics")
+
+# =====================================================
+# PREPARE DAILY DATA
+# =====================================================
+
+advanced_df = df.copy()
+
+advanced_df["day"] = (
+    advanced_df["timestamp"]
+    .dt
+    .floor("D")
+)
+
+daily_adv = (
+    advanced_df
+    .groupby("day")
+    .sum(numeric_only=True)
+    .reset_index()
+)
+
+# TOTALS
+daily_adv["total_volume"] = (
+    daily_adv["gmp_volume"] +
+    daily_adv["transfers_volume"]
+)
+
+daily_adv["total_txs"] = (
+    daily_adv["gmp_num_txs"] +
+    daily_adv["transfers_num_txs"]
+)
+
+# =====================================================
+# ROLLING COHORT
+# =====================================================
+
+st.subheader("🔄 Rolling Cohort Analysis")
+
+daily_adv["rolling_7d_volume"] = (
+    daily_adv["total_volume"]
+    .rolling(7)
+    .mean()
+)
+
+daily_adv["rolling_30d_volume"] = (
+    daily_adv["total_volume"]
+    .rolling(30)
+    .mean()
+)
+
+daily_adv["rolling_7d_txs"] = (
+    daily_adv["total_txs"]
+    .rolling(7)
+    .mean()
+)
+
+daily_adv["rolling_30d_txs"] = (
+    daily_adv["total_txs"]
+    .rolling(30)
+    .mean()
+)
+
+col1, col2 = st.columns(2)
+
+# -----------------------------------------------------
+# ROLLING VOLUME
+# -----------------------------------------------------
+with col1:
+
+    fig_roll_vol = go.Figure()
+
+    fig_roll_vol.add_trace(
+        go.Scatter(
+            x=daily_adv["day"],
+            y=daily_adv["rolling_7d_volume"],
+            mode="lines",
+            name="7D Rolling Volume"
+        )
+    )
+
+    fig_roll_vol.add_trace(
+        go.Scatter(
+            x=daily_adv["day"],
+            y=daily_adv["rolling_30d_volume"],
+            mode="lines",
+            name="30D Rolling Volume"
+        )
+    )
+
+    fig_roll_vol.update_layout(
+        title="Rolling Volume Trend",
+        xaxis_title="Date",
+        yaxis_title="Volume",
+        hovermode="x unified"
+    )
+
+    st.plotly_chart(
+        fig_roll_vol,
+        use_container_width=True
+    )
+
+# -----------------------------------------------------
+# ROLLING TX
+# -----------------------------------------------------
+with col2:
+
+    fig_roll_tx = go.Figure()
+
+    fig_roll_tx.add_trace(
+        go.Scatter(
+            x=daily_adv["day"],
+            y=daily_adv["rolling_7d_txs"],
+            mode="lines",
+            name="7D Rolling Tx"
+        )
+    )
+
+    fig_roll_tx.add_trace(
+        go.Scatter(
+            x=daily_adv["day"],
+            y=daily_adv["rolling_30d_txs"],
+            mode="lines",
+            name="30D Rolling Tx"
+        )
+    )
+
+    fig_roll_tx.update_layout(
+        title="Rolling Transaction Trend",
+        xaxis_title="Date",
+        yaxis_title="Transactions",
+        hovermode="x unified"
+    )
+
+    st.plotly_chart(
+        fig_roll_tx,
+        use_container_width=True
+    )
+
+# =====================================================
+# VOLUME DECAY COHORT
+# =====================================================
+
+st.subheader("📉 Volume Decay Cohort")
+
+volume_decay = daily_adv.copy()
+
+peak_volume = volume_decay["total_volume"].max()
+
+volume_decay["decay_pct"] = (
+    volume_decay["total_volume"] / peak_volume
+) * 100
+
+fig_decay = go.Figure()
+
+fig_decay.add_trace(
+    go.Scatter(
+        x=volume_decay["day"],
+        y=volume_decay["decay_pct"],
+        mode="lines+markers",
+        name="Volume Decay %"
+    )
+)
+
+fig_decay.update_layout(
+    title="Volume Decay From Historical Peak",
+    xaxis_title="Date",
+    yaxis_title="% Of Peak Volume",
+    hovermode="x unified"
+)
+
+st.plotly_chart(
+    fig_decay,
+    use_container_width=True
+)
+
+# =====================================================
+# GMP VS TRANSFER COHORT
+# =====================================================
+
+st.subheader("⚔️ GMP vs Transfer Cohort")
+
+cohort_compare = daily_adv.copy()
+
+cohort_compare["gmp_share"] = (
+    cohort_compare["gmp_volume"] /
+    (
+        cohort_compare["gmp_volume"] +
+        cohort_compare["transfers_volume"]
+    ).replace(0, 1)
+) * 100
+
+cohort_compare["transfer_share"] = (
+    cohort_compare["transfers_volume"] /
+    (
+        cohort_compare["gmp_volume"] +
+        cohort_compare["transfers_volume"]
+    ).replace(0, 1)
+) * 100
+
+col1, col2 = st.columns(2)
+
+# -----------------------------------------------------
+# SHARE TREND
+# -----------------------------------------------------
+with col1:
+
+    fig_share = go.Figure()
+
+    fig_share.add_trace(
+        go.Scatter(
+            x=cohort_compare["day"],
+            y=cohort_compare["gmp_share"],
+            mode="lines",
+            name="GMP Share %"
+        )
+    )
+
+    fig_share.add_trace(
+        go.Scatter(
+            x=cohort_compare["day"],
+            y=cohort_compare["transfer_share"],
+            mode="lines",
+            name="Transfer Share %"
+        )
+    )
+
+    fig_share.update_layout(
+        title="GMP vs Transfer Share",
+        xaxis_title="Date",
+        yaxis_title="Share %",
+        hovermode="x unified"
+    )
+
+    st.plotly_chart(
+        fig_share,
+        use_container_width=True
+    )
+
+# -----------------------------------------------------
+# ABSOLUTE VOLUME
+# -----------------------------------------------------
+with col2:
+
+    fig_absolute = go.Figure()
+
+    fig_absolute.add_trace(
+        go.Bar(
+            x=cohort_compare["day"],
+            y=cohort_compare["gmp_volume"],
+            name="GMP Volume"
+        )
+    )
+
+    fig_absolute.add_trace(
+        go.Bar(
+            x=cohort_compare["day"],
+            y=cohort_compare["transfers_volume"],
+            name="Transfer Volume"
+        )
+    )
+
+    fig_absolute.update_layout(
+        barmode="stack",
+        title="GMP vs Transfer Volume",
+        xaxis_title="Date",
+        yaxis_title="Volume"
+    )
+
+    st.plotly_chart(
+        fig_absolute,
+        use_container_width=True
+    )
+
+# =====================================================
+# INSIGHTS
+# =====================================================
+
+st.markdown("---")
+
+latest_gmp_share = (
+    cohort_compare["gmp_share"]
+    .iloc[-1]
+)
+
+latest_transfer_share = (
+    cohort_compare["transfer_share"]
+    .iloc[-1]
+)
+
+st.info(
+    f"""
+    📌 Latest GMP Share: {latest_gmp_share:.2f}%  
+    📌 Latest Transfer Share: {latest_transfer_share:.2f}%  
+    📌 Historical Peak Volume: ${peak_volume:,.0f}
+    """
+)
