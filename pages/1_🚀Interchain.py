@@ -1019,3 +1019,128 @@ st.plotly_chart(
     use_container_width=True
 )
 
+# =====================================================
+# WEEKDAY ANALYSIS
+# =====================================================
+
+st.markdown("---")
+st.subheader("📅 Weekday Analysis")
+
+weekday_df = df.copy()
+
+# DAY NAME
+weekday_df["weekday"] = (
+    weekday_df["timestamp"]
+    .dt
+    .day_name()
+)
+
+# ORDER
+weekday_order = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday"
+]
+
+# DAILY AGGREGATION
+weekday_daily = (
+    weekday_df
+    .groupby([
+        weekday_df["timestamp"].dt.floor("D"),
+        "weekday"
+    ])
+    .sum(numeric_only=True)
+    .reset_index()
+)
+
+# TOTALS
+weekday_daily["daily_volume"] = (
+    weekday_daily["gmp_volume"] +
+    weekday_daily["transfers_volume"]
+)
+
+weekday_daily["daily_txs"] = (
+    weekday_daily["gmp_num_txs"] +
+    weekday_daily["transfers_num_txs"]
+)
+
+# =====================================================
+# AVG VOLUME BY WEEKDAY
+# =====================================================
+
+avg_volume_weekday = (
+    weekday_daily
+    .groupby("weekday")["daily_volume"]
+    .mean()
+    .reindex(weekday_order)
+    .reset_index()
+)
+
+# =====================================================
+# AVG TX BY WEEKDAY
+# =====================================================
+
+avg_tx_weekday = (
+    weekday_daily
+    .groupby("weekday")["daily_txs"]
+    .mean()
+    .reindex(weekday_order)
+    .reset_index()
+)
+
+col1, col2 = st.columns(2)
+
+# -----------------------------------------------------
+# AVG VOLUME CHART
+# -----------------------------------------------------
+with col1:
+
+    fig_weekday_volume = go.Figure()
+
+    fig_weekday_volume.add_bar(
+        x=avg_volume_weekday["weekday"],
+        y=avg_volume_weekday["daily_volume"],
+        marker_color="#ff7400",
+        name="Avg Volume"
+    )
+
+    fig_weekday_volume.update_layout(
+        title="Average Volume by Weekday",
+        xaxis_title="Weekday",
+        yaxis_title="Average Volume"
+    )
+
+    st.plotly_chart(
+        fig_weekday_volume,
+        use_container_width=True
+    )
+
+# -----------------------------------------------------
+# AVG TX CHART
+# -----------------------------------------------------
+with col2:
+
+    fig_weekday_tx = go.Figure()
+
+    fig_weekday_tx.add_bar(
+        x=avg_tx_weekday["weekday"],
+        y=avg_tx_weekday["daily_txs"],
+        marker_color="#00a1f7",
+        name="Avg Transactions"
+    )
+
+    fig_weekday_tx.update_layout(
+        title="Average Transactions by Weekday",
+        xaxis_title="Weekday",
+        yaxis_title="Average Transactions"
+    )
+
+    st.plotly_chart(
+        fig_weekday_tx,
+        use_container_width=True
+    )
+
