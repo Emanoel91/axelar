@@ -705,3 +705,134 @@ with col2:
         fig4,
         use_container_width=True
     )
+
+# =====================================================
+# COHORT ANALYSIS
+# =====================================================
+
+st.markdown("---")
+st.subheader("📊 Cohort Analysis")
+
+cohort_df = df.copy()
+
+# DAILY
+cohort_df["day"] = (
+    cohort_df["timestamp"]
+    .dt
+    .floor("D")
+)
+
+# MONTH COHORT
+cohort_df["cohort_month"] = (
+    cohort_df["timestamp"]
+    .dt
+    .to_period("M")
+    .astype(str)
+)
+
+# DAY INDEX INSIDE MONTH
+cohort_df["day_index"] = (
+    cohort_df["timestamp"]
+    .dt
+    .day
+)
+
+# TOTAL DAILY VOLUME
+cohort_daily = (
+    cohort_df
+    .groupby(["cohort_month", "day_index"])
+    .sum(numeric_only=True)
+    .reset_index()
+)
+
+cohort_daily["total_volume"] = (
+    cohort_daily["gmp_volume"] +
+    cohort_daily["transfers_volume"]
+)
+
+cohort_daily["total_txs"] = (
+    cohort_daily["gmp_num_txs"] +
+    cohort_daily["transfers_num_txs"]
+)
+
+# =====================================================
+# VOLUME COHORT
+# =====================================================
+
+volume_pivot = cohort_daily.pivot_table(
+    index="cohort_month",
+    columns="day_index",
+    values="total_volume",
+    aggfunc="sum"
+)
+
+# =====================================================
+# TX COHORT
+# =====================================================
+
+tx_pivot = cohort_daily.pivot_table(
+    index="cohort_month",
+    columns="day_index",
+    values="total_txs",
+    aggfunc="sum"
+)
+
+# =====================================================
+# HEATMAPS
+# =====================================================
+
+col1, col2 = st.columns(2)
+
+# -----------------------------------------------------
+# VOLUME HEATMAP
+# -----------------------------------------------------
+with col1:
+
+    fig_cohort_volume = go.Figure(
+        data=go.Heatmap(
+            z=volume_pivot.values,
+            x=volume_pivot.columns,
+            y=volume_pivot.index,
+            colorscale="Oranges",
+            colorbar_title="Volume"
+        )
+    )
+
+    fig_cohort_volume.update_layout(
+        title="Monthly Cohort Heatmap — Volume",
+        xaxis_title="Day of Month",
+        yaxis_title="Cohort Month",
+        height=500
+    )
+
+    st.plotly_chart(
+        fig_cohort_volume,
+        use_container_width=True
+    )
+
+# -----------------------------------------------------
+# TX HEATMAP
+# -----------------------------------------------------
+with col2:
+
+    fig_cohort_tx = go.Figure(
+        data=go.Heatmap(
+            z=tx_pivot.values,
+            x=tx_pivot.columns,
+            y=tx_pivot.index,
+            colorscale="Blues",
+            colorbar_title="Transactions"
+        )
+    )
+
+    fig_cohort_tx.update_layout(
+        title="Monthly Cohort Heatmap — Transactions",
+        xaxis_title="Day of Month",
+        yaxis_title="Cohort Month",
+        height=500
+    )
+
+    st.plotly_chart(
+        fig_cohort_tx,
+        use_container_width=True
+    )
