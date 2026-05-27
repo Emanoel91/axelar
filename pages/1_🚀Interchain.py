@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import pandas as pd
 import requests
@@ -706,4 +705,3 @@ with col2:
         fig4,
         use_container_width=True
     )
-```
