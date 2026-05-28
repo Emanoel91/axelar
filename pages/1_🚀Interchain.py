@@ -1110,7 +1110,7 @@ def human_format(num):
     elif num >= 1_000:
         return f"{num/1_000:.01f}K"
 
-    return f"{num:.00f}"
+    return f"{num:.0000f}"
 
 # =====================================================
 # COLOR FUNCTION
