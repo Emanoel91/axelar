@@ -2,7 +2,7 @@ import streamlit as st
 
 # --- Page Config: Tab Title & Icon ---
 st.set_page_config(
-    page_title="📚 Axelar Mega Dashboard",
+    page_title="Axelar Mega Dashboard",
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
