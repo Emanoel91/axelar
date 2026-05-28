@@ -1062,7 +1062,7 @@ weekday_daily = (
 )
 
 # =====================================================
-# TOTALS
+# TOTAL DAILY METRICS
 # =====================================================
 
 weekday_daily["daily_volume"] = (
@@ -1076,7 +1076,7 @@ weekday_daily["daily_txs"] = (
 )
 
 # =====================================================
-# AVERAGES
+# AVERAGE VOLUME BY WEEKDAY
 # =====================================================
 
 avg_volume_weekday = (
@@ -1086,6 +1086,10 @@ avg_volume_weekday = (
     .reindex(weekday_order)
     .reset_index()
 )
+
+# =====================================================
+# AVERAGE TX BY WEEKDAY
+# =====================================================
 
 avg_tx_weekday = (
     weekday_daily
@@ -1102,15 +1106,15 @@ avg_tx_weekday = (
 def human_format(num):
 
     if num >= 1_000_000_000:
-        return f"{num/1_000_000_000:.1f}B"
+        return f"{num/1_000_000_000:.2f}B"
 
     elif num >= 1_000_000:
-        return f"{num/1_000_000:.1f}M"
+        return f"{num/1_000_000:.2f}M"
 
     elif num >= 1_000:
-        return f"{num/1_000:.1f}K"
+        return f"{num/1_000:.2f}K"
 
-    return f"{num:.0f}"
+    return f"{num:.2f}"
 
 # =====================================================
 # COLOR FUNCTION
@@ -1125,19 +1129,22 @@ def generate_colors(values):
 
     for v in values:
 
+        # MAX VALUE -> GREEN
         if v == max_value:
-            colors.append("#00C853")  # GREEN
+            colors.append("#00C853")
 
+        # MIN VALUE -> RED
         elif v == min_value:
-            colors.append("#D50000")  # RED
+            colors.append("#D50000")
 
+        # NORMAL -> ORANGE
         else:
-            colors.append("#ff7400")  # ORANGE
+            colors.append("#ff7400")
 
     return colors
 
 # =====================================================
-# ADD LABELS
+# LABELS
 # =====================================================
 
 avg_volume_weekday["label"] = (
@@ -1151,13 +1158,13 @@ avg_tx_weekday["label"] = (
 )
 
 # =====================================================
-# COLUMNS
+# CREATE COLUMNS
 # =====================================================
 
 col1, col2 = st.columns(2)
 
 # =====================================================
-# VOLUME CHART
+# AVG VOLUME CHART
 # =====================================================
 
 with col1:
@@ -1180,7 +1187,10 @@ with col1:
 
         textposition="outside",
 
-        textfont_size=13,
+        textfont=dict(
+            size=13,
+            color="white"
+        ),
 
         marker_line_width=0,
 
@@ -1189,9 +1199,13 @@ with col1:
 
     fig_volume.update_layout(
 
-        title="Average Volume by Weekday",
+        title=dict(
+            text="Average Volume by Weekday",
+            x=0.5
+        ),
 
         xaxis_title="Weekday",
+
         yaxis_title="Average Volume",
 
         template="plotly_dark",
@@ -1205,6 +1219,13 @@ with col1:
                 0,
                 avg_volume_weekday["daily_volume"].max() * 1.20
             ]
+        ),
+
+        margin=dict(
+            t=80,
+            b=40,
+            l=20,
+            r=20
         )
     )
 
@@ -1214,7 +1235,7 @@ with col1:
     )
 
 # =====================================================
-# TRANSACTION CHART
+# AVG TX CHART
 # =====================================================
 
 with col2:
@@ -1237,7 +1258,10 @@ with col2:
 
         textposition="outside",
 
-        textfont_size=13,
+        textfont=dict(
+            size=13,
+            color="white"
+        ),
 
         marker_line_width=0,
 
@@ -1246,9 +1270,13 @@ with col2:
 
     fig_tx.update_layout(
 
-        title="Average Transactions by Weekday",
+        title=dict(
+            text="Average Transactions by Weekday",
+            x=0.5
+        ),
 
         xaxis_title="Weekday",
+
         yaxis_title="Average Transactions",
 
         template="plotly_dark",
@@ -1262,6 +1290,13 @@ with col2:
                 0,
                 avg_tx_weekday["daily_txs"].max() * 1.20
             ]
+        ),
+
+        margin=dict(
+            t=80,
+            b=40,
+            l=20,
+            r=20
         )
     )
 
