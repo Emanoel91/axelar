@@ -1023,19 +1023,25 @@ st.plotly_chart(
 # WEEKDAY ANALYSIS
 # =====================================================
 
+import streamlit as st
+import plotly.graph_objects as go
+import pandas as pd
+
 st.markdown("---")
 st.subheader("📅 Weekday Analysis")
 
+# =====================================================
+# PREPARE DATA
+# =====================================================
+
 weekday_df = df.copy()
 
-# DAY NAME
 weekday_df["weekday"] = (
     weekday_df["timestamp"]
     .dt
     .day_name()
 )
 
-# ORDER
 weekday_order = [
     "Monday",
     "Tuesday",
@@ -1046,7 +1052,10 @@ weekday_order = [
     "Sunday"
 ]
 
+# =====================================================
 # DAILY AGGREGATION
+# =====================================================
+
 weekday_daily = (
     weekday_df
     .groupby([
@@ -1057,19 +1066,20 @@ weekday_daily = (
     .reset_index()
 )
 
-# TOTALS
+# TOTAL DAILY VOLUME
 weekday_daily["daily_volume"] = (
     weekday_daily["gmp_volume"] +
     weekday_daily["transfers_volume"]
 )
 
+# TOTAL DAILY TRANSACTIONS
 weekday_daily["daily_txs"] = (
     weekday_daily["gmp_num_txs"] +
     weekday_daily["transfers_num_txs"]
 )
 
 # =====================================================
-# AVG VOLUME BY WEEKDAY
+# AVERAGE METRICS BY WEEKDAY
 # =====================================================
 
 avg_volume_weekday = (
@@ -1080,10 +1090,6 @@ avg_volume_weekday = (
     .reset_index()
 )
 
-# =====================================================
-# AVG TX BY WEEKDAY
-# =====================================================
-
 avg_tx_weekday = (
     weekday_daily
     .groupby("weekday")["daily_txs"]
@@ -1092,26 +1098,116 @@ avg_tx_weekday = (
     .reset_index()
 )
 
+# =====================================================
+# NUMBER FORMAT FUNCTION
+# =====================================================
+
+def human_format(num):
+
+    if num >= 1_000_000_000:
+        return f"{num/1_000_000_000:.1f}B"
+
+    elif num >= 1_000_000:
+        return f"{num/1_000_000:.1f}M"
+
+    elif num >= 1_000:
+        return f"{num/1_000:.1f}K"
+
+    return f"{num:.0f}"
+
+# =====================================================
+# COLOR GENERATOR
+# =====================================================
+
+def generate_colors(values, normal_color):
+
+    max_value = values.max()
+    min_value = values.min()
+
+    colors = []
+
+    for v in values:
+
+        if v == max_value:
+            colors.append("#00C853")  # GREEN
+
+        elif v == min_value:
+            colors.append("#D50000")  # RED
+
+        else:
+            colors.append(normal_color)
+
+    return colors
+
+# =====================================================
+# CREATE COLUMNS
+# =====================================================
+
 col1, col2 = st.columns(2)
 
-# -----------------------------------------------------
+# =====================================================
 # AVG VOLUME CHART
-# -----------------------------------------------------
+# =====================================================
+
 with col1:
+
+    volume_values = avg_volume_weekday["daily_volume"]
 
     fig_weekday_volume = go.Figure()
 
     fig_weekday_volume.add_bar(
         x=avg_volume_weekday["weekday"],
-        y=avg_volume_weekday["daily_volume"],
-        marker_color="#ff7400",
-        name="Avg Volume"
+        y=volume_values,
+
+        marker_color=generate_colors(
+            volume_values,
+            "#ff7400"
+        ),
+
+        text=[
+            human_format(v)
+            for v in volume_values
+        ],
+
+        textposition="outside",
+
+        textfont=dict(
+            size=13,
+            color="white"
+        ),
+
+        hovertemplate=
+        "<b>%{x}</b><br>" +
+        "Average Volume: %{y:,.0f}" +
+        "<extra></extra>"
     )
 
     fig_weekday_volume.update_layout(
-        title="Average Volume by Weekday",
+
+        title=dict(
+            text="Average Volume by Weekday",
+            x=0.5
+        ),
+
         xaxis_title="Weekday",
-        yaxis_title="Average Volume"
+        yaxis_title="Average Volume",
+
+        template="plotly_dark",
+
+        height=500,
+
+        showlegend=False,
+
+        margin=dict(
+            t=80,
+            b=40,
+            l=20,
+            r=20
+        )
+    )
+
+    fig_weekday_volume.update_traces(
+        cliponaxis=False
     )
 
     st.plotly_chart(
@@ -1119,28 +1215,72 @@ with col1:
         use_container_width=True
     )
 
-# -----------------------------------------------------
-# AVG TX CHART
-# -----------------------------------------------------
+# =====================================================
+# AVG TRANSACTION CHART
+# =====================================================
+
 with col2:
+
+    tx_values = avg_tx_weekday["daily_txs"]
 
     fig_weekday_tx = go.Figure()
 
     fig_weekday_tx.add_bar(
         x=avg_tx_weekday["weekday"],
-        y=avg_tx_weekday["daily_txs"],
-        marker_color="#00a1f7",
-        name="Avg Transactions"
+        y=tx_values,
+
+        marker_color=generate_colors(
+            tx_values,
+            "#00a1f7"
+        ),
+
+        text=[
+            human_format(v)
+            for v in tx_values
+        ],
+
+        textposition="outside",
+
+        textfont=dict(
+            size=13,
+            color="white"
+        ),
+
+        hovertemplate=
+        "<b>%{x}</b><br>" +
+        "Average Transactions: %{y:,.0f}" +
+        "<extra></extra>"
     )
 
     fig_weekday_tx.update_layout(
-        title="Average Transactions by Weekday",
+
+        title=dict(
+            text="Average Transactions by Weekday",
+            x=0.5
+        ),
+
         xaxis_title="Weekday",
-        yaxis_title="Average Transactions"
+        yaxis_title="Average Transactions",
+
+        template="plotly_dark",
+
+        height=500,
+
+        showlegend=False,
+
+        margin=dict(
+            t=80,
+            b=40,
+            l=20,
+            r=20
+        )
+    )
+
+    fig_weekday_tx.update_traces(
+        cliponaxis=False
     )
 
     st.plotly_chart(
         fig_weekday_tx,
         use_container_width=True
     )
-
