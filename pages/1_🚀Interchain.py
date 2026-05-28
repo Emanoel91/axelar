@@ -1102,13 +1102,13 @@ avg_tx_weekday = (
 def human_format(num):
 
     if num >= 1_000_000_000:
-        return f"{num/1_000_000_000:.1f}B"
+        return f"{num/1_000_000_000:.10f}B"
 
     elif num >= 1_000_000:
-        return f"{num/1_000_000:.1f}M"
+        return f"{num/1_000_000:.10f}M"
 
     elif num >= 1_000:
-        return f"{num/1_000:.1f}K"
+        return f"{num/1_000:.10f}K"
 
     return f"{num:.00f}"
 
