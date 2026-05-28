@@ -1023,7 +1023,6 @@ st.plotly_chart(
 # WEEKDAY ANALYSIS
 # =====================================================
 
-st.markdown("---")
 st.subheader("📅 Weekday Analysis")
 
 # =====================================================
@@ -1077,7 +1076,7 @@ weekday_daily["daily_txs"] = (
 )
 
 # =====================================================
-# AVG VOLUME BY WEEKDAY
+# AVERAGES
 # =====================================================
 
 avg_volume_weekday = (
@@ -1087,10 +1086,6 @@ avg_volume_weekday = (
     .reindex(weekday_order)
     .reset_index()
 )
-
-# =====================================================
-# AVG TX BY WEEKDAY
-# =====================================================
 
 avg_tx_weekday = (
     weekday_daily
@@ -1130,75 +1125,71 @@ def generate_colors(values):
 
     for v in values:
 
-        # MAX VALUE -> GREEN
         if v == max_value:
-            colors.append("#00C853")
+            colors.append("#00C853")  # GREEN
 
-        # MIN VALUE -> RED
         elif v == min_value:
-            colors.append("#D50000")
+            colors.append("#D50000")  # RED
 
-        # NORMAL -> ORANGE
         else:
-            colors.append("#ff7400")
+            colors.append("#ff7400")  # ORANGE
 
     return colors
 
 # =====================================================
-# CREATE COLUMNS
+# ADD LABELS
+# =====================================================
+
+avg_volume_weekday["label"] = (
+    avg_volume_weekday["daily_volume"]
+    .apply(human_format)
+)
+
+avg_tx_weekday["label"] = (
+    avg_tx_weekday["daily_txs"]
+    .apply(human_format)
+)
+
+# =====================================================
+# COLUMNS
 # =====================================================
 
 col1, col2 = st.columns(2)
 
 # =====================================================
-# AVG VOLUME CHART
+# VOLUME CHART
 # =====================================================
 
 with col1:
 
-    volume_values = avg_volume_weekday["daily_volume"]
+    fig_volume = px.bar(
 
-    fig_weekday_volume = go.Figure()
+        avg_volume_weekday,
 
-    fig_weekday_volume.add_bar(
+        x="weekday",
+        y="daily_volume",
 
-        x=avg_volume_weekday["weekday"],
-        y=volume_values,
+        text="label"
+    )
 
-        marker=dict(
-            color=generate_colors(volume_values),
-            line=dict(width=0)
+    fig_volume.update_traces(
+
+        marker_color=generate_colors(
+            avg_volume_weekday["daily_volume"]
         ),
-
-        # SHOW VALUES ON TOP
-        text=[
-            human_format(v)
-            for v in volume_values
-        ],
-
-        texttemplate="%{text}",
 
         textposition="outside",
 
-        textfont=dict(
-            size=13,
-            color="white"
-        ),
+        textfont_size=13,
 
-        cliponaxis=False,
+        marker_line_width=0,
 
-        hovertemplate=
-        "<b>%{x}</b><br>" +
-        "Average Volume: %{y:,.0f}" +
-        "<extra></extra>"
+        cliponaxis=False
     )
 
-    fig_weekday_volume.update_layout(
+    fig_volume.update_layout(
 
-        title=dict(
-            text="Average Volume by Weekday",
-            x=0.5
-        ),
+        title="Average Volume by Weekday",
 
         xaxis_title="Weekday",
         yaxis_title="Average Volume",
@@ -1212,72 +1203,50 @@ with col1:
         yaxis=dict(
             range=[
                 0,
-                volume_values.max() * 1.20
+                avg_volume_weekday["daily_volume"].max() * 1.20
             ]
-        ),
-
-        margin=dict(
-            t=80,
-            b=40,
-            l=20,
-            r=20
         )
     )
 
     st.plotly_chart(
-        fig_weekday_volume,
+        fig_volume,
         use_container_width=True
     )
 
 # =====================================================
-# AVG TX CHART
+# TRANSACTION CHART
 # =====================================================
 
 with col2:
 
-    tx_values = avg_tx_weekday["daily_txs"]
+    fig_tx = px.bar(
 
-    fig_weekday_tx = go.Figure()
+        avg_tx_weekday,
 
-    fig_weekday_tx.add_bar(
+        x="weekday",
+        y="daily_txs",
 
-        x=avg_tx_weekday["weekday"],
-        y=tx_values,
+        text="label"
+    )
 
-        marker=dict(
-            color=generate_colors(tx_values),
-            line=dict(width=0)
+    fig_tx.update_traces(
+
+        marker_color=generate_colors(
+            avg_tx_weekday["daily_txs"]
         ),
-
-        # SHOW VALUES ON TOP
-        text=[
-            human_format(v)
-            for v in tx_values
-        ],
-
-        texttemplate="%{text}",
 
         textposition="outside",
 
-        textfont=dict(
-            size=13,
-            color="white"
-        ),
+        textfont_size=13,
 
-        cliponaxis=False,
+        marker_line_width=0,
 
-        hovertemplate=
-        "<b>%{x}</b><br>" +
-        "Average Transactions: %{y:,.0f}" +
-        "<extra></extra>"
+        cliponaxis=False
     )
 
-    fig_weekday_tx.update_layout(
+    fig_tx.update_layout(
 
-        title=dict(
-            text="Average Transactions by Weekday",
-            x=0.5
-        ),
+        title="Average Transactions by Weekday",
 
         xaxis_title="Weekday",
         yaxis_title="Average Transactions",
@@ -1291,19 +1260,12 @@ with col2:
         yaxis=dict(
             range=[
                 0,
-                tx_values.max() * 1.20
+                avg_tx_weekday["daily_txs"].max() * 1.20
             ]
-        ),
-
-        margin=dict(
-            t=80,
-            b=40,
-            l=20,
-            r=20
         )
     )
 
     st.plotly_chart(
-        fig_weekday_tx,
+        fig_tx,
         use_container_width=True
     )
