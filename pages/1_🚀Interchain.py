@@ -1062,7 +1062,7 @@ weekday_daily = (
 )
 
 # =====================================================
-# TOTAL METRICS
+# TOTALS
 # =====================================================
 
 weekday_daily["daily_volume"] = (
@@ -1076,7 +1076,7 @@ weekday_daily["daily_txs"] = (
 )
 
 # =====================================================
-# AVG VOLUME BY WEEKDAY
+# AVERAGES
 # =====================================================
 
 avg_volume_weekday = (
@@ -1087,10 +1087,6 @@ avg_volume_weekday = (
     .reset_index()
 )
 
-# =====================================================
-# AVG TX BY WEEKDAY
-# =====================================================
-
 avg_tx_weekday = (
     weekday_daily
     .groupby("weekday")["daily_txs"]
@@ -1100,21 +1096,21 @@ avg_tx_weekday = (
 )
 
 # =====================================================
-# NUMBER FORMAT
+# BEAUTIFUL NUMBER FORMAT
 # =====================================================
 
 def human_format(num):
 
     if num >= 1_000_000_000:
-        return f"{num/1_000_000_000:.2f}B"
+        return f"{num/1_000_000_000:.1f}B"
 
     elif num >= 1_000_000:
-        return f"{num/1_000_000:.2f}M"
+        return f"{num/1_000_000:.1f}M"
 
     elif num >= 1_000:
-        return f"{num/1_000:.2f}K"
+        return f"{num/1_000:.1f}K"
 
-    return f"{num:.2f}"
+    return f"{num:.0f}"
 
 # =====================================================
 # COLOR FUNCTION
@@ -1141,7 +1137,7 @@ def generate_colors(values):
     return colors
 
 # =====================================================
-# LABELS
+# ADD LABELS
 # =====================================================
 
 avg_volume_weekday["label"] = (
@@ -1182,30 +1178,20 @@ with col1:
             avg_volume_weekday["daily_volume"]
         ),
 
-        marker_line_width=0,
-
         textposition="outside",
 
-        # IMPORTANT
-        texttemplate="%{text}",
+        textfont_size=13,
 
-        textfont=dict(
-            size=13,
-            color="white"
-        ),
+        marker_line_width=0,
 
         cliponaxis=False
     )
 
     fig_volume.update_layout(
 
-        title=dict(
-            text="Average Volume by Weekday",
-            x=0.5
-        ),
+        title="Average Volume by Weekday",
 
         xaxis_title="Weekday",
-
         yaxis_title="Average Volume",
 
         template="plotly_dark",
@@ -1217,15 +1203,8 @@ with col1:
         yaxis=dict(
             range=[
                 0,
-                avg_volume_weekday["daily_volume"].max() * 1.25
+                avg_volume_weekday["daily_volume"].max() * 1.20
             ]
-        ),
-
-        margin=dict(
-            t=100,
-            b=40,
-            l=20,
-            r=20
         )
     )
 
@@ -1235,7 +1214,7 @@ with col1:
     )
 
 # =====================================================
-# TX CHART
+# TRANSACTION CHART
 # =====================================================
 
 with col2:
@@ -1256,30 +1235,20 @@ with col2:
             avg_tx_weekday["daily_txs"]
         ),
 
-        marker_line_width=0,
-
         textposition="outside",
 
-        # IMPORTANT
-        texttemplate="%{text}",
+        textfont_size=13,
 
-        textfont=dict(
-            size=13,
-            color="white"
-        ),
+        marker_line_width=0,
 
         cliponaxis=False
     )
 
     fig_tx.update_layout(
 
-        title=dict(
-            text="Average Transactions by Weekday",
-            x=0.5
-        ),
+        title="Average Transactions by Weekday",
 
         xaxis_title="Weekday",
-
         yaxis_title="Average Transactions",
 
         template="plotly_dark",
@@ -1291,15 +1260,8 @@ with col2:
         yaxis=dict(
             range=[
                 0,
-                avg_tx_weekday["daily_txs"].max() * 1.25
+                avg_tx_weekday["daily_txs"].max() * 1.20
             ]
-        ),
-
-        margin=dict(
-            t=100,
-            b=40,
-            l=20,
-            r=20
         )
     )
 
