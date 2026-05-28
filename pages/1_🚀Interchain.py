@@ -1110,7 +1110,7 @@ def human_format(num):
     elif num >= 1_000:
         return f"{num/1_000:.1f}K"
 
-    return f"{num:.0f}"
+    return f"{num:.00f}"
 
 # =====================================================
 # COLOR FUNCTION
@@ -1126,13 +1126,13 @@ def generate_colors(values):
     for v in values:
 
         if v == max_value:
-            colors.append("#00C853")  # GREEN
+            colors.append("#90faae")  # GREEN
 
         elif v == min_value:
-            colors.append("#D50000")  # RED
+            colors.append("#ec9085")  # RED
 
         else:
-            colors.append("#ff7400")  # ORANGE
+            colors.append("#ff9951")  # ORANGE
 
     return colors
 
