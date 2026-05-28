@@ -1066,20 +1066,20 @@ weekday_daily = (
     .reset_index()
 )
 
-# TOTAL DAILY VOLUME
+# DAILY TOTAL VOLUME
 weekday_daily["daily_volume"] = (
     weekday_daily["gmp_volume"] +
     weekday_daily["transfers_volume"]
 )
 
-# TOTAL DAILY TRANSACTIONS
+# DAILY TOTAL TRANSACTIONS
 weekday_daily["daily_txs"] = (
     weekday_daily["gmp_num_txs"] +
     weekday_daily["transfers_num_txs"]
 )
 
 # =====================================================
-# AVERAGE METRICS BY WEEKDAY
+# AVERAGE VOLUME BY WEEKDAY
 # =====================================================
 
 avg_volume_weekday = (
@@ -1090,6 +1090,10 @@ avg_volume_weekday = (
     .reset_index()
 )
 
+# =====================================================
+# AVERAGE TX BY WEEKDAY
+# =====================================================
+
 avg_tx_weekday = (
     weekday_daily
     .groupby("weekday")["daily_txs"]
@@ -1099,7 +1103,7 @@ avg_tx_weekday = (
 )
 
 # =====================================================
-# NUMBER FORMAT FUNCTION
+# BEAUTIFUL NUMBER FORMAT
 # =====================================================
 
 def human_format(num):
@@ -1116,10 +1120,10 @@ def human_format(num):
     return f"{num:.0f}"
 
 # =====================================================
-# COLOR GENERATOR
+# COLOR FUNCTION
 # =====================================================
 
-def generate_colors(values, normal_color):
+def generate_colors(values):
 
     max_value = values.max()
     min_value = values.min()
@@ -1128,14 +1132,17 @@ def generate_colors(values, normal_color):
 
     for v in values:
 
+        # MAX VALUE -> GREEN
         if v == max_value:
-            colors.append("#00C853")  # GREEN
+            colors.append("#00C853")
 
+        # MIN VALUE -> RED
         elif v == min_value:
-            colors.append("#D50000")  # RED
+            colors.append("#D50000")
 
+        # NORMAL -> ORANGE
         else:
-            colors.append(normal_color)
+            colors.append("#ff7400")
 
     return colors
 
@@ -1156,14 +1163,20 @@ with col1:
     fig_weekday_volume = go.Figure()
 
     fig_weekday_volume.add_bar(
+
         x=avg_volume_weekday["weekday"],
         y=volume_values,
 
-        marker_color=generate_colors(
-            volume_values,
-            "#ff7400"
+        marker=dict(
+            color=generate_colors(volume_values),
+
+            # REMOVE BLACK BORDER
+            line=dict(
+                width=0
+            )
         ),
 
+        # SHOW VALUES ON BARS
         text=[
             human_format(v)
             for v in volume_values
@@ -1192,11 +1205,11 @@ with col1:
         xaxis_title="Weekday",
         yaxis_title="Average Volume",
 
-        template="plotly_dark",
+        showlegend=False,
 
         height=500,
 
-        showlegend=False,
+        template="plotly_dark",
 
         margin=dict(
             t=80,
@@ -1226,14 +1239,20 @@ with col2:
     fig_weekday_tx = go.Figure()
 
     fig_weekday_tx.add_bar(
+
         x=avg_tx_weekday["weekday"],
         y=tx_values,
 
-        marker_color=generate_colors(
-            tx_values,
-            "#00a1f7"
+        marker=dict(
+            color=generate_colors(tx_values),
+
+            # REMOVE BLACK BORDER
+            line=dict(
+                width=0
+            )
         ),
 
+        # SHOW VALUES ON BARS
         text=[
             human_format(v)
             for v in tx_values
@@ -1262,11 +1281,11 @@ with col2:
         xaxis_title="Weekday",
         yaxis_title="Average Transactions",
 
-        template="plotly_dark",
+        showlegend=False,
 
         height=500,
 
-        showlegend=False,
+        template="plotly_dark",
 
         margin=dict(
             t=80,
