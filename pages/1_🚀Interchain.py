@@ -8,10 +8,11 @@ import plotly.express as px
 # PAGE CONFIG
 # =====================================================
 st.set_page_config(
-    page_title="Axelar Dashboard",
-    page_icon="🚀",
+    page_title="Axelar Mega Dashboard",
+    page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
+
 
 # =====================================================
 # CSS
