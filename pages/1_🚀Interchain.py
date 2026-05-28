@@ -1023,10 +1023,6 @@ st.plotly_chart(
 # WEEKDAY ANALYSIS
 # =====================================================
 
-import streamlit as st
-import plotly.graph_objects as go
-import pandas as pd
-
 st.markdown("---")
 st.subheader("📅 Weekday Analysis")
 
@@ -1066,20 +1062,22 @@ weekday_daily = (
     .reset_index()
 )
 
-# DAILY TOTAL VOLUME
+# =====================================================
+# TOTALS
+# =====================================================
+
 weekday_daily["daily_volume"] = (
     weekday_daily["gmp_volume"] +
     weekday_daily["transfers_volume"]
 )
 
-# DAILY TOTAL TRANSACTIONS
 weekday_daily["daily_txs"] = (
     weekday_daily["gmp_num_txs"] +
     weekday_daily["transfers_num_txs"]
 )
 
 # =====================================================
-# AVERAGES
+# AVG VOLUME BY WEEKDAY
 # =====================================================
 
 avg_volume_weekday = (
@@ -1089,6 +1087,10 @@ avg_volume_weekday = (
     .reindex(weekday_order)
     .reset_index()
 )
+
+# =====================================================
+# AVG TX BY WEEKDAY
+# =====================================================
 
 avg_tx_weekday = (
     weekday_daily
@@ -1128,11 +1130,11 @@ def generate_colors(values):
 
     for v in values:
 
-        # MAX -> GREEN
+        # MAX VALUE -> GREEN
         if v == max_value:
             colors.append("#00C853")
 
-        # MIN -> RED
+        # MIN VALUE -> RED
         elif v == min_value:
             colors.append("#D50000")
 
@@ -1143,13 +1145,13 @@ def generate_colors(values):
     return colors
 
 # =====================================================
-# COLUMNS
+# CREATE COLUMNS
 # =====================================================
 
 col1, col2 = st.columns(2)
 
 # =====================================================
-# VOLUME CHART
+# AVG VOLUME CHART
 # =====================================================
 
 with col1:
@@ -1168,11 +1170,13 @@ with col1:
             line=dict(width=0)
         ),
 
-        # VALUES ON TOP
+        # SHOW VALUES ON TOP
         text=[
             human_format(v)
             for v in volume_values
         ],
+
+        texttemplate="%{text}",
 
         textposition="outside",
 
@@ -1181,7 +1185,12 @@ with col1:
             color="white"
         ),
 
-        cliponaxis=False
+        cliponaxis=False,
+
+        hovertemplate=
+        "<b>%{x}</b><br>" +
+        "Average Volume: %{y:,.0f}" +
+        "<extra></extra>"
     )
 
     fig_weekday_volume.update_layout(
@@ -1200,7 +1209,6 @@ with col1:
 
         height=500,
 
-        # IMPORTANT
         yaxis=dict(
             range=[
                 0,
@@ -1222,7 +1230,7 @@ with col1:
     )
 
 # =====================================================
-# TRANSACTION CHART
+# AVG TX CHART
 # =====================================================
 
 with col2:
@@ -1241,11 +1249,13 @@ with col2:
             line=dict(width=0)
         ),
 
-        # VALUES ON TOP
+        # SHOW VALUES ON TOP
         text=[
             human_format(v)
             for v in tx_values
         ],
+
+        texttemplate="%{text}",
 
         textposition="outside",
 
@@ -1254,7 +1264,12 @@ with col2:
             color="white"
         ),
 
-        cliponaxis=False
+        cliponaxis=False,
+
+        hovertemplate=
+        "<b>%{x}</b><br>" +
+        "Average Transactions: %{y:,.0f}" +
+        "<extra></extra>"
     )
 
     fig_weekday_tx.update_layout(
@@ -1273,7 +1288,6 @@ with col2:
 
         height=500,
 
-        # IMPORTANT
         yaxis=dict(
             range=[
                 0,
