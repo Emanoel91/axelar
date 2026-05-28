@@ -1062,7 +1062,7 @@ weekday_daily = (
 )
 
 # =====================================================
-# TOTAL DAILY METRICS
+# TOTAL METRICS
 # =====================================================
 
 weekday_daily["daily_volume"] = (
@@ -1076,7 +1076,7 @@ weekday_daily["daily_txs"] = (
 )
 
 # =====================================================
-# AVERAGE VOLUME BY WEEKDAY
+# AVG VOLUME BY WEEKDAY
 # =====================================================
 
 avg_volume_weekday = (
@@ -1088,7 +1088,7 @@ avg_volume_weekday = (
 )
 
 # =====================================================
-# AVERAGE TX BY WEEKDAY
+# AVG TX BY WEEKDAY
 # =====================================================
 
 avg_tx_weekday = (
@@ -1100,7 +1100,7 @@ avg_tx_weekday = (
 )
 
 # =====================================================
-# BEAUTIFUL NUMBER FORMAT
+# NUMBER FORMAT
 # =====================================================
 
 def human_format(num):
@@ -1129,17 +1129,14 @@ def generate_colors(values):
 
     for v in values:
 
-        # MAX VALUE -> GREEN
         if v == max_value:
-            colors.append("#00C853")
+            colors.append("#00C853")  # GREEN
 
-        # MIN VALUE -> RED
         elif v == min_value:
-            colors.append("#D50000")
+            colors.append("#D50000")  # RED
 
-        # NORMAL -> ORANGE
         else:
-            colors.append("#ff7400")
+            colors.append("#ff7400")  # ORANGE
 
     return colors
 
@@ -1158,13 +1155,13 @@ avg_tx_weekday["label"] = (
 )
 
 # =====================================================
-# CREATE COLUMNS
+# COLUMNS
 # =====================================================
 
 col1, col2 = st.columns(2)
 
 # =====================================================
-# AVG VOLUME CHART
+# VOLUME CHART
 # =====================================================
 
 with col1:
@@ -1185,14 +1182,17 @@ with col1:
             avg_volume_weekday["daily_volume"]
         ),
 
+        marker_line_width=0,
+
         textposition="outside",
+
+        # IMPORTANT
+        texttemplate="%{text}",
 
         textfont=dict(
             size=13,
             color="white"
         ),
-
-        marker_line_width=0,
 
         cliponaxis=False
     )
@@ -1217,12 +1217,12 @@ with col1:
         yaxis=dict(
             range=[
                 0,
-                avg_volume_weekday["daily_volume"].max() * 1.20
+                avg_volume_weekday["daily_volume"].max() * 1.25
             ]
         ),
 
         margin=dict(
-            t=80,
+            t=100,
             b=40,
             l=20,
             r=20
@@ -1235,7 +1235,7 @@ with col1:
     )
 
 # =====================================================
-# AVG TX CHART
+# TX CHART
 # =====================================================
 
 with col2:
@@ -1256,14 +1256,17 @@ with col2:
             avg_tx_weekday["daily_txs"]
         ),
 
+        marker_line_width=0,
+
         textposition="outside",
+
+        # IMPORTANT
+        texttemplate="%{text}",
 
         textfont=dict(
             size=13,
             color="white"
         ),
-
-        marker_line_width=0,
 
         cliponaxis=False
     )
@@ -1288,12 +1291,12 @@ with col2:
         yaxis=dict(
             range=[
                 0,
-                avg_tx_weekday["daily_txs"].max() * 1.20
+                avg_tx_weekday["daily_txs"].max() * 1.25
             ]
         ),
 
         margin=dict(
-            t=80,
+            t=100,
             b=40,
             l=20,
             r=20
