@@ -2,7 +2,7 @@ import streamlit as st
 
 # --- Page Config: Tab Title & Icon ---
 st.set_page_config(
-    page_title="Axelar Master Dashboard",
+    page_title="📚 Axelar Mega Dashboard",
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
@@ -12,7 +12,7 @@ st.markdown(
     """
     <div style="display: flex; align-items: center; gap: 15px;">
         <img src="https://axelarscan.io/logos/logo.png" alt="axelar" style="width:60px; height:60px;">
-        <h1 style="margin: 0;">Axelar Master Dashboard</h1>
+        <h1 style="margin: 0;">Axelar Mega Dashboard</h1>
     </div>
     """,
     unsafe_allow_html=True
@@ -50,19 +50,6 @@ st.markdown(
 )
 
 # --- Reference and Rebuild Info ---
-st.markdown(
-    """
-    <div style="margin-top: 20px; margin-bottom: 20px; font-size: 16px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <img src="https://pbs.twimg.com/profile_images/1856738793325268992/OouKI10c_400x400.jpg" 
-                 alt="Flipside" style="width:25px; height:25px; border-radius: 50%;">
-            <span>Data Powered by: <a href="https://flipsidecrypto.xyz/home/" target="_blank"><b>Flipside</b></a></span>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
 
 # --- Links with Logos ---
 st.markdown(
