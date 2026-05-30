@@ -355,3 +355,248 @@ with col2:
         fig_txs,
         use_container_width=True
     )
+
+# =====================================================
+# ADDITIONAL KPI CALCULATIONS
+# =====================================================
+
+# ---------- DAILY ----------
+
+daily_stats = (
+    df.groupby(
+        df["timestamp"].dt.floor("D")
+    )
+    .agg({
+        "volume": "sum",
+        "num_txs": "sum"
+    })
+    .reset_index()
+)
+
+avg_volume_day = daily_stats["volume"].mean()
+
+avg_tx_day = daily_stats["num_txs"].mean()
+
+# ---------- MONTHLY ----------
+
+monthly_stats = (
+    df.groupby(
+        df["timestamp"]
+        .dt
+        .to_period("M")
+        .apply(lambda x: x.start_time)
+    )
+    .agg({
+        "volume": "sum",
+        "num_txs": "sum"
+    })
+    .reset_index()
+)
+
+avg_volume_month = monthly_stats["volume"].mean()
+
+avg_tx_month = monthly_stats["num_txs"].mean()
+
+
+# =====================================================
+# WEEKLY / MONTHLY CHANGE
+# THESE KPIs IGNORE DASHBOARD DATE FILTER
+# =====================================================
+
+@st.cache_data(ttl=3600)
+def load_full_history(symbol):
+
+    url = (
+        "https://api.axelarscan.io/gmp/GMPChart"
+        f"?symbol={symbol}"
+    )
+
+    r = requests.get(
+        url,
+        timeout=60
+    )
+
+    data = r.json()["data"]
+
+    temp = pd.DataFrame(data)
+
+    if len(temp) == 0:
+        return pd.DataFrame()
+
+    temp["timestamp"] = pd.to_datetime(
+        temp["timestamp"],
+        unit="ms"
+    )
+
+    temp["volume"] = pd.to_numeric(
+        temp["volume"],
+        errors="coerce"
+    ).fillna(0)
+
+    temp["num_txs"] = pd.to_numeric(
+        temp["num_txs"],
+        errors="coerce"
+    ).fillna(0)
+
+    return temp
+
+
+full_df = load_full_history(token_symbol)
+
+weekly_volume_change = 0
+weekly_tx_change = 0
+
+monthly_volume_change = 0
+monthly_tx_change = 0
+
+if not full_df.empty:
+
+    # ==========================================
+    # WEEKLY
+    # ==========================================
+
+    weekly = (
+        full_df.groupby(
+            full_df["timestamp"]
+            .dt
+            .to_period("W")
+            .apply(lambda x: x.start_time)
+        )
+        .agg({
+            "volume": "sum",
+            "num_txs": "sum"
+        })
+        .reset_index()
+    )
+
+    if len(weekly) >= 2:
+
+        last_week = weekly.iloc[-1]
+        prev_week = weekly.iloc[-2]
+
+        weekly_volume_change = (
+            (
+                last_week["volume"]
+                - prev_week["volume"]
+            )
+            /
+            max(prev_week["volume"], 1)
+        ) * 100
+
+        weekly_tx_change = (
+            (
+                last_week["num_txs"]
+                - prev_week["num_txs"]
+            )
+            /
+            max(prev_week["num_txs"], 1)
+        ) * 100
+
+    # ==========================================
+    # MONTHLY
+    # ==========================================
+
+    monthly = (
+        full_df.groupby(
+            full_df["timestamp"]
+            .dt
+            .to_period("M")
+            .apply(lambda x: x.start_time)
+        )
+        .agg({
+            "volume": "sum",
+            "num_txs": "sum"
+        })
+        .reset_index()
+    )
+
+    if len(monthly) >= 2:
+
+        last_month = monthly.iloc[-1]
+        prev_month = monthly.iloc[-2]
+
+        monthly_volume_change = (
+            (
+                last_month["volume"]
+                - prev_month["volume"]
+            )
+            /
+            max(prev_month["volume"], 1)
+        ) * 100
+
+        monthly_tx_change = (
+            (
+                last_month["num_txs"]
+                - prev_month["num_txs"]
+            )
+            /
+            max(prev_month["num_txs"], 1)
+        ) * 100
+
+# =====================================================
+# KPI ROW 2
+# =====================================================
+
+st.markdown("---")
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric(
+        "Avg Volume per Day",
+        f"${avg_volume_day:,.2f}"
+    )
+
+with col2:
+    st.metric(
+        "Avg Volume per Month",
+        f"${avg_volume_month:,.2f}"
+    )
+
+with col3:
+    st.metric(
+        "Avg Transactions per Day",
+        f"{avg_tx_day:,.2f}"
+    )
+
+with col4:
+    st.metric(
+        "Avg Transactions per Month",
+        f"{avg_tx_month:,.2f}"
+    )
+
+# =====================================================
+# KPI ROW 3
+# =====================================================
+
+st.markdown("---")
+
+st.info(
+    "The following growth metrics are calculated using the full historical dataset and are NOT affected by the selected dashboard date range."
+)
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric(
+        "Weekly Volume % Change",
+        f"{weekly_volume_change:,.2f}%"
+    )
+
+with col2:
+    st.metric(
+        "Weekly Tx % Change",
+        f"{weekly_tx_change:,.2f}%"
+    )
+
+with col3:
+    st.metric(
+        "Monthly Volume % Change",
+        f"{monthly_volume_change:,.2f}%"
+    )
+
+with col4:
+    st.metric(
+        "Monthly Tx % Change",
+        f"{monthly_tx_change:,.2f}%"
+    )
