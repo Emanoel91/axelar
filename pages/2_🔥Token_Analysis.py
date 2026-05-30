@@ -566,7 +566,133 @@ with col4:
     )
 
 # =====================================================
+# ATH / ATL CALCULATIONS
+# =====================================================
+
+ath_volume_row = daily_stats.loc[
+    daily_stats["volume"].idxmax()
+]
+
+atl_volume_row = daily_stats.loc[
+    daily_stats["volume"].idxmin()
+]
+
+ath_tx_row = daily_stats.loc[
+    daily_stats["num_txs"].idxmax()
+]
+
+atl_tx_row = daily_stats.loc[
+    daily_stats["num_txs"].idxmin()
+]
+
+ath_volume = ath_volume_row["volume"]
+atl_volume = atl_volume_row["volume"]
+
+ath_tx = ath_tx_row["num_txs"]
+atl_tx = atl_tx_row["num_txs"]
+
+ath_volume_date = pd.to_datetime(
+    ath_volume_row["timestamp"]
+).strftime("%Y-%m-%d")
+
+atl_volume_date = pd.to_datetime(
+    atl_volume_row["timestamp"]
+).strftime("%Y-%m-%d")
+
+ath_tx_date = pd.to_datetime(
+    ath_tx_row["timestamp"]
+).strftime("%Y-%m-%d")
+
+atl_tx_date = pd.to_datetime(
+    atl_tx_row["timestamp"]
+).strftime("%Y-%m-%d")
+
+# =====================================================
 # KPI ROW 3
+# =====================================================
+
+st.markdown("---")
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+
+    st.metric(
+        "ATH Volume",
+        f"${ath_volume:,.2f}"
+    )
+
+    st.markdown(
+        f"""
+        <div style="
+        color:#00d26a;
+        font-size:13px;
+        margin-top:-8px;">
+        📈 {ath_volume_date}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col2:
+
+    st.metric(
+        "ATL Volume",
+        f"${atl_volume:,.2f}"
+    )
+
+    st.markdown(
+        f"""
+        <div style="
+        color:#ff4b4b;
+        font-size:13px;
+        margin-top:-8px;">
+        📉 {atl_volume_date}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col3:
+
+    st.metric(
+        "ATH Transactions",
+        f"{int(ath_tx):,}"
+    )
+
+    st.markdown(
+        f"""
+        <div style="
+        color:#00d26a;
+        font-size:13px;
+        margin-top:-8px;">
+        📈 {ath_tx_date}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col4:
+
+    st.metric(
+        "ATL Transactions",
+        f"{int(atl_tx):,}"
+    )
+
+    st.markdown(
+        f"""
+        <div style="
+        color:#ff4b4b;
+        font-size:13px;
+        margin-top:-8px;">
+        📉 {atl_tx_date}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# =====================================================
+# KPI ROW 4
 # =====================================================
 
 st.markdown("---")
