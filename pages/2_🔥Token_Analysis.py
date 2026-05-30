@@ -891,20 +891,23 @@ def load_recent_transactions(symbol):
 
         try:
 
-            timestamp = (
-                tx.get("call", {})
-                  .get("blockTimestamp")
-            )
-
-            source_chain = (
-                tx.get("origin_chain")
-            )
+            source_chain = tx.get("origin_chain")
 
             destination_chain = (
                 tx.get("call", {})
                   .get("returnValues", {})
                   .get("destinationChain")
             )
+
+            # -----------------------------------------
+            # Remove Axelar routes
+            # -----------------------------------------
+            if (
+                str(source_chain).lower() == "axelar"
+                or
+                str(destination_chain).lower() == "axelar"
+            ):
+                continue
 
             sender = (
                 tx.get("call", {})
@@ -925,47 +928,28 @@ def load_recent_transactions(symbol):
 
             amount = tx.get("amount", 0)
 
-            value_usd = tx.get("value", 0)
-
             symbol = tx.get("symbol")
 
             status = tx.get("simplified_status")
 
             message_id = tx.get("message_id")
 
-            fee = (
+            fee_usd = (
                 tx.get("fees", {})
                   .get("base_fee_usd", 0)
             )
 
             rows.append(
                 {
-                    "Time": pd.to_datetime(
-                        timestamp,
-                        unit="s",
-                        errors="coerce"
-                    ),
-
                     "Source Chain": source_chain,
-
                     "Destination Chain": destination_chain,
-
                     "Token": symbol,
-
                     "Amount": amount,
-
-                    "Value USD": value_usd,
-
-                    "Fee USD": fee,
-
+                    "Fee USD": fee_usd,
                     "Status": status,
-
                     "Sender": sender,
-
                     "Receiver": receiver,
-
                     "Tx Hash": tx_hash,
-
                     "Message ID": message_id
                 }
             )
@@ -982,17 +966,27 @@ def load_recent_transactions(symbol):
 st.markdown("---")
 
 st.subheader(
-    f"Latest 25 {token_symbol} Cross-Chain Transactions"
+    f"Latest {token_symbol} Cross-Chain Transactions"
 )
 
 tx_df = load_recent_transactions(token_symbol)
 
 if not tx_df.empty:
 
-    tx_df = tx_df.sort_values(
-        "Time",
-        ascending=False
-    )
+    tx_df = tx_df[
+        [
+            "Source Chain",
+            "Destination Chain",
+            "Token",
+            "Amount",
+            "Fee USD",
+            "Status",
+            "Sender",
+            "Receiver",
+            "Tx Hash",
+            "Message ID"
+        ]
+    ]
 
     st.dataframe(
         tx_df,
@@ -1006,4 +1000,3 @@ else:
     st.warning(
         "No recent transactions found."
     )
-
