@@ -727,3 +727,142 @@ with col4:
         f"{monthly_tx_change:,.2f}%"
     )
 
+# =====================================================
+# AVG VOLUME PER TRANSACTION ANALYSIS
+# =====================================================
+
+avg_volume_df = grouped.copy()
+
+avg_volume_df["avg_volume_per_tx"] = (
+    avg_volume_df["volume"] /
+    avg_volume_df["num_txs"].replace(0, pd.NA)
+)
+
+avg_volume_df["avg_volume_per_tx"] = (
+    avg_volume_df["avg_volume_per_tx"]
+    .fillna(0)
+)
+
+# =====================================================
+# DYNAMIC MOVING AVERAGES
+# =====================================================
+
+if timeframe == "Day":
+
+    ma_short = 7
+    ma_long = 30
+
+elif timeframe == "Week":
+
+    ma_short = 4
+    ma_long = 12
+
+else:  # Month
+
+    ma_short = 3
+    ma_long = 6
+
+avg_volume_df["ma_short"] = (
+    avg_volume_df["avg_volume_per_tx"]
+    .rolling(
+        window=ma_short,
+        min_periods=1
+    )
+    .mean()
+)
+
+avg_volume_df["ma_long"] = (
+    avg_volume_df["avg_volume_per_tx"]
+    .rolling(
+        window=ma_long,
+        min_periods=1
+    )
+    .mean()
+)
+
+# =====================================================
+# CHART 1
+# AVG VOLUME PER TRANSACTION OVER TIME
+# =====================================================
+
+fig_avg_volume = go.Figure()
+
+fig_avg_volume.add_trace(
+    go.Scatter(
+        x=avg_volume_df["period"],
+        y=avg_volume_df["avg_volume_per_tx"],
+        mode="lines",
+        fill="tozeroy",
+        name="Avg Volume / Tx"
+    )
+)
+
+fig_avg_volume.update_layout(
+    title=f"{token_symbol} Average Volume per Transaction Over Time",
+    template="plotly_dark",
+    hovermode="x unified",
+    height=500,
+    xaxis_title="",
+    yaxis_title="Average Volume per Transaction"
+)
+
+# =====================================================
+# CHART 2
+# MOVING AVERAGES
+# =====================================================
+
+fig_ma = go.Figure()
+
+fig_ma.add_trace(
+    go.Scatter(
+        x=avg_volume_df["period"],
+        y=avg_volume_df["ma_short"],
+        mode="lines",
+        name=f"MA {ma_short}"
+    )
+)
+
+fig_ma.add_trace(
+    go.Scatter(
+        x=avg_volume_df["period"],
+        y=avg_volume_df["ma_long"],
+        mode="lines",
+        name=f"MA {ma_long}"
+    )
+)
+
+fig_ma.update_layout(
+    title=f"{token_symbol} Avg Volume per Transaction Moving Averages",
+    template="plotly_dark",
+    hovermode="x unified",
+    height=500,
+    xaxis_title="",
+    yaxis_title="Average Volume per Transaction"
+)
+
+# =====================================================
+# DASHBOARD ROW
+# =====================================================
+
+st.markdown("---")
+
+st.subheader(
+    "Average Volume per Transaction Analysis"
+)
+
+col1, col2 = st.columns(2)
+
+with col1:
+
+    st.plotly_chart(
+        fig_avg_volume,
+        use_container_width=True
+    )
+
+with col2:
+
+    st.plotly_chart(
+        fig_ma,
+        use_container_width=True
+    )
+
