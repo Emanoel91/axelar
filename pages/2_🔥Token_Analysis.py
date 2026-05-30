@@ -866,3 +866,144 @@ with col2:
         use_container_width=True
     )
 
+# =====================================================
+# LOAD RECENT TRANSACTIONS
+# =====================================================
+
+@st.cache_data(ttl=300)
+def load_recent_transactions(symbol):
+
+    url = (
+        "https://api.axelarscan.io/gmp/searchGMP"
+        f"?symbol={symbol}"
+    )
+
+    r = requests.get(url, timeout=60)
+
+    if r.status_code != 200:
+        return pd.DataFrame()
+
+    data = r.json().get("data", [])
+
+    rows = []
+
+    for tx in data:
+
+        try:
+
+            timestamp = (
+                tx.get("call", {})
+                  .get("blockTimestamp")
+            )
+
+            source_chain = (
+                tx.get("origin_chain")
+            )
+
+            destination_chain = (
+                tx.get("call", {})
+                  .get("returnValues", {})
+                  .get("destinationChain")
+            )
+
+            sender = (
+                tx.get("call", {})
+                  .get("returnValues", {})
+                  .get("sender")
+            )
+
+            receiver = (
+                tx.get("call", {})
+                  .get("returnValues", {})
+                  .get("destinationAddress")
+            )
+
+            tx_hash = (
+                tx.get("call", {})
+                  .get("transactionHash")
+            )
+
+            amount = tx.get("amount", 0)
+
+            value_usd = tx.get("value", 0)
+
+            symbol = tx.get("symbol")
+
+            status = tx.get("simplified_status")
+
+            message_id = tx.get("message_id")
+
+            fee = (
+                tx.get("fees", {})
+                  .get("base_fee_usd", 0)
+            )
+
+            rows.append(
+                {
+                    "Time": pd.to_datetime(
+                        timestamp,
+                        unit="s",
+                        errors="coerce"
+                    ),
+
+                    "Source Chain": source_chain,
+
+                    "Destination Chain": destination_chain,
+
+                    "Token": symbol,
+
+                    "Amount": amount,
+
+                    "Value USD": value_usd,
+
+                    "Fee USD": fee,
+
+                    "Status": status,
+
+                    "Sender": sender,
+
+                    "Receiver": receiver,
+
+                    "Tx Hash": tx_hash,
+
+                    "Message ID": message_id
+                }
+            )
+
+        except Exception:
+            pass
+
+    return pd.DataFrame(rows)
+
+# =====================================================
+# RECENT TRANSACTIONS TABLE
+# =====================================================
+
+st.markdown("---")
+
+st.subheader(
+    f"Latest 25 {token_symbol} Cross-Chain Transactions"
+)
+
+tx_df = load_recent_transactions(token_symbol)
+
+if not tx_df.empty:
+
+    tx_df = tx_df.sort_values(
+        "Time",
+        ascending=False
+    )
+
+    st.dataframe(
+        tx_df,
+        use_container_width=True,
+        hide_index=True,
+        height=650
+    )
+
+else:
+
+    st.warning(
+        "No recent transactions found."
+    )
+
