@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # PAGE CONFIG
 # =====================================================
 st.set_page_config(
-    page_title="Axelar GMP Dashboard",
+    page_title="Axelar Mega Dashboard",
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
@@ -64,7 +64,7 @@ with st.sidebar:
 # =====================================================
 # TITLE
 # =====================================================
-st.title("🚀 Axelar GMP Analytics Dashboard")
+st.title("🔥 Token Analysis")
 
 st.info(
     "Data source: Axelar GMPChart API"
