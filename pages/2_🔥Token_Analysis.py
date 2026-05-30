@@ -866,10 +866,6 @@ with col2:
         use_container_width=True
     )
 
-# =====================================================
-# LOAD RECENT TRANSACTIONS
-# =====================================================
-
 @st.cache_data(ttl=300)
 def load_recent_transactions(symbol):
 
@@ -899,9 +895,6 @@ def load_recent_transactions(symbol):
                   .get("destinationChain")
             )
 
-            # -----------------------------------------
-            # Remove Axelar routes
-            # -----------------------------------------
             if (
                 str(source_chain).lower() == "axelar"
                 or
@@ -909,24 +902,12 @@ def load_recent_transactions(symbol):
             ):
                 continue
 
-            sender = (
-                tx.get("call", {})
-                  .get("returnValues", {})
-                  .get("sender")
-            )
-
-            receiver = (
-                tx.get("call", {})
-                  .get("returnValues", {})
-                  .get("destinationAddress")
-            )
-
             tx_hash = (
                 tx.get("call", {})
                   .get("transactionHash")
             )
 
-            amount = tx.get("amount", 0)
+            amount = tx.get("amount")
 
             symbol = tx.get("symbol")
 
@@ -936,8 +917,15 @@ def load_recent_transactions(symbol):
 
             fee_usd = (
                 tx.get("fees", {})
-                  .get("base_fee_usd", 0)
+                  .get("base_fee_usd")
             )
+
+            if (
+                not source_chain
+                or not destination_chain
+                or not tx_hash
+            ):
+                continue
 
             rows.append(
                 {
@@ -947,17 +935,19 @@ def load_recent_transactions(symbol):
                     "Amount": amount,
                     "Fee USD": fee_usd,
                     "Status": status,
-                    "Sender": sender,
-                    "Receiver": receiver,
                     "Tx Hash": tx_hash,
                     "Message ID": message_id
                 }
             )
 
         except Exception:
-            pass
+            continue
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+
+    df = df.dropna(how="all")
+
+    return df
 
 # =====================================================
 # RECENT TRANSACTIONS TABLE
@@ -981,8 +971,6 @@ if not tx_df.empty:
             "Amount",
             "Fee USD",
             "Status",
-            "Sender",
-            "Receiver",
             "Tx Hash",
             "Message ID"
         ]
@@ -1000,3 +988,4 @@ else:
     st.warning(
         "No recent transactions found."
     )
+    
