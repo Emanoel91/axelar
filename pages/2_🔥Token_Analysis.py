@@ -1816,207 +1816,103 @@ if not chain_df.empty:
             use_container_width=True
         )
 
-# ============================================================
-# CHAIN FLOW ANALYSIS
-# ============================================================
+# =====================================================
+# CROSS-CHAIN FLOW ANALYSIS
+# =====================================================
 
-st.divider()
-st.header("🌉 Cross-Chain Flow Analysis")
+st.subheader("🌉 Cross-Chain Flow Analysis")
 
-# ============================================================
-# LOAD CHAIN FLOW DATA
-# ============================================================
+col1, col2 = st.columns(2)
 
-@st.cache_data(ttl=3600)
-def load_chain_flow_data(
-    symbol,
-    start_date,
-    end_date
-):
+# =====================================================
+# PREPARE FLOW DATA
+# =====================================================
 
-    from_time = int(
-        pd.Timestamp(start_date).timestamp()
-    )
-
-    to_time = int(
-        pd.Timestamp(end_date).timestamp()
-    )
-
-    url = (
-        "https://api.axelarscan.io/gmp/GMPStatsByChains"
-        f"?symbol={symbol}"
-        f"&fromTime={from_time}"
-        f"&toTime={to_time}"
-    )
-
-    response = requests.get(
-        url,
-        timeout=60
-    )
-
-    response.raise_for_status()
-
-    data = response.json()
-
-    rows = []
-
-    for source in data.get(
-        "source_chains",
-        []
-    ):
-
-        source_chain = source["key"]
-
-        for destination in source.get(
-            "destination_chains",
-            []
-        ):
-
-            rows.append({
-
-                "source_chain":
-                    source_chain,
-
-                "destination_chain":
-                    destination["key"],
-
-                "transactions":
-                    destination["num_txs"],
-
-                "volume":
-                    destination["volume"]
-
-            })
-
-    return pd.DataFrame(rows)
-
-# ============================================================
-# FETCH DATA
-# ============================================================
-
-chain_df = load_chain_flow_data(
-    token_symbol,
-    start_date,
-    end_date
+flow_df["route"] = (
+    flow_df["source_chain"]
+    + " ➡ "
+    + flow_df["destination_chain"]
 )
 
-# ============================================================
-# CHECK EMPTY
-# ============================================================
+# =====================================================
+# VOLUME DONUT
+# =====================================================
 
-if not chain_df.empty:
+with col1:
 
-    # ========================================================
-    # SANKEY DATA
-    # ========================================================
-
-    chains = pd.unique(
-        chain_df[
-            ["source_chain",
-             "destination_chain"]
-        ].values.ravel()
+    volume_route = (
+        flow_df
+        .groupby("route", as_index=False)
+        ["volume"]
+        .sum()
+        .sort_values(
+            "volume",
+            ascending=False
+        )
     )
 
-    chain_to_index = {
+    fig_volume_donut = px.pie(
+        volume_route,
+        names="route",
+        values="volume",
+        hole=0.60
+    )
 
-        chain: idx
+    fig_volume_donut.update_traces(
+        textinfo="percent+label"
+    )
 
-        for idx, chain
-        in enumerate(chains)
+    fig_volume_donut.update_layout(
+        title="Volume Distribution by Route",
+        template="plotly_dark",
+        height=650,
+        showlegend=True
+    )
 
-    }
+    st.plotly_chart(
+        fig_volume_donut,
+        use_container_width=True
+    )
 
-    # ========================================================
-    # SANKEY ROW
-    # ========================================================
+# =====================================================
+# TRANSACTION DONUT
+# =====================================================
 
-    col1, col2 = st.columns(2)
+with col2:
 
-    with col1:
-
-        fig_volume_flow = go.Figure(
-
-            go.Sankey(
-
-                node=dict(
-                    pad=20,
-                    thickness=18,
-                    label=list(chains)
-                ),
-
-                link=dict(
-
-                    source=chain_df[
-                        "source_chain"
-                    ].map(chain_to_index),
-
-                    target=chain_df[
-                        "destination_chain"
-                    ].map(chain_to_index),
-
-                    value=chain_df[
-                        "volume"
-                    ]
-                )
-            )
+    tx_route = (
+        flow_df
+        .groupby("route", as_index=False)
+        ["num_txs"]
+        .sum()
+        .sort_values(
+            "num_txs",
+            ascending=False
         )
+    )
 
-        fig_volume_flow.update_layout(
+    fig_tx_donut = px.pie(
+        tx_route,
+        names="route",
+        values="num_txs",
+        hole=0.60
+    )
 
-            title="Volume Flow Between Chains",
+    fig_tx_donut.update_traces(
+        textinfo="percent+label"
+    )
 
-            template="plotly_dark",
+    fig_tx_donut.update_layout(
+        title="Transaction Distribution by Route",
+        template="plotly_dark",
+        height=650,
+        showlegend=True
+    )
 
-            height=650
-        )
-
-        st.plotly_chart(
-            fig_volume_flow,
-            use_container_width=True
-        )
-
-    with col2:
-
-        fig_tx_flow = go.Figure(
-
-            go.Sankey(
-
-                node=dict(
-                    pad=20,
-                    thickness=18,
-                    label=list(chains)
-                ),
-
-                link=dict(
-
-                    source=chain_df[
-                        "source_chain"
-                    ].map(chain_to_index),
-
-                    target=chain_df[
-                        "destination_chain"
-                    ].map(chain_to_index),
-
-                    value=chain_df[
-                        "transactions"
-                    ]
-                )
-            )
-        )
-
-        fig_tx_flow.update_layout(
-
-            title="Transaction Flow Between Chains",
-
-            template="plotly_dark",
-
-            height=650
-        )
-
-        st.plotly_chart(
-            fig_tx_flow,
-            use_container_width=True
-        )
+    st.plotly_chart(
+        fig_tx_donut,
+        use_container_width=True
+    )
 
     # ========================================================
     # TOP SOURCE / DESTINATION CHAINS
@@ -2027,7 +1923,7 @@ if not chain_df.empty:
     )
 
     source_volume = (
-        chain_df
+        chain_df 
         .groupby("source_chain")
         ["volume"]
         .sum()
