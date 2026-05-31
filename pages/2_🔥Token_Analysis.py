@@ -1816,3 +1816,443 @@ if not chain_df.empty:
             use_container_width=True
         )
 
+# ============================================================
+# CHAIN FLOW ANALYSIS
+# ============================================================
+
+st.divider()
+st.header("🌉 Cross-Chain Flow Analysis")
+
+# ============================================================
+# LOAD CHAIN FLOW DATA
+# ============================================================
+
+@st.cache_data(ttl=3600)
+def load_chain_flow_data(
+    symbol,
+    start_date,
+    end_date
+):
+
+    from_time = int(
+        pd.Timestamp(start_date).timestamp()
+    )
+
+    to_time = int(
+        pd.Timestamp(end_date).timestamp()
+    )
+
+    url = (
+        "https://api.axelarscan.io/gmp/GMPStatsByChains"
+        f"?symbol={symbol}"
+        f"&fromTime={from_time}"
+        f"&toTime={to_time}"
+    )
+
+    response = requests.get(
+        url,
+        timeout=60
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    rows = []
+
+    for source in data.get(
+        "source_chains",
+        []
+    ):
+
+        source_chain = source["key"]
+
+        for destination in source.get(
+            "destination_chains",
+            []
+        ):
+
+            rows.append({
+
+                "source_chain":
+                    source_chain,
+
+                "destination_chain":
+                    destination["key"],
+
+                "transactions":
+                    destination["num_txs"],
+
+                "volume":
+                    destination["volume"]
+
+            })
+
+    return pd.DataFrame(rows)
+
+# ============================================================
+# FETCH DATA
+# ============================================================
+
+chain_df = load_chain_flow_data(
+    token_symbol,
+    start_date,
+    end_date
+)
+
+# ============================================================
+# CHECK EMPTY
+# ============================================================
+
+if not chain_df.empty:
+
+    # ========================================================
+    # SANKEY DATA
+    # ========================================================
+
+    chains = pd.unique(
+        chain_df[
+            ["source_chain",
+             "destination_chain"]
+        ].values.ravel()
+    )
+
+    chain_to_index = {
+
+        chain: idx
+
+        for idx, chain
+        in enumerate(chains)
+
+    }
+
+    # ========================================================
+    # SANKEY ROW
+    # ========================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        fig_volume_flow = go.Figure(
+
+            go.Sankey(
+
+                node=dict(
+                    pad=20,
+                    thickness=18,
+                    label=list(chains)
+                ),
+
+                link=dict(
+
+                    source=chain_df[
+                        "source_chain"
+                    ].map(chain_to_index),
+
+                    target=chain_df[
+                        "destination_chain"
+                    ].map(chain_to_index),
+
+                    value=chain_df[
+                        "volume"
+                    ]
+                )
+            )
+        )
+
+        fig_volume_flow.update_layout(
+
+            title="Volume Flow Between Chains",
+
+            template="plotly_dark",
+
+            height=650
+        )
+
+        st.plotly_chart(
+            fig_volume_flow,
+            use_container_width=True
+        )
+
+    with col2:
+
+        fig_tx_flow = go.Figure(
+
+            go.Sankey(
+
+                node=dict(
+                    pad=20,
+                    thickness=18,
+                    label=list(chains)
+                ),
+
+                link=dict(
+
+                    source=chain_df[
+                        "source_chain"
+                    ].map(chain_to_index),
+
+                    target=chain_df[
+                        "destination_chain"
+                    ].map(chain_to_index),
+
+                    value=chain_df[
+                        "transactions"
+                    ]
+                )
+            )
+        )
+
+        fig_tx_flow.update_layout(
+
+            title="Transaction Flow Between Chains",
+
+            template="plotly_dark",
+
+            height=650
+        )
+
+        st.plotly_chart(
+            fig_tx_flow,
+            use_container_width=True
+        )
+
+    # ========================================================
+    # TOP SOURCE / DESTINATION CHAINS
+    # ========================================================
+
+    st.subheader(
+        "🏆 Chain Rankings"
+    )
+
+    source_volume = (
+        chain_df
+        .groupby("source_chain")
+        ["volume"]
+        .sum()
+        .sort_values(
+            ascending=False
+        )
+        .reset_index()
+    )
+
+    destination_volume = (
+        chain_df
+        .groupby("destination_chain")
+        ["volume"]
+        .sum()
+        .sort_values(
+            ascending=False
+        )
+        .reset_index()
+    )
+
+    source_tx = (
+        chain_df
+        .groupby("source_chain")
+        ["transactions"]
+        .sum()
+        .sort_values(
+            ascending=False
+        )
+        .reset_index()
+    )
+
+    destination_tx = (
+        chain_df
+        .groupby("destination_chain")
+        ["transactions"]
+        .sum()
+        .sort_values(
+            ascending=False
+        )
+        .reset_index()
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        fig = px.bar(
+
+            source_volume,
+
+            x="source_chain",
+            y="volume",
+
+            title="Top Source Chains by Volume"
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            height=500
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    with col2:
+
+        fig = px.bar(
+
+            destination_volume,
+
+            x="destination_chain",
+            y="volume",
+
+            title="Top Destination Chains by Volume"
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            height=500
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        fig = px.bar(
+
+            source_tx,
+
+            x="source_chain",
+            y="transactions",
+
+            title="Top Source Chains by Transactions"
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            height=500
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    with col2:
+
+        fig = px.bar(
+
+            destination_tx,
+
+            x="destination_chain",
+            y="transactions",
+
+            title="Top Destination Chains by Transactions"
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            height=500
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    # ========================================================
+    # HEATMAPS
+    # ========================================================
+
+    st.subheader(
+        "🔥 Chain Pair Heatmaps"
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        volume_matrix = (
+            chain_df
+            .pivot_table(
+
+                index="source_chain",
+
+                columns="destination_chain",
+
+                values="volume",
+
+                aggfunc="sum",
+
+                fill_value=0
+            )
+        )
+
+        fig = px.imshow(
+
+            volume_matrix,
+
+            text_auto=".0f",
+
+            aspect="auto",
+
+            title="Volume Heatmap"
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            height=650
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    with col2:
+
+        tx_matrix = (
+            chain_df
+            .pivot_table(
+
+                index="source_chain",
+
+                columns="destination_chain",
+
+                values="transactions",
+
+                aggfunc="sum",
+
+                fill_value=0
+            )
+        )
+
+        fig = px.imshow(
+
+            tx_matrix,
+
+            text_auto=True,
+
+            aspect="auto",
+
+            title="Transactions Heatmap"
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            height=650
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+else:
+
+    st.info(
+        "No chain flow data found."
+    )
+
