@@ -1390,559 +1390,518 @@ with col2:
     )
 
 # =====================================================
-# LOAD CHAIN FLOW DATA
+# CHAIN FLOW ANALYSIS
+# =====================================================
+
+st.markdown("---")
+st.subheader("🔗 Chain Flow Analysis")
+
+# =====================================================
+# LOAD CHAIN DATA
 # =====================================================
 
 @st.cache_data(ttl=3600)
-def load_chain_flow(symbol, start_date, end_date):
+def load_chain_flow_data(symbol, start_date, end_date):
 
-from_time = int(
-    pd.Timestamp(start_date).timestamp()
+    from_time = int(
+        pd.Timestamp(start_date).timestamp()
+    )
+
+    to_time = int(
+        pd.Timestamp(end_date).timestamp()
+    )
+
+    url = (
+        "https://api.axelarscan.io/gmp/GMPStatsByChains"
+        f"?symbol={symbol}"
+        f"&fromTime={from_time}"
+        f"&toTime={to_time}"
+    )
+
+    response = requests.get(
+        url,
+        timeout=60
+    )
+
+    response.raise_for_status()
+
+    return response.json()
+
+
+# =====================================================
+# NORMALIZE CHAIN NAMES
+# =====================================================
+
+def normalize_chain(chain_name):
+
+    if pd.isna(chain_name):
+        return "Unknown"
+
+    chain_name = str(chain_name).strip()
+
+    if chain_name.lower() == "axelarnet":
+        return "Axelar"
+
+    return chain_name
+
+
+# =====================================================
+# GET DATA
+# =====================================================
+
+chain_data = load_chain_flow_data(
+    token_symbol,
+    start_date,
+    end_date
 )
 
-to_time = int(
-    pd.Timestamp(end_date).timestamp()
+source_chains = chain_data.get(
+    "source_chains",
+    []
 )
 
-url = (
-    "https://api.axelarscan.io/gmp/GMPStatsByChains"
-    f"?symbol={symbol}"
-    f"&fromTime={from_time}"
-    f"&toTime={to_time}"
-)
+routes = []
 
-response = requests.get(
-    url,
-    timeout=60
-)
+for source in source_chains:
 
-response.raise_for_status()
-
-data = response.json()
-
-rows = []
-
-for source in data.get("source_chains", []):
-
-    source_chain = source["key"]
+    source_chain = normalize_chain(
+        source.get("key", "Unknown")
+    )
 
     for dest in source.get(
         "destination_chains",
         []
     ):
 
-        rows.append({
+        destination_chain = normalize_chain(
+            dest.get("key", "Unknown")
+        )
 
-            "source_chain":
-            source_chain,
+        routes.append({
 
-            "destination_chain":
-            dest["key"],
+            "source_chain": source_chain,
 
-            "num_txs":
-            dest.get(
-                "num_txs",
-                0
-            ),
+            "destination_chain": destination_chain,
+
+            "route":
+                f"{source_chain} ➜ "
+                f"{destination_chain}",
 
             "volume":
-            dest.get(
-                "volume",
-                0
-            )
+                float(
+                    dest.get(
+                        "volume",
+                        0
+                    )
+                ),
+
+            "num_txs":
+                int(
+                    dest.get(
+                        "num_txs",
+                        0
+                    )
+                )
         })
 
-return pd.DataFrame(rows)
+routes_df = pd.DataFrame(routes)
 
-# =====================================================
-# FETCH DATA
-# =====================================================
+if routes_df.empty:
 
-flow_df = load_chain_flow(
-token_symbol,
-start_date,
-end_date
-)
-
-# =====================================================
-# EMPTY CHECK
-# =====================================================
-
-if not flow_df.empty:
-    
-# =================================================
-# NORMALIZE CHAIN NAMES
-# =================================================
-
-flow_df["source_chain"] = (
-    flow_df["source_chain"]
-    .replace({
-        "axelarnet": "Axelar",
-        "Axelarnet": "Axelar"
-    })
-)
-
-flow_df["destination_chain"] = (
-    flow_df["destination_chain"]
-    .replace({
-        "axelarnet": "Axelar",
-        "Axelarnet": "Axelar"
-    })
-)
-
-st.markdown("---")
-
-st.header(
-    "🌉 Chain Flow Analysis"
-)
-
-# =================================================
-# KPI ROW
-# =================================================
-
-total_routes = len(flow_df)
-
-top_volume_route = (
-    flow_df.loc[
-        flow_df["volume"].idxmax()
-    ]
-)
-
-top_tx_route = (
-    flow_df.loc[
-        flow_df["num_txs"].idxmax()
-    ]
-)
-
-volume_route_label = (
-    f"{top_volume_route['source_chain']} → "
-    f"{top_volume_route['destination_chain']}"
-)
-
-tx_route_label = (
-    f"{top_tx_route['source_chain']} → "
-    f"{top_tx_route['destination_chain']}"
-)
-
-if len(volume_route_label) > 20:
-    volume_route_label = (
-        volume_route_label[:20] + "..."
+    st.info(
+        "No chain flow data available."
     )
 
-if len(tx_route_label) > 20:
-    tx_route_label = (
-        tx_route_label[:20] + "..."
-    )
+else:
 
-col1, col2, col3 = st.columns(3)
+    # =================================================
+    # KPIs
+    # =================================================
 
-with col1:
+    total_routes = len(routes_df)
 
-    st.metric(
-        "Active Routes",
-        f"{total_routes:,}"
-    )
-
-with col2:
-
-    st.metric(
-        "Top Volume Route",
-        volume_route_label
-    )
-
-with col3:
-
-    st.metric(
-        "Top Tx Route",
-        tx_route_label
-    )
-
-# =================================================
-# ROUTE LABEL
-# =================================================
-
-flow_df["route"] = (
-    flow_df["source_chain"]
-    + " ➡ "
-    + flow_df["destination_chain"]
-)
-
-# =================================================
-# ROUTE DISTRIBUTION
-# =================================================
-
-st.subheader(
-    "🌐 Route Distribution"
-)
-
-col1, col2 = st.columns(2)
-
-with col1:
-
-    volume_route = (
-        flow_df
-        .groupby(
-            "route",
-            as_index=False
-        )["volume"]
-        .sum()
+    top_volume_route = (
+        routes_df
         .sort_values(
             "volume",
             ascending=False
         )
-        .head(10)
+        .iloc[0]
     )
 
-    fig_volume_donut = px.pie(
+    top_tx_route = (
+        routes_df
+        .sort_values(
+            "num_txs",
+            ascending=False
+        )
+        .iloc[0]
+    )
 
-        volume_route,
+    c1, c2, c3 = st.columns(3)
 
-        names="route",
+    with c1:
+
+        st.metric(
+            "Active Routes",
+            f"{total_routes:,}"
+        )
+
+    with c2:
+
+        st.metric(
+            "Top Volume Route",
+            top_volume_route["route"]
+        )
+
+    with c3:
+
+        st.metric(
+            "Top Tx Route",
+            top_tx_route["route"]
+        )
+
+    # =================================================
+    # DONUT CHARTS
+    # =================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        fig_volume_donut = px.pie(
+
+            routes_df.sort_values(
+                "volume",
+                ascending=False
+            ).head(15),
+
+            names="route",
+            values="volume",
+
+            hole=0.45
+        )
+
+        fig_volume_donut.update_layout(
+
+            title="Volume Flow Between Chains",
+
+            template="plotly_dark",
+
+            height=550
+        )
+
+        st.plotly_chart(
+            fig_volume_donut,
+            use_container_width=True
+        )
+
+    with col2:
+
+        fig_tx_donut = px.pie(
+
+            routes_df.sort_values(
+                "num_txs",
+                ascending=False
+            ).head(15),
+
+            names="route",
+            values="num_txs",
+
+            hole=0.45
+        )
+
+        fig_tx_donut.update_layout(
+
+            title="Transactions Flow Between Chains",
+
+            template="plotly_dark",
+
+            height=550
+        )
+
+        st.plotly_chart(
+            fig_tx_donut,
+            use_container_width=True
+        )
+
+    # =================================================
+    # HEATMAPS
+    # =================================================
+
+    st.markdown("### 🔥 Route Heatmaps")
+
+    h1, h2 = st.columns(2)
+
+    volume_matrix = routes_df.pivot_table(
+
+        index="source_chain",
+
+        columns="destination_chain",
+
         values="volume",
 
-        hole=0.35
+        aggfunc="sum",
+
+        fill_value=0
     )
 
-    fig_volume_donut.update_traces(
-        textinfo="percent+value",
-        textposition="inside"
-    )
+    tx_matrix = routes_df.pivot_table(
 
-    fig_volume_donut.update_layout(
+        index="source_chain",
 
-        title=
-        "Volume Distribution by Route",
+        columns="destination_chain",
 
-        template="plotly_dark",
-
-        height=600
-    )
-
-    st.plotly_chart(
-        fig_volume_donut,
-        use_container_width=True
-    )
-
-with col2:
-
-    tx_route = (
-        flow_df
-        .groupby(
-            "route",
-            as_index=False
-        )["num_txs"]
-        .sum()
-        .sort_values(
-            "num_txs",
-            ascending=False
-        )
-        .head(10)
-    )
-
-    fig_tx_donut = px.pie(
-
-        tx_route,
-
-        names="route",
         values="num_txs",
 
-        hole=0.35
+        aggfunc="sum",
+
+        fill_value=0
     )
 
-    fig_tx_donut.update_traces(
-        textinfo="percent+value",
-        textposition="inside"
-    )
+    with h1:
 
-    fig_tx_donut.update_layout(
+        fig_heat_volume = px.imshow(
 
-        title=
-        "Transaction Distribution by Route",
+            volume_matrix,
 
-        template="plotly_dark",
+            aspect="auto",
 
-        height=600
-    )
+            text_auto=".2s",
 
-    st.plotly_chart(
-        fig_tx_donut,
-        use_container_width=True
-    )
+            color_continuous_scale="Viridis"
+        )
 
-# =================================================
-# SOURCE CHAIN ANALYSIS
-# =================================================
+        fig_heat_volume.update_layout(
 
-st.subheader(
-    "⬅️ Source Chain Analysis"
-)
+            title="Volume Heatmap",
 
-col1, col2 = st.columns(2)
+            template="plotly_dark",
 
-with col1:
+            height=600
+        )
+
+        st.plotly_chart(
+            fig_heat_volume,
+            use_container_width=True
+        )
+
+    with h2:
+
+        fig_heat_tx = px.imshow(
+
+            tx_matrix,
+
+            aspect="auto",
+
+            text_auto=True,
+
+            color_continuous_scale="Plasma"
+        )
+
+        fig_heat_tx.update_layout(
+
+            title="Transactions Heatmap",
+
+            template="plotly_dark",
+
+            height=600
+        )
+
+        st.plotly_chart(
+            fig_heat_tx,
+            use_container_width=True
+        )
+
+    # =================================================
+    # SOURCE / DESTINATION ANALYSIS
+    # =================================================
 
     source_volume = (
-        flow_df
-        .groupby(
-            "source_chain",
-            as_index=False
-        )["volume"]
+
+        routes_df
+
+        .groupby("source_chain")["volume"]
+
         .sum()
-        .sort_values(
-            "volume",
-            ascending=True
-        )
+
+        .sort_values()
     )
 
-    fig = px.bar(
+    destination_volume = (
 
-        source_volume,
+        routes_df
 
-        x="volume",
-        y="source_chain",
+        .groupby("destination_chain")["volume"]
 
-        orientation="h",
+        .sum()
 
-        text_auto=".2s"
+        .sort_values()
     )
-
-    fig.update_layout(
-
-        title=
-        "Volume by Source Chain",
-
-        template="plotly_dark",
-
-        height=550
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-with col2:
 
     source_tx = (
-        flow_df
-        .groupby(
-            "source_chain",
-            as_index=False
-        )["num_txs"]
+
+        routes_df
+
+        .groupby("source_chain")["num_txs"]
+
         .sum()
-        .sort_values(
-            "num_txs",
-            ascending=True
+
+        .sort_values()
+    )
+
+    destination_tx = (
+
+        routes_df
+
+        .groupby("destination_chain")["num_txs"]
+
+        .sum()
+
+        .sort_values()
+    )
+
+    st.markdown(
+        "### 📊 Chain-Level Analysis"
+    )
+
+    r1, r2 = st.columns(2)
+
+    with r1:
+
+        fig = px.bar(
+
+            source_volume.reset_index(),
+
+            x="volume",
+            y="source_chain",
+
+            orientation="h"
         )
+
+        fig.update_layout(
+
+            title="Volume by Source Chain",
+
+            template="plotly_dark",
+
+            height=550
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    with r2:
+
+        fig = px.bar(
+
+            destination_volume.reset_index(),
+
+            x="volume",
+            y="destination_chain",
+
+            orientation="h"
+        )
+
+        fig.update_layout(
+
+            title="Volume by Destination Chain",
+
+            template="plotly_dark",
+
+            height=550
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    r3, r4 = st.columns(2)
+
+    with r3:
+
+        fig = px.bar(
+
+            source_tx.reset_index(),
+
+            x="num_txs",
+            y="source_chain",
+
+            orientation="h"
+        )
+
+        fig.update_layout(
+
+            title="Transactions by Source Chain",
+
+            template="plotly_dark",
+
+            height=550
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    with r4:
+
+        fig = px.bar(
+
+            destination_tx.reset_index(),
+
+            x="num_txs",
+            y="destination_chain",
+
+            orientation="h"
+        )
+
+        fig.update_layout(
+
+            title="Transactions by Destination Chain",
+
+            template="plotly_dark",
+
+            height=550
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    # =================================================
+    # TOP ROUTES TABLE
+    # =================================================
+
+    st.markdown(
+        "### 🏆 Top Routes"
     )
 
-    fig = px.bar(
+    top_routes = (
 
-        source_tx,
+        routes_df
 
-        x="num_txs",
-        y="source_chain",
-
-        orientation="h",
-
-        text_auto=".2s"
-    )
-
-    fig.update_layout(
-
-        title=
-        "Transactions by Source Chain",
-
-        template="plotly_dark",
-
-        height=550
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-# =================================================
-# DESTINATION CHAIN ANALYSIS
-# =================================================
-
-st.subheader(
-    "➡️ Destination Chain Analysis"
-)
-
-col1, col2 = st.columns(2)
-
-with col1:
-
-    dest_volume = (
-        flow_df
-        .groupby(
-            "destination_chain",
-            as_index=False
-        )["volume"]
-        .sum()
         .sort_values(
             "volume",
-            ascending=True
+            ascending=False
         )
+
+        .head(20)
     )
 
-    fig = px.bar(
+    st.dataframe(
 
-        dest_volume,
+        top_routes[[
+            "route",
+            "volume",
+            "num_txs"
+        ]],
 
-        x="volume",
-        y="destination_chain",
+        use_container_width=True,
 
-        orientation="h",
-
-        text_auto=".2s"
-    )
-
-    fig.update_layout(
-
-        title=
-        "Volume by Destination Chain",
-
-        template="plotly_dark",
-
-        height=550
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-with col2:
-
-    dest_tx = (
-        flow_df
-        .groupby(
-            "destination_chain",
-            as_index=False
-        )["num_txs"]
-        .sum()
-        .sort_values(
-            "num_txs",
-            ascending=True
-        )
-    )
-
-    fig = px.bar(
-
-        dest_tx,
-
-        x="num_txs",
-        y="destination_chain",
-
-        orientation="h",
-
-        text_auto=".2s"
-    )
-
-    fig.update_layout(
-
-        title=
-        "Transactions by Destination Chain",
-
-        template="plotly_dark",
-
-        height=550
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-# =================================================
-# HEATMAPS
-# =================================================
-
-st.subheader(
-    "🔥 Chain-to-Chain Heatmaps"
-)
-
-col1, col2 = st.columns(2)
-
-with col1:
-
-    volume_heatmap = (
-        flow_df
-        .pivot_table(
-            index="source_chain",
-            columns="destination_chain",
-            values="volume",
-            aggfunc="sum",
-            fill_value=0
-        )
-    )
-
-    fig_volume_heatmap = px.imshow(
-
-        volume_heatmap,
-
-        aspect="auto",
-
-        labels=dict(
-            x="Destination Chain",
-            y="Source Chain",
-            color="Volume"
-        )
-    )
-
-    fig_volume_heatmap.update_layout(
-
-        title="Volume Heatmap",
-
-        template="plotly_dark",
-
-        height=650
-    )
-
-    st.plotly_chart(
-        fig_volume_heatmap,
-        use_container_width=True
-    )
-
-with col2:
-
-    tx_heatmap = (
-        flow_df
-        .pivot_table(
-            index="source_chain",
-            columns="destination_chain",
-            values="num_txs",
-            aggfunc="sum",
-            fill_value=0
-        )
-    )
-
-    fig_tx_heatmap = px.imshow(
-
-        tx_heatmap,
-
-        aspect="auto",
-
-        labels=dict(
-            x="Destination Chain",
-            y="Source Chain",
-            color="Transactions"
-        )
-    )
-
-    fig_tx_heatmap.update_layout(
-
-        title="Transaction Heatmap",
-
-        template="plotly_dark",
-
-        height=650
-    )
-
-    st.plotly_chart(
-        fig_tx_heatmap,
-        use_container_width=True
+        hide_index=True
     )
