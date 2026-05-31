@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 import plotly.graph_objects as go
 from datetime import datetime, timedelta 
+import plotly.express as px
 
 # =====================================================
 # PAGE CONFIG
