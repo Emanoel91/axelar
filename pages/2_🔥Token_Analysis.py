@@ -988,4 +988,133 @@ else:
     st.warning(
         "No recent transactions found."
     )
+
+# =====================================================
+# COHORT ANALYSIS
+# =====================================================
+
+st.markdown("---")
+st.subheader("🔥 Cohort Analysis")
+
+cohort_df = df.copy()
+
+cohort_df["cohort_month"] = (
+    cohort_df["timestamp"]
+    .dt.strftime("%Y-%m")
+)
+
+cohort_df["day_of_month"] = (
+    cohort_df["timestamp"]
+    .dt.day
+)
+
+# =====================================================
+# VOLUME HEATMAP
+# =====================================================
+
+volume_matrix = (
+    cohort_df
+    .pivot_table(
+        index="cohort_month",
+        columns="day_of_month",
+        values="volume",
+        aggfunc="sum"
+    )
+    .fillna(0)
+)
+
+# =====================================================
+# TRANSACTION HEATMAP
+# =====================================================
+
+tx_matrix = (
+    cohort_df
+    .pivot_table(
+        index="cohort_month",
+        columns="day_of_month",
+        values="num_txs",
+        aggfunc="sum"
+    )
+    .fillna(0)
+)
+
+# =====================================================
+# PLOTS
+# =====================================================
+
+col1, col2 = st.columns(2)
+
+# -----------------------------------------------------
+# VOLUME COHORT
+# -----------------------------------------------------
+
+with col1:
+
+    fig_volume = go.Figure(
+        data=go.Heatmap(
+            z=volume_matrix.values,
+            x=volume_matrix.columns,
+            y=volume_matrix.index,
+            colorscale="YlOrRd",
+            hovertemplate=
+            "Month: %{y}<br>" +
+            "Day: %{x}<br>" +
+            "Volume: %{z:,.2f}<extra></extra>"
+        )
+    )
+
+    fig_volume.update_layout(
+        title="Monthly Cohort Heatmap - Volume",
+        xaxis_title="Day of Month",
+        yaxis_title="Cohort Month",
+        height=600,
+        margin=dict(
+            l=20,
+            r=20,
+            t=60,
+            b=20
+        )
+    )
+
+    st.plotly_chart(
+        fig_volume,
+        use_container_width=True
+    )
+
+# -----------------------------------------------------
+# TX COHORT
+# -----------------------------------------------------
+
+with col2:
+
+    fig_tx = go.Figure(
+        data=go.Heatmap(
+            z=tx_matrix.values,
+            x=tx_matrix.columns,
+            y=tx_matrix.index,
+            colorscale="Blues",
+            hovertemplate=
+            "Month: %{y}<br>" +
+            "Day: %{x}<br>" +
+            "Transactions: %{z:,.0f}<extra></extra>"
+        )
+    )
+
+    fig_tx.update_layout(
+        title="Monthly Cohort Heatmap - Transactions",
+        xaxis_title="Day of Month",
+        yaxis_title="Cohort Month",
+        height=600,
+        margin=dict(
+            l=20,
+            r=20,
+            t=60,
+            b=20
+        )
+    )
+
+    st.plotly_chart(
+        fig_tx,
+        use_container_width=True
+    )
     
