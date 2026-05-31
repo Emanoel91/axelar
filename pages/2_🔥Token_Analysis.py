@@ -1219,13 +1219,13 @@ def generate_colors(values):
     for v in values:
 
         if v == max_value:
-            colors.append("#90faae")
+            colors.append("#01b433")
 
         elif v == min_value:
-            colors.append("#ec9085")
+            colors.append("#fa3535")
 
         else:
-            colors.append("#ff9951")
+            colors.append("#6eb5fc")
 
     return colors
 
