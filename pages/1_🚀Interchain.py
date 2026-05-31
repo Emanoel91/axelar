@@ -79,33 +79,49 @@ df = df_raw.copy()
 # =====================================================
 # SIDEBAR
 # =====================================================
-with st.sidebar:
 
-    col1, col2 = st.columns([1, 6])
+st.sidebar.markdown(
+    """
+    <style>
+    .sidebar-footer {
+        position: fixed;
+        bottom: 20px;
+        width: 250px;
+        font-size: 13px;
+        color: gray;
+        margin-left: 5px; # -- MOVE LEFT
+        text-align: left;  
+    }
+    .sidebar-footer img {
+        width: 16px;
+        height: 16px;
+        vertical-align: middle;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    .sidebar-footer a {
+        color: gray;
+        text-decoration: none;
+    }
+    </style>
 
-    with col1:
-        st.image(
-            "https://axelarscan.io/logos/logo.png",
-            width=18
-        )
-
-    with col2:
-        st.markdown(
-            'Powered by [Axelar](https://x.com/axelar)'
-        )
-
-    col1, col2 = st.columns([1, 6])
-
-    with col1:
-        st.image(
-            "https://pbs.twimg.com/profile_images/2058533217540423680/JomSr3XY_400x400.jpg",
-            width=18
-        )
-
-    with col2:
-        st.markdown(
-            'Built by [Eman Raz](https://x.com/0xeman_raz)'
-        )
+    <div class="sidebar-footer">
+        <div>
+            <a href="https://x.com/axelar" target="_blank">
+                <img src="https://img.cryptorank.io/coins/axelar1663924228506.png" alt="Axelar Logo">
+                Powered by Axelar
+            </a>
+        </div>
+        <div style="margin-top: 5px;">
+            <a href="https://x.com/0xeman_raz" target="_blank">
+                <img src="https://pbs.twimg.com/profile_images/1841479747332608000/bindDGZQ_400x400.jpg" alt="Eman Raz">
+                Built by Eman Raz
+            </a>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # =====================================================
 # TITLE
