@@ -1117,4 +1117,247 @@ with col2:
         fig_tx,
         use_container_width=True
     )
-    
+
+# =====================================================
+# WEEKDAY ANALYSIS
+# =====================================================
+
+st.markdown("---")
+st.subheader("📅 Weekday Analysis")
+
+# =====================================================
+# PREPARE DATA
+# =====================================================
+
+weekday_df = df.copy()
+
+weekday_df["weekday"] = (
+    weekday_df["timestamp"]
+    .dt.day_name()
+)
+
+weekday_order = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday"
+]
+
+# =====================================================
+# DAILY DATA
+# =====================================================
+
+weekday_daily = (
+    weekday_df
+    .groupby(
+        [
+            weekday_df["timestamp"].dt.floor("D"),
+            "weekday"
+        ]
+    )
+    .agg(
+        {
+            "volume": "sum",
+            "num_txs": "sum"
+        }
+    )
+    .reset_index()
+)
+
+# =====================================================
+# AVERAGES BY WEEKDAY
+# =====================================================
+
+avg_volume_weekday = (
+    weekday_daily
+    .groupby("weekday")["volume"]
+    .mean()
+    .reindex(weekday_order)
+    .reset_index()
+)
+
+avg_tx_weekday = (
+    weekday_daily
+    .groupby("weekday")["num_txs"]
+    .mean()
+    .reindex(weekday_order)
+    .reset_index()
+)
+
+# =====================================================
+# FORMATTERS
+# =====================================================
+
+def human_format(num):
+
+    if pd.isna(num):
+        return "0"
+
+    if num >= 1_000_000_000:
+        return f"{num/1_000_000_000:.2f}B"
+
+    elif num >= 1_000_000:
+        return f"{num/1_000_000:.2f}M"
+
+    elif num >= 1_000:
+        return f"{num/1_000:.2f}K"
+
+    return f"{num:.2f}"
+
+
+def generate_colors(values):
+
+    max_value = values.max()
+    min_value = values.min()
+
+    colors = []
+
+    for v in values:
+
+        if v == max_value:
+            colors.append("#90faae")
+
+        elif v == min_value:
+            colors.append("#ec9085")
+
+        else:
+            colors.append("#ff9951")
+
+    return colors
+
+# =====================================================
+# LABELS
+# =====================================================
+
+avg_volume_weekday["label"] = (
+    avg_volume_weekday["volume"]
+    .apply(human_format)
+)
+
+avg_tx_weekday["label"] = (
+    avg_tx_weekday["num_txs"]
+    .apply(human_format)
+)
+
+# =====================================================
+# CHARTS
+# =====================================================
+
+col1, col2 = st.columns(2)
+
+# =====================================================
+# AVG VOLUME BY WEEKDAY
+# =====================================================
+
+with col1:
+
+    fig_volume = px.bar(
+
+        avg_volume_weekday,
+
+        x="weekday",
+        y="volume",
+
+        text="label"
+    )
+
+    fig_volume.update_traces(
+
+        marker_color=generate_colors(
+            avg_volume_weekday["volume"]
+        ),
+
+        textposition="outside",
+
+        textfont_size=13,
+
+        marker_line_width=0,
+
+        cliponaxis=False
+    )
+
+    fig_volume.update_layout(
+
+        title="Average Volume by Weekday",
+
+        xaxis_title="Weekday",
+        yaxis_title="Average Volume",
+
+        template="plotly_dark",
+
+        showlegend=False,
+
+        height=500,
+
+        yaxis=dict(
+            range=[
+                0,
+                avg_volume_weekday["volume"].max() * 1.20
+            ]
+        )
+    )
+
+    st.plotly_chart(
+        fig_volume,
+        use_container_width=True
+    )
+
+# =====================================================
+# AVG TRANSACTIONS BY WEEKDAY
+# =====================================================
+
+with col2:
+
+    fig_tx = px.bar(
+
+        avg_tx_weekday,
+
+        x="weekday",
+        y="num_txs",
+
+        text="label"
+    )
+
+    fig_tx.update_traces(
+
+        marker_color=generate_colors(
+            avg_tx_weekday["num_txs"]
+        ),
+
+        textposition="outside",
+
+        textfont_size=13,
+
+        marker_line_width=0,
+
+        cliponaxis=False
+    )
+
+    fig_tx.update_layout(
+
+        title="Average Transactions by Weekday",
+
+        xaxis_title="Weekday",
+        yaxis_title="Average Transactions",
+
+        template="plotly_dark",
+
+        showlegend=False,
+
+        height=500,
+
+        yaxis=dict(
+            range=[
+                0,
+                avg_tx_weekday["num_txs"].max() * 1.20
+            ]
+        )
+    )
+
+    st.plotly_chart(
+        fig_tx,
+        use_container_width=True
+    )
