@@ -1067,7 +1067,7 @@ with col1:
         title="Monthly Cohort Heatmap - Volume",
         xaxis_title="Day of Month",
         yaxis_title="Cohort Month",
-        height=600,
+        height=500,
         margin=dict(
             l=20,
             r=20,
@@ -1104,7 +1104,7 @@ with col2:
         title="Monthly Cohort Heatmap - Transactions",
         xaxis_title="Day of Month",
         yaxis_title="Cohort Month",
-        height=600,
+        height=500,
         margin=dict(
             l=20,
             r=20,
