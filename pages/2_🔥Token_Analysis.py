@@ -1955,7 +1955,7 @@ with col1:
 
         template="plotly_dark",
 
-        height=550
+        height=450
     )
 
     st.plotly_chart(
@@ -1990,7 +1990,7 @@ with col2:
 
         template="plotly_dark",
 
-        height=550
+        height=450
     )
 
     st.plotly_chart(
@@ -2031,7 +2031,7 @@ with col1:
 
         template="plotly_dark",
 
-        height=550
+        height=450
     )
 
     st.plotly_chart(
@@ -2066,7 +2066,7 @@ with col2:
 
         template="plotly_dark",
 
-        height=550
+        height=450
     )
 
     st.plotly_chart(
