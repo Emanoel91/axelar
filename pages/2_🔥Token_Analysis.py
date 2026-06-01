@@ -1535,7 +1535,7 @@ for source in chain_data.get(
     )
 
     if str(source_chain).lower() == "axelarnet":
-        source_chain = "Axelar"
+        source_chain = "axelar"
 
     for dest in source.get(
         "destination_chains",
@@ -1548,7 +1548,7 @@ for source in chain_data.get(
         )
 
         if str(destination_chain).lower() == "axelarnet":
-            destination_chain = "Axelar"
+            destination_chain = "axelar"
 
         routes_data.append({
 
@@ -1781,7 +1781,7 @@ for source in chain_data.get("source_chains", []):
     )
 
     if source_chain.lower() == "axelarnet":
-        source_chain = "Axelar"
+        source_chain = "axelar"
 
     source_total_volume = 0
     source_total_txs = 0
@@ -1796,7 +1796,7 @@ for source in chain_data.get("source_chains", []):
         )
 
         if destination_chain.lower() == "axelarnet":
-            destination_chain = "Axelar"
+            destination_chain = "axelar"
 
         volume = float(
             dest.get("volume", 0)
