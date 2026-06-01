@@ -1393,26 +1393,57 @@ with col2:
 # KPI CALCULATIONS
 # =====================================================
 
-active_routes = len(routes_df)
+source_chains_set = set()
+destination_chains_set = set()
+routes_set = set()
+
+for source in chain_data["source_chains"]:
+
+    source_chain = normalize_chain(
+        source["key"]
+    )
+
+    source_chains_set.add(
+        source_chain
+    )
+
+    for dest in source["destination_chains"]:
+
+        destination_chain = normalize_chain(
+            dest["key"]
+        )
+
+        destination_chains_set.add(
+            destination_chain
+        )
+
+        routes_set.add(
+            f"{source_chain} ➜ {destination_chain}"
+        )
+
+active_routes = len(
+    routes_set
+)
 
 source_chains = sorted(
-    source_df["source_chain"]
-    .dropna()
-    .unique()
-    .tolist()
+    list(source_chains_set)
 )
 
 destination_chains = sorted(
-    destination_df["destination_chain"]
-    .dropna()
-    .unique()
-    .tolist()
+    list(destination_chains_set)
 )
 
-# نمایش مختصر نام زنجیره‌ها
-def compact_chain_list(chains, max_items=5):
+# =====================================================
+# CHAIN LIST FORMATTER
+# =====================================================
+
+def compact_chain_list(
+    chains,
+    max_items=5
+):
 
     if len(chains) <= max_items:
+
         return ", ".join(chains)
 
     return (
@@ -1429,7 +1460,7 @@ destination_chain_text = compact_chain_list(
 )
 
 # =====================================================
-# KPI ROW
+# KPI DISPLAY
 # =====================================================
 
 kpi1, kpi2, kpi3 = st.columns(3)
@@ -1462,4 +1493,3 @@ with kpi3:
     st.caption(
         destination_chain_text
     )
-
