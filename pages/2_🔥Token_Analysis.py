@@ -1394,7 +1394,8 @@ with col2:
 # =================================================
 
 active_routes = len(
-    routes_df["route"].unique()
+    routes_df["route"]
+    .unique()
 )
 
 source_chains = sorted(
@@ -1411,25 +1412,38 @@ destination_chains = sorted(
     .tolist()
 )
 
+# =================================================
+# CHAIN LIST FORMATTER
+# =================================================
+
 def compact_chain_list(
     chains,
     max_items=4
 ):
 
     if len(chains) <= max_items:
-        return " • ".join(chains)
+
+        return " • ".join(
+            chains
+        )
 
     return (
-        " • ".join(chains[:max_items])
+        " • ".join(
+            chains[:max_items]
+        )
         + f" +{len(chains)-max_items}"
     )
 
-source_chain_text = compact_chain_list(
-    source_chains
+source_chain_text = (
+    compact_chain_list(
+        source_chains
+    )
 )
 
-destination_chain_text = compact_chain_list(
-    destination_chains
+destination_chain_text = (
+    compact_chain_list(
+        destination_chains
+    )
 )
 
 # =================================================
