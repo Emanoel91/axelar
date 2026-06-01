@@ -1389,3 +1389,166 @@ with col2:
         use_container_width=True
     )
 
+# =====================================================
+# CHAIN FLOW ANALYSIS - KPIs
+# =====================================================
+
+st.markdown("---")
+st.subheader("🔗 Chain Flow Analysis")
+
+# =====================================================
+# LOAD DATA
+# =====================================================
+
+from_time = int(
+    pd.Timestamp(start_date).timestamp()
+)
+
+to_time = int(
+    pd.Timestamp(end_date).timestamp()
+)
+
+url = (
+    "https://api.axelarscan.io/gmp/GMPStatsByChains"
+    f"?symbol={token_symbol}"
+    f"&fromTime={from_time}"
+    f"&toTime={to_time}"
+)
+
+response = requests.get(
+    url,
+    timeout=60
+)
+
+response.raise_for_status()
+
+chain_data = response.json()
+
+# =====================================================
+# BUILD ROUTES DATAFRAME
+# =====================================================
+
+routes = []
+
+for source in chain_data.get("source_chains", []):
+
+    source_chain = source.get("key", "Unknown")
+
+    if str(source_chain).lower() == "axelarnet":
+        source_chain = "Axelar"
+
+    for dest in source.get(
+        "destination_chains",
+        []
+    ):
+
+        destination_chain = dest.get(
+            "key",
+            "Unknown"
+        )
+
+        if str(destination_chain).lower() == "axelarnet":
+            destination_chain = "Axelar"
+
+        routes.append({
+
+            "route":
+                f"{source_chain} ➜ "
+                f"{destination_chain}",
+
+            "source_chain":
+                source_chain,
+
+            "destination_chain":
+                destination_chain,
+
+            "volume":
+                float(
+                    dest.get(
+                        "volume",
+                        0
+                    )
+                ),
+
+            "num_txs":
+                int(
+                    dest.get(
+                        "num_txs",
+                        0
+                    )
+                )
+        })
+
+routes_df = pd.DataFrame(routes)
+
+# =====================================================
+# EMPTY DATA
+# =====================================================
+
+if routes_df.empty:
+
+    st.info(
+        "No chain flow data found."
+    )
+
+else:
+
+    # =================================================
+    # KPI CALCULATIONS
+    # =================================================
+
+    total_routes = len(routes_df)
+
+    total_volume = (
+        routes_df["volume"]
+        .sum()
+    )
+
+    total_transactions = (
+        routes_df["num_txs"]
+        .sum()
+    )
+
+    top_volume_route = (
+        routes_df
+        .sort_values(
+            "volume",
+            ascending=False
+        )
+        .iloc[0]["route"]
+    )
+
+    # =================================================
+    # KPI ROW
+    # =================================================
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+
+        st.metric(
+            "Active Routes",
+            f"{total_routes:,}"
+        )
+
+    with col2:
+
+        st.metric(
+            "Total Volume",
+            f"${total_volume:,.0f}"
+        )
+
+    with col3:
+
+        st.metric(
+            "Total Transactions",
+            f"{total_transactions:,}"
+        )
+
+    with col4:
+
+        st.metric(
+            "Top Route",
+            top_volume_route
+        )
+
