@@ -1393,23 +1393,56 @@ with col2:
 # KPI CALCULATIONS
 # =================================================
 
-active_routes = len(
-    routes_df["route"]
-    .unique()
-)
+source_chains = set()
+destination_chains = set()
+routes = set()
+
+for source in chain_data.get(
+    "source_chains",
+    []
+):
+
+    source_chain = source.get(
+        "key",
+        "Unknown"
+    )
+
+    if str(source_chain).lower() == "axelarnet":
+        source_chain = "Axelar"
+
+    source_chains.add(
+        source_chain
+    )
+
+    for dest in source.get(
+        "destination_chains",
+        []
+    ):
+
+        destination_chain = dest.get(
+            "key",
+            "Unknown"
+        )
+
+        if str(destination_chain).lower() == "axelarnet":
+            destination_chain = "Axelar"
+
+        destination_chains.add(
+            destination_chain
+        )
+
+        routes.add(
+            f"{source_chain} ➜ {destination_chain}"
+        )
+
+active_routes = len(routes)
 
 source_chains = sorted(
-    routes_df["source_chain"]
-    .dropna()
-    .unique()
-    .tolist()
+    list(source_chains)
 )
 
 destination_chains = sorted(
-    routes_df["destination_chain"]
-    .dropna()
-    .unique()
-    .tolist()
+    list(destination_chains)
 )
 
 # =================================================
@@ -1423,9 +1456,7 @@ def compact_chain_list(
 
     if len(chains) <= max_items:
 
-        return " • ".join(
-            chains
-        )
+        return " • ".join(chains)
 
     return (
         " • ".join(
@@ -1433,18 +1464,6 @@ def compact_chain_list(
         )
         + f" +{len(chains)-max_items}"
     )
-
-source_chain_text = (
-    compact_chain_list(
-        source_chains
-    )
-)
-
-destination_chain_text = (
-    compact_chain_list(
-        destination_chains
-    )
-)
 
 # =================================================
 # KPI ROW
@@ -1467,7 +1486,9 @@ with col2:
     )
 
     st.caption(
-        source_chain_text
+        compact_chain_list(
+            source_chains
+        )
     )
 
 with col3:
@@ -1478,5 +1499,7 @@ with col3:
     )
 
     st.caption(
-        destination_chain_text
+        compact_chain_list(
+            destination_chains
+        )
     )
