@@ -1443,7 +1443,7 @@ for source in chain_data.get(
     )
 
     if str(source_chain).lower() == "axelarnet":
-        source_chain = "Axelar"
+        source_chain = "axelar"
 
     source_chains.add(
         source_chain
@@ -1460,7 +1460,7 @@ for source in chain_data.get(
         )
 
         if str(destination_chain).lower() == "axelarnet":
-            destination_chain = "Axelar"
+            destination_chain = "axelar"
 
         destination_chains.add(
             destination_chain
@@ -1516,4 +1516,202 @@ with col3:
 
     st.caption(
         destination_names
+    )
+
+# =====================================================
+# ROUTES DATAFRAME
+# =====================================================
+
+routes_data = []
+
+for source in chain_data.get(
+    "source_chains",
+    []
+):
+
+    source_chain = source.get(
+        "key",
+        "Unknown"
+    )
+
+    if str(source_chain).lower() == "axelarnet":
+        source_chain = "axelar"
+
+    for dest in source.get(
+        "destination_chains",
+        []
+    ):
+
+        destination_chain = dest.get(
+            "key",
+            "Unknown"
+        )
+
+        if str(destination_chain).lower() == "axelarnet":
+            destination_chain = "axelar"
+
+        routes_data.append({
+
+            "route":
+                f"{source_chain} ➜ {destination_chain}",
+
+            "volume":
+                float(
+                    dest.get(
+                        "volume",
+                        0
+                    )
+                ),
+
+            "num_txs":
+                int(
+                    dest.get(
+                        "num_txs",
+                        0
+                    )
+                )
+        })
+
+routes_df = pd.DataFrame(
+    routes_data
+)
+
+# =====================================================
+# EMPTY CHECK
+# =====================================================
+
+if not routes_df.empty:
+
+    routes_df = routes_df[
+        (routes_df["volume"] > 0)
+        |
+        (routes_df["num_txs"] > 0)
+    ]
+
+# =====================================================
+# DONUT CHARTS
+# =====================================================
+
+st.markdown("### 🍩 Route Distribution")
+
+col1, col2 = st.columns(2)
+
+# =====================================================
+# VOLUME DONUT
+# =====================================================
+
+with col1:
+
+    fig_volume_donut = go.Figure(
+
+        go.Pie(
+
+            labels=routes_df["route"],
+
+            values=routes_df["volume"],
+
+            hole=0.45,
+
+            sort=True,
+
+            textinfo="none",
+
+            hovertemplate=
+                "<b>%{label}</b><br>"
+                "Volume: %{value:,.0f}<br>"
+                "Share: %{percent}"
+                "<extra></extra>"
+        )
+    )
+
+    fig_volume_donut.update_layout(
+
+        title="Volume by Route",
+
+        template="plotly_dark",
+
+        height=600,
+
+        showlegend=True,
+
+        legend=dict(
+
+            orientation="v",
+
+            y=0.5,
+
+            x=1.02
+        ),
+
+        margin=dict(
+            l=20,
+            r=20,
+            t=60,
+            b=20
+        )
+    )
+
+    st.plotly_chart(
+        fig_volume_donut,
+        use_container_width=True
+    )
+
+# =====================================================
+# TRANSACTIONS DONUT
+# =====================================================
+
+with col2:
+
+    fig_tx_donut = go.Figure(
+
+        go.Pie(
+
+            labels=routes_df["route"],
+
+            values=routes_df["num_txs"],
+
+            hole=0.45,
+
+            sort=True,
+
+            textinfo="none",
+
+            hovertemplate=
+                "<b>%{label}</b><br>"
+                "Transactions: %{value:,.0f}<br>"
+                "Share: %{percent}"
+                "<extra></extra>"
+        )
+    )
+
+    fig_tx_donut.update_layout(
+
+        title="Transactions by Route",
+
+        template="plotly_dark",
+
+        height=600,
+
+        showlegend=True,
+
+        legend=dict(
+
+            orientation="v",
+
+            y=0.5,
+
+            x=1.02
+        ),
+
+        margin=dict(
+            l=20,
+            r=20,
+            t=60,
+            b=20
+        )
+    )
+
+    st.plotly_chart(
+        fig_tx_donut,
+        use_container_width=True
     )
