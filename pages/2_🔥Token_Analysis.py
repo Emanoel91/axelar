@@ -1535,7 +1535,7 @@ for source in chain_data.get(
     )
 
     if str(source_chain).lower() == "axelarnet":
-        source_chain = "axelar"
+        source_chain = "Axelar"
 
     for dest in source.get(
         "destination_chains",
@@ -1548,7 +1548,7 @@ for source in chain_data.get(
         )
 
         if str(destination_chain).lower() == "axelarnet":
-            destination_chain = "axelar"
+            destination_chain = "Axelar"
 
         routes_data.append({
 
@@ -1589,129 +1589,166 @@ if not routes_df.empty:
     ]
 
 # =====================================================
-# DONUT CHARTS
+# TOP ROUTES
 # =====================================================
 
-st.markdown("### 🍩 Route Distribution")
+routes_volume = (
+    routes_df
+    .sort_values(
+        "volume",
+        ascending=True
+    )
+)
+
+routes_tx = (
+    routes_df
+    .sort_values(
+        "num_txs",
+        ascending=True
+    )
+)
+
+# =====================================================
+# NUMBER FORMAT
+# =====================================================
+
+def human_format(num):
+
+    if num >= 1_000_000_000:
+        return f"{num/1_000_000_000:.2f}B"
+
+    elif num >= 1_000_000:
+        return f"{num/1_000_000:.2f}M"
+
+    elif num >= 1_000:
+        return f"{num/1_000:.2f}K"
+
+    return f"{num:.0f}"
+
+routes_volume["label"] = (
+    routes_volume["volume"]
+    .apply(human_format)
+)
+
+routes_tx["label"] = (
+    routes_tx["num_txs"]
+    .apply(human_format)
+)
+
+# =====================================================
+# CHARTS
+# =====================================================
+
+st.markdown("### 🔀 Route Distribution")
 
 col1, col2 = st.columns(2)
 
 # =====================================================
-# VOLUME DONUT
+# VOLUME BY ROUTE
 # =====================================================
 
 with col1:
 
-    fig_volume_donut = go.Figure(
+    fig_volume_route = px.bar(
 
-        go.Pie(
+        routes_volume,
 
-            labels=routes_df["route"],
+        x="volume",
+        y="route",
 
-            values=routes_df["volume"],
+        orientation="h",
 
-            hole=0.45,
-
-            sort=True,
-
-            textinfo="none",
-
-            hovertemplate=
-                "<b>%{label}</b><br>"
-                "Volume: %{value:,.0f}<br>"
-                "Share: %{percent}"
-                "<extra></extra>"
-        )
+        text="label"
     )
 
-    fig_volume_donut.update_layout(
+    fig_volume_route.update_traces(
+
+        textposition="outside",
+
+        cliponaxis=False
+    )
+
+    fig_volume_route.update_layout(
 
         title="Volume by Route",
 
         template="plotly_dark",
 
-        height=600,
-
-        showlegend=True,
-
-        legend=dict(
-
-            orientation="v",
-
-            y=0.5,
-
-            x=1.02
+        height=max(
+            500,
+            len(routes_volume) * 35
         ),
+
+        showlegend=False,
+
+        xaxis_title="Volume",
+
+        yaxis_title="",
 
         margin=dict(
             l=20,
-            r=20,
+            r=60,
             t=60,
             b=20
         )
     )
 
     st.plotly_chart(
-        fig_volume_donut,
+        fig_volume_route,
         use_container_width=True
     )
 
 # =====================================================
-# TRANSACTIONS DONUT
+# TRANSACTIONS BY ROUTE
 # =====================================================
 
 with col2:
 
-    fig_tx_donut = go.Figure(
+    fig_tx_route = px.bar(
 
-        go.Pie(
+        routes_tx,
 
-            labels=routes_df["route"],
+        x="num_txs",
+        y="route",
 
-            values=routes_df["num_txs"],
+        orientation="h",
 
-            hole=0.45,
-
-            sort=True,
-
-            textinfo="none",
-
-            hovertemplate=
-                "<b>%{label}</b><br>"
-                "Transactions: %{value:,.0f}<br>"
-                "Share: %{percent}"
-                "<extra></extra>"
-        )
+        text="label"
     )
 
-    fig_tx_donut.update_layout(
+    fig_tx_route.update_traces(
+
+        textposition="outside",
+
+        cliponaxis=False
+    )
+
+    fig_tx_route.update_layout(
 
         title="Transactions by Route",
 
         template="plotly_dark",
 
-        height=600,
-
-        showlegend=True,
-
-        legend=dict(
-
-            orientation="v",
-
-            y=0.5,
-
-            x=1.02
+        height=max(
+            500,
+            len(routes_tx) * 35
         ),
+
+        showlegend=False,
+
+        xaxis_title="Transactions",
+
+        yaxis_title="",
 
         margin=dict(
             l=20,
-            r=20,
+            r=60,
             t=60,
             b=20
         )
     )
 
     st.plotly_chart(
-        fig_tx_donut,
+        fig_tx_route,
         use_container_width=True
     )
