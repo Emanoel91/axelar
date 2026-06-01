@@ -1389,66 +1389,39 @@ with col2:
         use_container_width=True
     )
 
-# =====================================================
+# =================================================
 # KPI CALCULATIONS
-# =====================================================
-
-source_chains_set = set()
-destination_chains_set = set()
-routes_set = set()
-
-for source in chain_data["source_chains"]:
-
-    source_chain = normalize_chain(
-        source["key"]
-    )
-
-    source_chains_set.add(
-        source_chain
-    )
-
-    for dest in source["destination_chains"]:
-
-        destination_chain = normalize_chain(
-            dest["key"]
-        )
-
-        destination_chains_set.add(
-            destination_chain
-        )
-
-        routes_set.add(
-            f"{source_chain} ➜ {destination_chain}"
-        )
+# =================================================
 
 active_routes = len(
-    routes_set
+    routes_df["route"].unique()
 )
 
 source_chains = sorted(
-    list(source_chains_set)
+    routes_df["source_chain"]
+    .dropna()
+    .unique()
+    .tolist()
 )
 
 destination_chains = sorted(
-    list(destination_chains_set)
+    routes_df["destination_chain"]
+    .dropna()
+    .unique()
+    .tolist()
 )
-
-# =====================================================
-# CHAIN LIST FORMATTER
-# =====================================================
 
 def compact_chain_list(
     chains,
-    max_items=5
+    max_items=4
 ):
 
     if len(chains) <= max_items:
-
-        return ", ".join(chains)
+        return " • ".join(chains)
 
     return (
-        ", ".join(chains[:max_items])
-        + f" +{len(chains)-max_items} more"
+        " • ".join(chains[:max_items])
+        + f" +{len(chains)-max_items}"
     )
 
 source_chain_text = compact_chain_list(
@@ -1459,20 +1432,20 @@ destination_chain_text = compact_chain_list(
     destination_chains
 )
 
-# =====================================================
-# KPI DISPLAY
-# =====================================================
+# =================================================
+# KPI ROW
+# =================================================
 
-kpi1, kpi2, kpi3 = st.columns(3)
+col1, col2, col3 = st.columns(3)
 
-with kpi1:
+with col1:
 
     st.metric(
         "Active Routes",
         f"{active_routes:,}"
     )
 
-with kpi2:
+with col2:
 
     st.metric(
         "Source Chains",
@@ -1483,7 +1456,7 @@ with kpi2:
         source_chain_text
     )
 
-with kpi3:
+with col3:
 
     st.metric(
         "Destination Chains",
