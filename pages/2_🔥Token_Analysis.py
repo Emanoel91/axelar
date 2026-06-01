@@ -1389,9 +1389,44 @@ with col2:
         use_container_width=True
     )
 
-# =================================================
+# =====================================================
+# CHAIN FLOW ANALYSIS - KPIs
+# =====================================================
+
+st.markdown("---")
+st.subheader("🔗 Chain Flow Analysis")
+
+# =====================================================
+# LOAD DATA
+# =====================================================
+
+from_time = int(
+    pd.Timestamp(start_date).timestamp()
+)
+
+to_time = int(
+    pd.Timestamp(end_date).timestamp()
+)
+
+url = (
+    "https://api.axelarscan.io/gmp/GMPStatsByChains"
+    f"?symbol={token_symbol}"
+    f"&fromTime={from_time}"
+    f"&toTime={to_time}"
+)
+
+response = requests.get(
+    url,
+    timeout=60
+)
+
+response.raise_for_status()
+
+chain_data = response.json()
+
+# =====================================================
 # KPI CALCULATIONS
-# =================================================
+# =====================================================
 
 source_chains = set()
 destination_chains = set()
@@ -1432,42 +1467,25 @@ for source in chain_data.get(
         )
 
         routes.add(
-            f"{source_chain} ➜ {destination_chain}"
+            (
+                source_chain,
+                destination_chain
+            )
         )
 
 active_routes = len(routes)
 
-source_chains = sorted(
-    list(source_chains)
+source_names = ", ".join(
+    sorted(source_chains)
 )
 
-destination_chains = sorted(
-    list(destination_chains)
+destination_names = ", ".join(
+    sorted(destination_chains)
 )
 
-# =================================================
-# CHAIN LIST FORMATTER
-# =================================================
-
-def compact_chain_list(
-    chains,
-    max_items=4
-):
-
-    if len(chains) <= max_items:
-
-        return " • ".join(chains)
-
-    return (
-        " • ".join(
-            chains[:max_items]
-        )
-        + f" +{len(chains)-max_items}"
-    )
-
-# =================================================
+# =====================================================
 # KPI ROW
-# =================================================
+# =====================================================
 
 col1, col2, col3 = st.columns(3)
 
@@ -1486,9 +1504,7 @@ with col2:
     )
 
     st.caption(
-        compact_chain_list(
-            source_chains
-        )
+        source_names
     )
 
 with col3:
@@ -1499,7 +1515,5 @@ with col3:
     )
 
     st.caption(
-        compact_chain_list(
-            destination_chains
-        )
+        destination_names
     )
