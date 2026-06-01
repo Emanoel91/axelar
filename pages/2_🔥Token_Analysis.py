@@ -1762,64 +1762,179 @@ with col2:
     )
 
 # =====================================================
-# CHAIN AGGREGATIONS
+# CHAIN DISTRIBUTION ANALYSIS
 # =====================================================
 
-source_volume_df = (
-    routes_df
-    .groupby("source_chain", as_index=False)
+st.markdown("### 🧩 Chain Distribution Analysis")
+
+# =====================================================
+# BUILD DATAFRAMES
+# =====================================================
+
+source_rows = []
+destination_rows = []
+
+for source in chain_data.get("source_chains", []):
+
+    source_chain = str(
+        source.get("key", "Unknown")
+    )
+
+    if source_chain.lower() == "axelarnet":
+        source_chain = "Axelar"
+
+    source_total_volume = 0
+    source_total_txs = 0
+
+    for dest in source.get(
+        "destination_chains",
+        []
+    ):
+
+        destination_chain = str(
+            dest.get("key", "Unknown")
+        )
+
+        if destination_chain.lower() == "axelarnet":
+            destination_chain = "Axelar"
+
+        volume = float(
+            dest.get("volume", 0)
+        )
+
+        num_txs = int(
+            dest.get("num_txs", 0)
+        )
+
+        source_total_volume += volume
+        source_total_txs += num_txs
+
+        destination_rows.append({
+
+            "chain": destination_chain,
+            "volume": volume,
+            "num_txs": num_txs
+
+        })
+
+    source_rows.append({
+
+        "chain": source_chain,
+        "volume": source_total_volume,
+        "num_txs": source_total_txs
+
+    })
+
+# =====================================================
+# DATAFRAMES
+# =====================================================
+
+source_df = pd.DataFrame(source_rows)
+
+destination_df = (
+    pd.DataFrame(destination_rows)
+    .groupby("chain", as_index=False)
     .agg({
         "volume": "sum",
         "num_txs": "sum"
     })
 )
 
-destination_volume_df = (
-    routes_df
-    .groupby("destination_chain", as_index=False)
-    .agg({
-        "volume": "sum",
-        "num_txs": "sum"
-    })
+# =====================================================
+# REMOVE ZERO VALUES
+# =====================================================
+
+source_df = source_df[
+    (source_df["volume"] > 0) |
+    (source_df["num_txs"] > 0)
+]
+
+destination_df = destination_df[
+    (destination_df["volume"] > 0) |
+    (destination_df["num_txs"] > 0)
+]
+
+# =====================================================
+# GROUP SMALL VALUES INTO OTHERS
+# =====================================================
+
+def build_pie_data(
+    df,
+    value_col,
+    top_n=7
+):
+
+    df = (
+        df.sort_values(
+            value_col,
+            ascending=False
+        )
+        .copy()
+    )
+
+    if len(df) <= top_n:
+        return df
+
+    top_df = df.head(top_n)
+
+    others_value = (
+        df.iloc[top_n:][value_col]
+        .sum()
+    )
+
+    if others_value > 0:
+
+        others_row = pd.DataFrame({
+
+            "chain": ["Others"],
+            value_col: [others_value]
+
+        })
+
+        top_df = pd.concat(
+            [top_df, others_row],
+            ignore_index=True
+        )
+
+    return top_df
+
+# =====================================================
+# PREPARE PIE DATA
+# =====================================================
+
+source_volume_pie = build_pie_data(
+    source_df,
+    "volume"
 )
 
-# حذف مقادیر صفر
+source_tx_pie = build_pie_data(
+    source_df,
+    "num_txs"
+)
 
-source_volume_df = source_volume_df[
-    source_volume_df["volume"] > 0
-]
+destination_volume_pie = build_pie_data(
+    destination_df,
+    "volume"
+)
 
-destination_volume_df = destination_volume_df[
-    destination_volume_df["volume"] > 0
-]
-
-source_tx_df = source_volume_df[
-    source_volume_df["num_txs"] > 0
-]
-
-destination_tx_df = destination_volume_df[
-    destination_volume_df["num_txs"] > 0
-]
+destination_tx_pie = build_pie_data(
+    destination_df,
+    "num_txs"
+)
 
 # =====================================================
-# SOURCE CHAIN ANALYSIS
+# ROW 1
 # =====================================================
-
-st.markdown("### 🔹 Source Chain Analysis")
 
 col1, col2 = st.columns(2)
-
-# =====================================================
-# VOLUME BY SOURCE CHAIN
-# =====================================================
 
 with col1:
 
     fig = px.pie(
 
-        source_volume_df,
+        source_volume_pie,
 
-        names="source_chain",
+        names="chain",
         values="volume",
 
         hole=0.35
@@ -1827,16 +1942,11 @@ with col1:
 
     fig.update_traces(
 
-        textinfo="percent",
+        textinfo="label+percent",
 
         textposition="inside",
 
-        insidetextorientation="radial",
-
-        hovertemplate=
-        "<b>%{label}</b><br>"
-        "Volume: %{value:,.0f}<br>"
-        "Share: %{percent}<extra></extra>"
+        insidetextorientation="radial"
     )
 
     fig.update_layout(
@@ -1845,9 +1955,7 @@ with col1:
 
         template="plotly_dark",
 
-        height=550,
-
-        legend_title="Source Chain"
+        height=550
     )
 
     st.plotly_chart(
@@ -1855,17 +1963,13 @@ with col1:
         use_container_width=True
     )
 
-# =====================================================
-# TRANSACTIONS BY SOURCE CHAIN
-# =====================================================
-
 with col2:
 
     fig = px.pie(
 
-        source_tx_df,
+        source_tx_pie,
 
-        names="source_chain",
+        names="chain",
         values="num_txs",
 
         hole=0.35
@@ -1873,16 +1977,11 @@ with col2:
 
     fig.update_traces(
 
-        textinfo="percent",
+        textinfo="label+percent",
 
         textposition="inside",
 
-        insidetextorientation="radial",
-
-        hovertemplate=
-        "<b>%{label}</b><br>"
-        "Transactions: %{value:,.0f}<br>"
-        "Share: %{percent}<extra></extra>"
+        insidetextorientation="radial"
     )
 
     fig.update_layout(
@@ -1891,9 +1990,7 @@ with col2:
 
         template="plotly_dark",
 
-        height=550,
-
-        legend_title="Source Chain"
+        height=550
     )
 
     st.plotly_chart(
@@ -1902,24 +1999,18 @@ with col2:
     )
 
 # =====================================================
-# DESTINATION CHAIN ANALYSIS
+# ROW 2
 # =====================================================
-
-st.markdown("### 🔹 Destination Chain Analysis")
 
 col1, col2 = st.columns(2)
-
-# =====================================================
-# VOLUME BY DESTINATION CHAIN
-# =====================================================
 
 with col1:
 
     fig = px.pie(
 
-        destination_volume_df,
+        destination_volume_pie,
 
-        names="destination_chain",
+        names="chain",
         values="volume",
 
         hole=0.35
@@ -1927,16 +2018,11 @@ with col1:
 
     fig.update_traces(
 
-        textinfo="percent",
+        textinfo="label+percent",
 
         textposition="inside",
 
-        insidetextorientation="radial",
-
-        hovertemplate=
-        "<b>%{label}</b><br>"
-        "Volume: %{value:,.0f}<br>"
-        "Share: %{percent}<extra></extra>"
+        insidetextorientation="radial"
     )
 
     fig.update_layout(
@@ -1945,9 +2031,7 @@ with col1:
 
         template="plotly_dark",
 
-        height=550,
-
-        legend_title="Destination Chain"
+        height=550
     )
 
     st.plotly_chart(
@@ -1955,17 +2039,13 @@ with col1:
         use_container_width=True
     )
 
-# =====================================================
-# TRANSACTIONS BY DESTINATION CHAIN
-# =====================================================
-
 with col2:
 
     fig = px.pie(
 
-        destination_tx_df,
+        destination_tx_pie,
 
-        names="destination_chain",
+        names="chain",
         values="num_txs",
 
         hole=0.35
@@ -1973,16 +2053,11 @@ with col2:
 
     fig.update_traces(
 
-        textinfo="percent",
+        textinfo="label+percent",
 
         textposition="inside",
 
-        insidetextorientation="radial",
-
-        hovertemplate=
-        "<b>%{label}</b><br>"
-        "Transactions: %{value:,.0f}<br>"
-        "Share: %{percent}<extra></extra>"
+        insidetextorientation="radial"
     )
 
     fig.update_layout(
@@ -1991,9 +2066,7 @@ with col2:
 
         template="plotly_dark",
 
-        height=550,
-
-        legend_title="Destination Chain"
+        height=550
     )
 
     st.plotly_chart(
