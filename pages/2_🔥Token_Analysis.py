@@ -1592,8 +1592,14 @@ if not routes_df.empty:
 # TOP ROUTES
 # =====================================================
 
+# =====================================================
+# REMOVE ZERO VALUE ROUTES
+# =====================================================
+
 routes_volume = (
-    routes_df
+    routes_df[
+        routes_df["volume"] > 0
+    ]
     .sort_values(
         "volume",
         ascending=True
@@ -1601,7 +1607,9 @@ routes_volume = (
 )
 
 routes_tx = (
-    routes_df
+    routes_df[
+        routes_df["num_txs"] > 0
+    ]
     .sort_values(
         "num_txs",
         ascending=True
