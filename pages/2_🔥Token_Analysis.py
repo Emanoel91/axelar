@@ -1760,3 +1760,243 @@ with col2:
         fig_tx_route,
         use_container_width=True
     )
+
+# =====================================================
+# CHAIN AGGREGATIONS
+# =====================================================
+
+source_volume_df = (
+    routes_df
+    .groupby("source_chain", as_index=False)
+    .agg({
+        "volume": "sum",
+        "num_txs": "sum"
+    })
+)
+
+destination_volume_df = (
+    routes_df
+    .groupby("destination_chain", as_index=False)
+    .agg({
+        "volume": "sum",
+        "num_txs": "sum"
+    })
+)
+
+# حذف مقادیر صفر
+
+source_volume_df = source_volume_df[
+    source_volume_df["volume"] > 0
+]
+
+destination_volume_df = destination_volume_df[
+    destination_volume_df["volume"] > 0
+]
+
+source_tx_df = source_volume_df[
+    source_volume_df["num_txs"] > 0
+]
+
+destination_tx_df = destination_volume_df[
+    destination_volume_df["num_txs"] > 0
+]
+
+# =====================================================
+# SOURCE CHAIN ANALYSIS
+# =====================================================
+
+st.markdown("### 🔹 Source Chain Analysis")
+
+col1, col2 = st.columns(2)
+
+# =====================================================
+# VOLUME BY SOURCE CHAIN
+# =====================================================
+
+with col1:
+
+    fig = px.pie(
+
+        source_volume_df,
+
+        names="source_chain",
+        values="volume",
+
+        hole=0.35
+    )
+
+    fig.update_traces(
+
+        textinfo="percent",
+
+        textposition="inside",
+
+        insidetextorientation="radial",
+
+        hovertemplate=
+        "<b>%{label}</b><br>"
+        "Volume: %{value:,.0f}<br>"
+        "Share: %{percent}<extra></extra>"
+    )
+
+    fig.update_layout(
+
+        title="Volume by Source Chain",
+
+        template="plotly_dark",
+
+        height=550,
+
+        legend_title="Source Chain"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+# =====================================================
+# TRANSACTIONS BY SOURCE CHAIN
+# =====================================================
+
+with col2:
+
+    fig = px.pie(
+
+        source_tx_df,
+
+        names="source_chain",
+        values="num_txs",
+
+        hole=0.35
+    )
+
+    fig.update_traces(
+
+        textinfo="percent",
+
+        textposition="inside",
+
+        insidetextorientation="radial",
+
+        hovertemplate=
+        "<b>%{label}</b><br>"
+        "Transactions: %{value:,.0f}<br>"
+        "Share: %{percent}<extra></extra>"
+    )
+
+    fig.update_layout(
+
+        title="Transactions by Source Chain",
+
+        template="plotly_dark",
+
+        height=550,
+
+        legend_title="Source Chain"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+# =====================================================
+# DESTINATION CHAIN ANALYSIS
+# =====================================================
+
+st.markdown("### 🔹 Destination Chain Analysis")
+
+col1, col2 = st.columns(2)
+
+# =====================================================
+# VOLUME BY DESTINATION CHAIN
+# =====================================================
+
+with col1:
+
+    fig = px.pie(
+
+        destination_volume_df,
+
+        names="destination_chain",
+        values="volume",
+
+        hole=0.35
+    )
+
+    fig.update_traces(
+
+        textinfo="percent",
+
+        textposition="inside",
+
+        insidetextorientation="radial",
+
+        hovertemplate=
+        "<b>%{label}</b><br>"
+        "Volume: %{value:,.0f}<br>"
+        "Share: %{percent}<extra></extra>"
+    )
+
+    fig.update_layout(
+
+        title="Volume by Destination Chain",
+
+        template="plotly_dark",
+
+        height=550,
+
+        legend_title="Destination Chain"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+# =====================================================
+# TRANSACTIONS BY DESTINATION CHAIN
+# =====================================================
+
+with col2:
+
+    fig = px.pie(
+
+        destination_tx_df,
+
+        names="destination_chain",
+        values="num_txs",
+
+        hole=0.35
+    )
+
+    fig.update_traces(
+
+        textinfo="percent",
+
+        textposition="inside",
+
+        insidetextorientation="radial",
+
+        hovertemplate=
+        "<b>%{label}</b><br>"
+        "Transactions: %{value:,.0f}<br>"
+        "Share: %{percent}<extra></extra>"
+    )
+
+    fig.update_layout(
+
+        title="Transactions by Destination Chain",
+
+        template="plotly_dark",
+
+        height=550,
+
+        legend_title="Destination Chain"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
