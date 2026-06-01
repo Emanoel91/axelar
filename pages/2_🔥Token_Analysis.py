@@ -1390,165 +1390,76 @@ with col2:
     )
 
 # =====================================================
-# CHAIN FLOW ANALYSIS - KPIs
+# KPI CALCULATIONS
 # =====================================================
 
-st.markdown("---")
-st.subheader("🔗 Chain Flow Analysis")
+active_routes = len(routes_df)
 
-# =====================================================
-# LOAD DATA
-# =====================================================
-
-from_time = int(
-    pd.Timestamp(start_date).timestamp()
+source_chains = sorted(
+    source_df["source_chain"]
+    .dropna()
+    .unique()
+    .tolist()
 )
 
-to_time = int(
-    pd.Timestamp(end_date).timestamp()
+destination_chains = sorted(
+    destination_df["destination_chain"]
+    .dropna()
+    .unique()
+    .tolist()
 )
 
-url = (
-    "https://api.axelarscan.io/gmp/GMPStatsByChains"
-    f"?symbol={token_symbol}"
-    f"&fromTime={from_time}"
-    f"&toTime={to_time}"
+# نمایش مختصر نام زنجیره‌ها
+def compact_chain_list(chains, max_items=5):
+
+    if len(chains) <= max_items:
+        return ", ".join(chains)
+
+    return (
+        ", ".join(chains[:max_items])
+        + f" +{len(chains)-max_items} more"
+    )
+
+source_chain_text = compact_chain_list(
+    source_chains
 )
 
-response = requests.get(
-    url,
-    timeout=60
+destination_chain_text = compact_chain_list(
+    destination_chains
 )
 
-response.raise_for_status()
-
-chain_data = response.json()
-
 # =====================================================
-# BUILD ROUTES DATAFRAME
+# KPI ROW
 # =====================================================
 
-routes = []
+kpi1, kpi2, kpi3 = st.columns(3)
 
-for source in chain_data.get("source_chains", []):
+with kpi1:
 
-    source_chain = source.get("key", "Unknown")
-
-    if str(source_chain).lower() == "axelarnet":
-        source_chain = "Axelar"
-
-    for dest in source.get(
-        "destination_chains",
-        []
-    ):
-
-        destination_chain = dest.get(
-            "key",
-            "Unknown"
-        )
-
-        if str(destination_chain).lower() == "axelarnet":
-            destination_chain = "Axelar"
-
-        routes.append({
-
-            "route":
-                f"{source_chain} ➜ "
-                f"{destination_chain}",
-
-            "source_chain":
-                source_chain,
-
-            "destination_chain":
-                destination_chain,
-
-            "volume":
-                float(
-                    dest.get(
-                        "volume",
-                        0
-                    )
-                ),
-
-            "num_txs":
-                int(
-                    dest.get(
-                        "num_txs",
-                        0
-                    )
-                )
-        })
-
-routes_df = pd.DataFrame(routes)
-
-# =====================================================
-# EMPTY DATA
-# =====================================================
-
-if routes_df.empty:
-
-    st.info(
-        "No chain flow data found."
+    st.metric(
+        "Active Routes",
+        f"{active_routes:,}"
     )
 
-else:
+with kpi2:
 
-    # =================================================
-    # KPI CALCULATIONS
-    # =================================================
-
-    total_routes = len(routes_df)
-
-    total_volume = (
-        routes_df["volume"]
-        .sum()
+    st.metric(
+        "Source Chains",
+        f"{len(source_chains):,}"
     )
 
-    total_transactions = (
-        routes_df["num_txs"]
-        .sum()
+    st.caption(
+        source_chain_text
     )
 
-    top_volume_route = (
-        routes_df
-        .sort_values(
-            "volume",
-            ascending=False
-        )
-        .iloc[0]["route"]
+with kpi3:
+
+    st.metric(
+        "Destination Chains",
+        f"{len(destination_chains):,}"
     )
 
-    # =================================================
-    # KPI ROW
-    # =================================================
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-
-        st.metric(
-            "Active Routes",
-            f"{total_routes:,}"
-        )
-
-    with col2:
-
-        st.metric(
-            "Total Volume",
-            f"${total_volume:,.0f}"
-        )
-
-    with col3:
-
-        st.metric(
-            "Total Transactions",
-            f"{total_transactions:,}"
-        )
-
-    with col4:
-
-        st.metric(
-            "Top Route",
-            top_volume_route
-        )
+    st.caption(
+        destination_chain_text
+    )
 
