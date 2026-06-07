@@ -283,3 +283,194 @@ ranking = stats_df.sort_values("uptime", ascending=False).reset_index(drop=True)
 ranking.index += 1
 
 st.dataframe(ranking, use_container_width=True, height=600)
+
+# ===========================================================================Part II=========================================================================
+# =====================================================
+# PROPOSED BLOCKS ANALYSIS (NEW API)
+# =====================================================
+
+PROPOSED_BLOCKS_API = "https://api.axelarscan.io/validator/searchProposedBlocks"
+
+@st.cache_data(ttl=300)
+def load_proposed_blocks():
+
+    r = requests.get(PROPOSED_BLOCKS_API, timeout=60)
+    r.raise_for_status()
+
+    data = r.json().get("data", [])
+
+    df = pd.DataFrame(data)
+
+    if df.empty:
+        return df
+
+    df["timestamp"] = pd.to_numeric(df["timestamp"], errors="coerce")
+    df = df[df["timestamp"].notna()]
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", errors="coerce")
+    df = df.dropna(subset=["timestamp"])
+    df = df.sort_values("timestamp")
+
+    return df
+
+
+prop_df = load_proposed_blocks()
+
+if not prop_df.empty:
+
+    # =====================================================
+    # TIME RANGE INFO
+    # =====================================================
+
+    st.subheader("📦 Proposed Blocks Overview")
+
+    start_time = prop_df["timestamp"].min()
+    end_time = prop_df["timestamp"].max()
+
+    st.info(
+        f"""
+        📅 Data Time Range:
+        From **{start_time}**  
+        To **{end_time}**  
+        Total span: **{(end_time - start_time).days} days**
+        """
+    )
+
+    # =====================================================
+    # KPI CALCULATIONS
+    # =====================================================
+
+    total_blocks = len(prop_df)
+    unique_proposers = prop_df["proposer"].nunique()
+
+    proposer_counts = (
+        prop_df["proposer"]
+        .value_counts()
+        .reset_index()
+    )
+
+    proposer_counts.columns = ["proposer", "blocks"]
+
+    top_proposer_share = (
+        proposer_counts["blocks"].iloc[0] / total_blocks * 100
+        if total_blocks else 0
+    )
+
+    avg_block_time = (
+        prop_df["timestamp"]
+        .diff()
+        .mean()
+    )
+
+    # =====================================================
+    # KPI ROW
+    # =====================================================
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Total Blocks",
+            f"{total_blocks:,}",
+            help="Total number of proposed blocks in selected timeframe"
+        )
+
+    with col2:
+        st.metric(
+            "Unique Proposers",
+            f"{unique_proposers:,}",
+            help="Number of validators that proposed at least one block"
+        )
+
+    with col3:
+        st.metric(
+            "Avg Block Time",
+            f"{avg_block_time.total_seconds():.2f} sec" if pd.notna(avg_block_time) else "N/A",
+            help="Average time difference between consecutive blocks"
+        )
+
+    with col4:
+        st.metric(
+            "Top Proposer Share",
+            f"{top_proposer_share:.2f}%",
+            help="Share of blocks produced by top validator"
+        )
+
+    st.divider()
+
+    # =====================================================
+    # CHART 1: TOP PROPOSERS
+    # =====================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        fig = px.bar(
+            proposer_counts.head(20),
+            x="blocks",
+            y="proposer",
+            orientation="h",
+            title="Top 20 Validators by Blocks Proposed"
+        )
+
+        fig.update_layout(height=600)
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # =====================================================
+    # CHART 2: PIE DISTRIBUTION
+    # =====================================================
+
+    with col2:
+
+        top10 = proposer_counts.head(10)
+
+        fig = px.pie(
+            top10,
+            names="proposer",
+            values="blocks",
+            title="Block Proposer Share (Top 10)"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # =====================================================
+    # CHART 3: BLOCKS OVER TIME
+    # =====================================================
+
+    st.subheader("📈 Blocks Over Time")
+
+    time_df = prop_df.copy()
+    time_df["date"] = time_df["timestamp"].dt.date
+
+    daily_blocks = (
+        time_df.groupby("date")
+        .size()
+        .reset_index(name="blocks")
+    )
+
+    fig = px.line(
+        daily_blocks,
+        x="date",
+        y="blocks",
+        title="Daily Block Production"
+    )
+
+    fig.update_layout(height=450)
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # =====================================================
+    # TABLE
+    # =====================================================
+
+    st.subheader("📋 Proposer Ranking Table")
+
+    st.dataframe(
+        proposer_counts,
+        use_container_width=True,
+        height=500
+    )
+
+else:
+    st.warning("No proposed blocks data available.")
