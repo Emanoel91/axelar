@@ -576,7 +576,7 @@ else:
 # =====================================================================Part IV=================================================================
 
 # =====================================================
-# EVM POLLS ANALYSIS (NEW API)
+# EVM POLLS ANALYSIS (UPDATED)
 # =====================================================
 
 EVM_POLLS_API = "https://api.axelarscan.io/validator/searchEVMPolls"
@@ -593,7 +593,6 @@ def load_evm_polls():
 
     for item in raw:
 
-        # each item is dynamic keyed dict
         for key, value in item.items():
 
             if isinstance(value, dict):
@@ -658,10 +657,12 @@ Total span: **{total_span.days} days**
 
     late_votes = polls_df["late"].sum() if "late" in polls_df else 0
 
-    type_distribution = polls_df["type"].value_counts().reset_index()
-    type_distribution.columns = ["type", "count"]
+    voter_activity = (
+        polls_df["voter"]
+        .value_counts()
+        .reset_index()
+    )
 
-    voter_activity = polls_df["voter"].value_counts().reset_index()
     voter_activity.columns = ["voter", "votes"]
 
     top_voter_share = (
@@ -693,14 +694,14 @@ Total span: **{total_span.days} days**
         st.metric(
             "Positive Vote Rate",
             f"{vote_rate:.2f}%",
-            help="Percentage of votes marked as 'true' (approval votes)"
+            help="Percentage of votes marked as approval"
         )
 
     with col4:
         st.metric(
             "Late Votes",
             f"{late_votes:,}",
-            help="Votes that were submitted after deadline"
+            help="Votes submitted after deadline"
         )
 
     st.divider()
@@ -726,17 +727,21 @@ Total span: **{total_span.days} days**
         st.plotly_chart(fig, use_container_width=True)
 
     # =====================================================
-    # CHART 2: VOTE TYPE DISTRIBUTION
+    # CHART 2: VOTE DISTRIBUTION (UPDATED PIE)
     # =====================================================
 
     with col2:
 
+        top_voters = voter_activity.head(10)
+
         fig = px.pie(
-            type_distribution,
-            names="type",
-            values="count",
-            title="Vote Type Distribution"
+            top_voters,
+            names="voter",
+            values="votes",
+            title="Vote Distribution (Top 10 Validators)"
         )
+
+        fig.update_layout(height=550)
 
         st.plotly_chart(fig, use_container_width=True)
 
