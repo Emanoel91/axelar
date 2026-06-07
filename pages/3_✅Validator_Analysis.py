@@ -119,25 +119,6 @@ if df.empty:
     st.stop()
 
 # =====================================================
-# TIME RANGE
-# =====================================================
-
-st.subheader("⏱️ Validator Uptime Overview")
-
-start_time = uptime_df["timestamp"].min()
-end_time = uptime_df["timestamp"].max()
-total_span = end_time - start_time
-
-st.info(
-    f"""
-📅 Uptime Data Time Range:
-From **{start_time}**  
-To **{end_time}**  
-Total span: **{total_span.days} days**
-    """
-)
-
-# =====================================================
 # VALIDATOR STATS
 # =====================================================
 
