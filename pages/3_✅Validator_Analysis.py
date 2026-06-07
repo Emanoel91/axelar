@@ -572,3 +572,211 @@ If these messages are not sent or are interrupted, the network may consider the 
 
 else:
     st.warning("No heartbeat data available.")
+
+# =====================================================================Part IV=================================================================
+
+# =====================================================
+# EVM POLLS ANALYSIS (NEW API)
+# =====================================================
+
+EVM_POLLS_API = "https://api.axelarscan.io/validator/searchEVMPolls"
+
+@st.cache_data(ttl=300)
+def load_evm_polls():
+
+    r = requests.get(EVM_POLLS_API, timeout=60)
+    r.raise_for_status()
+
+    raw = r.json().get("data", [])
+
+    rows = []
+
+    for item in raw:
+
+        # each item is dynamic keyed dict
+        for key, value in item.items():
+
+            if isinstance(value, dict):
+
+                rows.append({
+                    "voter": value.get("voter"),
+                    "vote": value.get("vote"),
+                    "height": value.get("height"),
+                    "type": value.get("type"),
+                    "created_at": value.get("created_at"),
+                    "confirmed": value.get("confirmed"),
+                    "late": value.get("late"),
+                })
+
+    df = pd.DataFrame(rows)
+
+    if df.empty:
+        return df
+
+    df["created_at"] = pd.to_numeric(df["created_at"], errors="coerce")
+    df = df[df["created_at"].notna()]
+
+    df["timestamp"] = pd.to_datetime(df["created_at"], unit="ms", errors="coerce")
+    df = df.dropna(subset=["timestamp"])
+
+    df = df.sort_values("timestamp")
+
+    return df
+
+
+polls_df = load_evm_polls()
+
+if not polls_df.empty:
+
+    # =====================================================
+    # TIME RANGE
+    # =====================================================
+
+    st.subheader("🗳️ EVM Polls Activity Overview")
+
+    start_time = polls_df["timestamp"].min()
+    end_time = polls_df["timestamp"].max()
+    total_span = end_time - start_time
+
+    st.info(
+        f"""
+📅 Polls Data Range:
+From **{start_time}**  
+To **{end_time}**  
+Total span: **{total_span.days} days**
+        """
+    )
+
+    # =====================================================
+    # KPI CALCULATIONS
+    # =====================================================
+
+    total_votes = len(polls_df)
+    unique_voters = polls_df["voter"].nunique()
+
+    vote_rate = polls_df["vote"].mean() * 100 if "vote" in polls_df else 0
+
+    late_votes = polls_df["late"].sum() if "late" in polls_df else 0
+
+    type_distribution = polls_df["type"].value_counts().reset_index()
+    type_distribution.columns = ["type", "count"]
+
+    voter_activity = polls_df["voter"].value_counts().reset_index()
+    voter_activity.columns = ["voter", "votes"]
+
+    top_voter_share = (
+        voter_activity["votes"].iloc[0] / total_votes * 100
+        if total_votes else 0
+    )
+
+    # =====================================================
+    # KPI ROW
+    # =====================================================
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Total Votes",
+            f"{total_votes:,}",
+            help="Total number of votes submitted in EVM polls"
+        )
+
+    with col2:
+        st.metric(
+            "Unique Voters",
+            f"{unique_voters:,}",
+            help="Number of validators participating in voting"
+        )
+
+    with col3:
+        st.metric(
+            "Positive Vote Rate",
+            f"{vote_rate:.2f}%",
+            help="Percentage of votes marked as 'true' (approval votes)"
+        )
+
+    with col4:
+        st.metric(
+            "Late Votes",
+            f"{late_votes:,}",
+            help="Votes that were submitted after deadline"
+        )
+
+    st.divider()
+
+    # =====================================================
+    # CHART 1: TOP VOTERS
+    # =====================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        fig = px.bar(
+            voter_activity.head(20),
+            x="votes",
+            y="voter",
+            orientation="h",
+            title="Top 20 Validators by Votes"
+        )
+
+        fig.update_layout(height=550)
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # =====================================================
+    # CHART 2: VOTE TYPE DISTRIBUTION
+    # =====================================================
+
+    with col2:
+
+        fig = px.pie(
+            type_distribution,
+            names="type",
+            values="count",
+            title="Vote Type Distribution"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # =====================================================
+    # CHART 3: VOTES OVER TIME
+    # =====================================================
+
+    st.subheader("📈 Voting Activity Over Time")
+
+    time_df = polls_df.copy()
+    time_df["date"] = time_df["timestamp"].dt.date
+
+    daily_votes = (
+        time_df.groupby("date")
+        .size()
+        .reset_index(name="votes")
+    )
+
+    fig = px.line(
+        daily_votes,
+        x="date",
+        y="votes",
+        title="Daily Voting Activity"
+    )
+
+    fig.update_layout(height=450)
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # =====================================================
+    # TABLE
+    # =====================================================
+
+    st.subheader("📋 Voting Participation Table")
+
+    st.dataframe(
+        voter_activity,
+        use_container_width=True,
+        height=500
+    )
+
+else:
+    st.warning("No EVM polls data available.")
