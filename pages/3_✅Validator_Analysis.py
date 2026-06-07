@@ -474,3 +474,197 @@ if not prop_df.empty:
 
 else:
     st.warning("No proposed blocks data available.")
+
+# ===========================================================================Part III=======================================================================
+# =====================================================
+# HEARTBEATS ANALYSIS (NEW API)
+# =====================================================
+
+HEARTBEATS_API = "https://api.axelarscan.io/validator/searchHeartbeats"
+
+@st.cache_data(ttl=300)
+def load_heartbeats():
+
+    r = requests.get(HEARTBEATS_API, timeout=60)
+    r.raise_for_status()
+
+    data = r.json().get("data", [])
+
+    df = pd.DataFrame(data)
+
+    if df.empty:
+        return df
+
+    df["timestamp"] = pd.to_numeric(df["timestamp"], errors="coerce")
+    df = df[df["timestamp"].notna()]
+
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", errors="coerce")
+    df = df.dropna(subset=["timestamp"])
+    df = df.sort_values("timestamp")
+
+    return df
+
+
+hb_df = load_heartbeats()
+
+if not hb_df.empty:
+
+    # =====================================================
+    # TIME RANGE
+    # =====================================================
+
+    st.subheader("💓 Validator Heartbeats Overview")
+
+    start_time = hb_df["timestamp"].min()
+    end_time = hb_df["timestamp"].max()
+
+    total_span = end_time - start_time
+
+    st.info(
+        f"""
+📅 Heartbeat Data Range:
+From **{start_time}**  
+To **{end_time}**  
+Total span: **{total_span.days} days**
+        """
+    )
+
+    # =====================================================
+    # KPI CALCULATIONS
+    # =====================================================
+
+    total_heartbeats = len(hb_df)
+    unique_senders = hb_df["sender"].nunique()
+
+    sender_counts = (
+        hb_df["sender"]
+        .value_counts()
+        .reset_index()
+    )
+
+    sender_counts.columns = ["sender", "heartbeats"]
+
+    avg_heartbeat_per_sender = (
+        total_heartbeats / unique_senders
+        if unique_senders else 0
+    )
+
+    # time delta between heartbeats
+    hb_df_sorted = hb_df.sort_values("timestamp")
+    avg_heartbeat_interval = hb_df_sorted["timestamp"].diff().mean()
+
+    # =====================================================
+    # KPI ROW
+    # =====================================================
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Total Heartbeats",
+            f"{total_heartbeats:,}",
+            help="Total number of heartbeat transactions submitted by validators"
+        )
+
+    with col2:
+        st.metric(
+            "Unique Validators",
+            f"{unique_senders:,}",
+            help="Number of validators that submitted at least one heartbeat"
+        )
+
+    with col3:
+        st.metric(
+            "Avg Heartbeats / Validator",
+            f"{avg_heartbeat_per_sender:.2f}",
+            help="Average heartbeat submissions per validator"
+        )
+
+    with col4:
+        st.metric(
+            "Avg Heartbeat Interval",
+            f"{avg_heartbeat_interval.total_seconds():.2f} sec" if pd.notna(avg_heartbeat_interval) else "N/A",
+            help="Average time between consecutive heartbeat submissions"
+        )
+
+    st.divider()
+
+    # =====================================================
+    # CHART 1: TOP SENDERS
+    # =====================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        top_senders = sender_counts.head(20)
+
+        fig = px.bar(
+            top_senders,
+            x="heartbeats",
+            y="sender",
+            orientation="h",
+            title="Top 20 Validators by Heartbeats"
+        )
+
+        fig.update_layout(height=550)
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # =====================================================
+    # CHART 2: HEARTBEATS OVER TIME
+    # =====================================================
+
+    with col2:
+
+        time_df = hb_df.copy()
+        time_df["date"] = time_df["timestamp"].dt.date
+
+        daily_hb = (
+            time_df.groupby("date")
+            .size()
+            .reset_index(name="heartbeats")
+        )
+
+        fig = px.line(
+            daily_hb,
+            x="date",
+            y="heartbeats",
+            title="Daily Heartbeat Activity"
+        )
+
+        fig.update_layout(height=550)
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # =====================================================
+    # CHART 3: DISTRIBUTION
+    # =====================================================
+
+    st.subheader("📊 Heartbeat Distribution")
+
+    fig = px.histogram(
+        sender_counts,
+        x="heartbeats",
+        nbins=30,
+        title="Heartbeat Distribution per Validator"
+    )
+
+    fig.update_layout(height=450)
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # =====================================================
+    # TABLE
+    # =====================================================
+
+    st.subheader("📋 Validator Heartbeat Ranking")
+
+    st.dataframe(
+        sender_counts,
+        use_container_width=True,
+        height=500
+    )
+
+else:
+    st.warning("No heartbeat data available.")
