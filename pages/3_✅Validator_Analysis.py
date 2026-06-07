@@ -74,28 +74,6 @@ if df.empty:
     st.stop()
 
 # =====================================================
-# SIDEBAR FILTERS
-# =====================================================
-
-st.sidebar.header("Filters")
-
-timeframe = st.sidebar.selectbox(
-    "Timeframe",
-    ["Last 24 Hours", "Last 7 Days", "Last 30 Days", "All Time"]
-)
-
-latest_time = df["timestamp"].max()
-
-if timeframe == "Last 24 Hours":
-    df = df[df["timestamp"] >= latest_time - pd.Timedelta(days=1)]
-
-elif timeframe == "Last 7 Days":
-    df = df[df["timestamp"] >= latest_time - pd.Timedelta(days=7)]
-
-elif timeframe == "Last 30 Days":
-    df = df[df["timestamp"] >= latest_time - pd.Timedelta(days=30)]
-
-# =====================================================
 # VALIDATOR STATS
 # =====================================================
 
