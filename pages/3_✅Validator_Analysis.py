@@ -490,7 +490,7 @@ Total span: **{total_span.days} days**
 
     st.markdown(
     """
-## What is Heartbeats❓
+#### What is Heartbeats❓
 Heartbeats are periodic messages sent by validators to indicate that they are active and online in the network.
 Each validator sends a dedicated heartbeat transaction at specific intervals, which includes their signature and identifier. 
 This transaction is recorded on the blockchain and shows that the validator is still available and operational.
