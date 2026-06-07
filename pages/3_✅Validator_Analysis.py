@@ -11,12 +11,11 @@ st.set_page_config(
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
-
 # =====================================================
 # TITLE + DESCRIPTION
 # =====================================================
 
-st.title("🛡️ Validator Analysis")
+st.title("✅ Validator Analysis")
 
 st.markdown(
     """
