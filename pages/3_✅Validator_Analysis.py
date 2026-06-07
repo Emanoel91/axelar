@@ -769,32 +769,6 @@ Total span: **{total_span.days} days**
         st.plotly_chart(fig, use_container_width=True)
 
     # =====================================================
-    # TIME SERIES
-    # =====================================================
-
-    st.subheader("📈 Voting Activity Over Time")
-
-    time_df = polls_df.copy()
-    time_df["date"] = time_df["timestamp"].dt.date
-
-    daily_votes = (
-        time_df.groupby("date")
-        .size()
-        .reset_index(name="votes")
-    )
-
-    fig = px.line(
-        daily_votes,
-        x="date",
-        y="votes",
-        title="Daily Voting Activity"
-    )
-
-    fig.update_layout(height=450)
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    # =====================================================
     # TABLE
     # =====================================================
 
@@ -803,7 +777,7 @@ Total span: **{total_span.days} days**
     st.dataframe(
         voter_activity,
         use_container_width=True,
-        height=500
+        height=200
     )
 
 else:
