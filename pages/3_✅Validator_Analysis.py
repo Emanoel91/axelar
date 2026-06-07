@@ -22,8 +22,8 @@ st.title("🛡️ Validator Analysis")
 st.markdown(
     """
 ### What is Uptime?
-Uptime represents how often a validator is actively included in consensus snapshots.
-Higher uptime means better reliability, lower downtime risk, and stronger network contribution.
+Uptime represents how often a validator is included in consensus snapshots.
+Higher uptime means better reliability, fewer missed blocks, and stronger network participation.
 """
 )
 
@@ -50,6 +50,7 @@ def load_uptime():
 
     df = pd.DataFrame(data)
 
+    # Safe timestamp conversion
     df["timestamp"] = pd.to_numeric(df["timestamp"], errors="coerce")
     df = df[df["timestamp"].notna()]
     df = df[df["timestamp"] > 0]
@@ -69,11 +70,11 @@ def load_uptime():
 df = load_uptime()
 
 if df.empty:
-    st.error("No data available.")
+    st.error("No validator uptime data available.")
     st.stop()
 
 # =====================================================
-# FILTERS
+# SIDEBAR FILTERS
 # =====================================================
 
 st.sidebar.header("Filters")
@@ -121,7 +122,7 @@ for v in all_validators:
 stats_df = pd.DataFrame(records)
 
 # =====================================================
-# METRICS
+# METRICS BASE VALUES
 # =====================================================
 
 active_df = df.copy()
@@ -134,31 +135,41 @@ worst_uptime = stats_df["uptime"].min()
 avg_uptime = stats_df["uptime"].mean()
 
 # =====================================================
-# KPI ROW (TOOLTIPS WITH ? HOVER)
+# KPI FUNCTION (ARC STYLE TOOLTIP)
 # =====================================================
 
-def kpi(label, tooltip):
-    return f"{label} ℹ️"
+def kpi(label, description):
+    return f"{label} ⓘ", description
+
+# =====================================================
+# KPI ROW
+# =====================================================
 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
-    st.metric(kpi("Validators", "Unique validators observed in snapshots"), f"{len(stats_df):,}")
+    label, help_text = kpi("Validators", "Total unique validators observed in snapshots")
+    st.metric(label, f"{len(stats_df):,}", help=help_text)
 
 with col2:
-    st.metric(kpi("Snapshots", "Number of block snapshots analyzed"), f"{total_snapshots:,}")
+    label, help_text = kpi("Snapshots", "Number of block snapshots analyzed")
+    st.metric(label, f"{total_snapshots:,}", help=help_text)
 
 with col3:
-    st.metric(kpi("Avg Active", "Average validators active per snapshot"), f"{avg_active:.1f}")
+    label, help_text = kpi("Avg Active", "Average number of validators active per snapshot")
+    st.metric(label, f"{avg_active:.1f}", help=help_text)
 
 with col4:
-    st.metric(kpi("Best Uptime", "Highest uptime among validators"), f"{best_uptime:.2f}%")
+    label, help_text = kpi("Best Uptime", "Highest uptime among all validators")
+    st.metric(label, f"{best_uptime:.2f}%", help=help_text)
 
 with col5:
-    st.metric(kpi("Worst Uptime", "Lowest uptime among validators"), f"{worst_uptime:.2f}%")
+    label, help_text = kpi("Worst Uptime", "Lowest uptime among all validators")
+    st.metric(label, f"{worst_uptime:.2f}%", help=help_text)
 
 with col6:
-    st.metric(kpi("Average Uptime", "Average uptime across all validators"), f"{avg_uptime:.2f}%")
+    label, help_text = kpi("Average Uptime", "Average uptime across all validators")
+    st.metric(label, f"{avg_uptime:.2f}%", help=help_text)
 
 st.divider()
 
@@ -195,7 +206,7 @@ with col2:
     st.plotly_chart(fig, use_container_width=True)
 
 # =====================================================
-# ROW 2 (UPDATED LAYOUT)
+# ROW 2 (NETWORK HEALTH + MISSES)
 # =====================================================
 
 col1, col2 = st.columns(2)
