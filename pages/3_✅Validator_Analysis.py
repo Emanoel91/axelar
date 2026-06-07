@@ -158,6 +158,24 @@ worst_uptime = stats_df["uptime"].min()
 avg_uptime = stats_df["uptime"].mean()
 
 # =====================================================
+# TIME RANGE (VALIDATOR STATS)
+# =====================================================
+
+st.subheader("⏱️ Validator Uptime Time Range")
+
+start_time = df["timestamp"].min()
+end_time = df["timestamp"].max()
+total_span = end_time - start_time
+
+st.info(
+    f"""
+📅 Uptime Data Time Range:
+From **{start_time}**  
+To **{end_time}**  
+Total span: **{total_span.days} days**
+    """
+)
+# =====================================================
 # KPI FUNCTION (ARC STYLE TOOLTIP)
 # =====================================================
 
