@@ -22,13 +22,13 @@ st.title("🛡️ Validator Analysis")
 st.markdown(
     """
 ### What is Uptime?
-Uptime shows the percentage of time a validator is actively participating in the network consensus.
-Higher uptime = more reliable validator, lower risk of penalties and better network performance.
+Uptime represents how often a validator is actively included in consensus snapshots.
+Higher uptime means better reliability, lower downtime risk, and stronger network contribution.
 """
 )
 
 st.info(
-    "Validator uptime analysis is based on Axelar snapshot data (active validators per block)."
+    "Data is sourced from Axelar validator uptime snapshots."
 )
 
 # =====================================================
@@ -50,7 +50,6 @@ def load_uptime():
 
     df = pd.DataFrame(data)
 
-    # safe timestamp conversion
     df["timestamp"] = pd.to_numeric(df["timestamp"], errors="coerce")
     df = df[df["timestamp"].notna()]
     df = df[df["timestamp"] > 0]
@@ -70,11 +69,11 @@ def load_uptime():
 df = load_uptime()
 
 if df.empty:
-    st.error("No validator uptime data available.")
+    st.error("No data available.")
     st.stop()
 
 # =====================================================
-# SIDEBAR FILTERS
+# FILTERS
 # =====================================================
 
 st.sidebar.header("Filters")
@@ -99,9 +98,7 @@ elif timeframe == "Last 30 Days":
 # VALIDATOR STATS
 # =====================================================
 
-all_validators = sorted({
-    v for validators in df["validators"] for v in validators
-})
+all_validators = sorted({v for lst in df["validators"] for v in lst})
 
 total_snapshots = len(df)
 
@@ -110,16 +107,15 @@ records = []
 for v in all_validators:
 
     appearances = df["validators"].apply(lambda x: v in x).sum()
-
     misses = total_snapshots - appearances
 
-    uptime = (appearances / total_snapshots * 100) if total_snapshots > 0 else 0
+    uptime = (appearances / total_snapshots * 100) if total_snapshots else 0
 
     records.append({
         "validator": v,
         "appearances": appearances,
         "misses": misses,
-        "uptime": round(uptime, 4)
+        "uptime": uptime
     })
 
 stats_df = pd.DataFrame(records)
@@ -138,28 +134,31 @@ worst_uptime = stats_df["uptime"].min()
 avg_uptime = stats_df["uptime"].mean()
 
 # =====================================================
-# KPI ROW (WITH EXPLANATIONS)
+# KPI ROW (TOOLTIPS WITH ? HOVER)
 # =====================================================
+
+def kpi(label, tooltip):
+    return f"{label} ℹ️"
 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
-    st.metric("Validators (?) total unique validators observed", f"{len(stats_df):,}")
+    st.metric(kpi("Validators", "Unique validators observed in snapshots"), f"{len(stats_df):,}")
 
 with col2:
-    st.metric("Snapshots (?) number of blocks sampled", f"{total_snapshots:,}")
+    st.metric(kpi("Snapshots", "Number of block snapshots analyzed"), f"{total_snapshots:,}")
 
 with col3:
-    st.metric("Avg Active (?) average validators per snapshot", f"{avg_active:.1f}")
+    st.metric(kpi("Avg Active", "Average validators active per snapshot"), f"{avg_active:.1f}")
 
 with col4:
-    st.metric("Best Uptime (?) highest validator uptime", f"{best_uptime:.2f}%")
+    st.metric(kpi("Best Uptime", "Highest uptime among validators"), f"{best_uptime:.2f}%")
 
 with col5:
-    st.metric("Worst Uptime (?) lowest validator uptime", f"{worst_uptime:.2f}%")
+    st.metric(kpi("Worst Uptime", "Lowest uptime among validators"), f"{worst_uptime:.2f}%")
 
 with col6:
-    st.metric("Average Uptime (?) network average uptime", f"{avg_uptime:.2f}%")
+    st.metric(kpi("Average Uptime", "Average uptime across all validators"), f"{avg_uptime:.2f}%")
 
 st.divider()
 
@@ -196,38 +195,34 @@ with col2:
     st.plotly_chart(fig, use_container_width=True)
 
 # =====================================================
-# NETWORK HEALTH SCORE (REPLACES TOP UPTIME CHART)
-# =====================================================
-
-st.subheader("Network Health Score (%)")
-
-health_df = active_df.copy()
-
-max_active = health_df["active_count"].max()
-
-health_df["health_score"] = (
-    health_df["active_count"] / max_active * 100
-    if max_active > 0 else 0
-)
-
-fig = px.area(
-    health_df,
-    x="timestamp",
-    y="health_score",
-    title="Network Health Score (%)"
-)
-
-fig.update_layout(height=450)
-
-st.plotly_chart(fig, use_container_width=True)
-
-# =====================================================
-# TOP MISS COUNT (ONLY REMAINING RANKING CHART)
+# ROW 2 (UPDATED LAYOUT)
 # =====================================================
 
 col1, col2 = st.columns(2)
 
 with col1:
+
+    health_df = active_df.copy()
+
+    max_active = health_df["active_count"].max()
+
+    health_df["health_score"] = (
+        health_df["active_count"] / max_active * 100
+        if max_active else 0
+    )
+
+    fig = px.area(
+        health_df,
+        x="timestamp",
+        y="health_score",
+        title="Network Health Score (%)"
+    )
+
+    fig.update_layout(height=450)
+
+    st.plotly_chart(fig, use_container_width=True)
+
+with col2:
 
     top_miss = stats_df.sort_values("misses", ascending=False).head(20)
 
@@ -239,7 +234,7 @@ with col1:
         title="Top 20 Validators by Miss Count"
     )
 
-    fig.update_layout(height=650)
+    fig.update_layout(height=450)
 
     st.plotly_chart(fig, use_container_width=True)
 
