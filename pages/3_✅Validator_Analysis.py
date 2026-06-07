@@ -163,7 +163,7 @@ avg_uptime = stats_df["uptime"].mean()
 # =====================================================
 
 def kpi(label, description):
-    return f"{label} ⓘ", description
+    return f"{label}", description
 
 # =====================================================
 # KPI ROW
