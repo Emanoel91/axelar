@@ -76,26 +76,6 @@ st.sidebar.markdown(
     """,
     unsafe_allow_html=True
 )
-
-# =====================================================
-# TIME RANGE
-# =====================================================
-
-st.subheader("⏱️ Validator Uptime Overview")
-
-start_time = uptime_df["timestamp"].min()
-end_time = uptime_df["timestamp"].max()
-total_span = end_time - start_time
-
-st.info(
-    f"""
-📅 Uptime Data Time Range:
-From **{start_time}**  
-To **{end_time}**  
-Total span: **{total_span.days} days**
-    """
-)
-
 # =====================================================
 # LOAD DATA
 # =====================================================
@@ -137,6 +117,25 @@ df = load_uptime()
 if df.empty:
     st.error("No validator uptime data available.")
     st.stop()
+
+# =====================================================
+# TIME RANGE
+# =====================================================
+
+st.subheader("⏱️ Validator Uptime Overview")
+
+start_time = uptime_df["timestamp"].min()
+end_time = uptime_df["timestamp"].max()
+total_span = end_time - start_time
+
+st.info(
+    f"""
+📅 Uptime Data Time Range:
+From **{start_time}**  
+To **{end_time}**  
+Total span: **{total_span.days} days**
+    """
+)
 
 # =====================================================
 # VALIDATOR STATS
