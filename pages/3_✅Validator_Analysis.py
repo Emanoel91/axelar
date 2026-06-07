@@ -50,7 +50,6 @@ def load_uptime():
 
     df = pd.DataFrame(data)
 
-    # Safe timestamp conversion
     df["timestamp"] = pd.to_numeric(df["timestamp"], errors="coerce")
     df = df[df["timestamp"].notna()]
     df = df[df["timestamp"] > 0]
@@ -135,11 +134,11 @@ worst_uptime = stats_df["uptime"].min()
 avg_uptime = stats_df["uptime"].mean()
 
 # =====================================================
-# KPI FUNCTION (ARC STYLE TOOLTIP)
+# KPI FUNCTION
 # =====================================================
 
 def kpi(label, description):
-    return f"{label}", description
+    return f"{label} ⓘ", description
 
 # =====================================================
 # KPI ROW
@@ -170,6 +169,24 @@ with col5:
 with col6:
     label, help_text = kpi("Average Uptime", "Average uptime across all validators")
     st.metric(label, f"{avg_uptime:.2f}%", help=help_text)
+
+st.divider()
+
+# =====================================================
+# EXPLANATION BOX (NEW)
+# =====================================================
+
+st.markdown(
+    """
+### 📊 Understanding Key Terms
+
+- **Appearances**: Number of snapshots where the validator was active (included in consensus)
+- **Misses**: Number of snapshots where the validator was NOT active (missed participation)
+
+👉 Higher appearances = better reliability  
+👉 Higher misses = lower reliability / more downtime
+"""
+)
 
 st.divider()
 
@@ -206,7 +223,7 @@ with col2:
     st.plotly_chart(fig, use_container_width=True)
 
 # =====================================================
-# ROW 2 (NETWORK HEALTH + MISSES)
+# ROW 2
 # =====================================================
 
 col1, col2 = st.columns(2)
