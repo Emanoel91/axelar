@@ -434,47 +434,6 @@ if not prop_df.empty:
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # =====================================================
-    # CHART 3: BLOCKS OVER TIME
-    # =====================================================
-
-    st.subheader("📈 Blocks Over Time")
-
-    time_df = prop_df.copy()
-    time_df["date"] = time_df["timestamp"].dt.date
-
-    daily_blocks = (
-        time_df.groupby("date")
-        .size()
-        .reset_index(name="blocks")
-    )
-
-    fig = px.line(
-        daily_blocks,
-        x="date",
-        y="blocks",
-        title="Daily Block Production"
-    )
-
-    fig.update_layout(height=450)
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    # =====================================================
-    # TABLE
-    # =====================================================
-
-    st.subheader("📋 Proposer Ranking Table")
-
-    st.dataframe(
-        proposer_counts,
-        use_container_width=True,
-        height=500
-    )
-
-else:
-    st.warning("No proposed blocks data available.")
-
 # ===========================================================================Part III=======================================================================
 # =====================================================
 # HEARTBEATS ANALYSIS (NEW API)
@@ -528,6 +487,16 @@ To **{end_time}**
 Total span: **{total_span.days} days**
         """
     )
+
+    st.markdown(
+    """
+### What is Heartbeats❓
+Heartbeats are periodic messages sent by validators to indicate that they are active and online in the network.
+Each validator sends a dedicated heartbeat transaction at specific intervals, which includes their signature and identifier. 
+This transaction is recorded on the blockchain and shows that the validator is still available and operational.
+If these messages are not sent or are interrupted, the network may consider the validator offline and potentially exclude it from participating in consensus.
+"""
+)
 
     # =====================================================
     # KPI CALCULATIONS
@@ -590,71 +559,6 @@ Total span: **{total_span.days} days**
     st.divider()
 
     # =====================================================
-    # CHART 1: TOP SENDERS
-    # =====================================================
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        top_senders = sender_counts.head(20)
-
-        fig = px.bar(
-            top_senders,
-            x="heartbeats",
-            y="sender",
-            orientation="h",
-            title="Top 20 Validators by Heartbeats"
-        )
-
-        fig.update_layout(height=550)
-
-        st.plotly_chart(fig, use_container_width=True)
-
-    # =====================================================
-    # CHART 2: HEARTBEATS OVER TIME
-    # =====================================================
-
-    with col2:
-
-        time_df = hb_df.copy()
-        time_df["date"] = time_df["timestamp"].dt.date
-
-        daily_hb = (
-            time_df.groupby("date")
-            .size()
-            .reset_index(name="heartbeats")
-        )
-
-        fig = px.line(
-            daily_hb,
-            x="date",
-            y="heartbeats",
-            title="Daily Heartbeat Activity"
-        )
-
-        fig.update_layout(height=550)
-
-        st.plotly_chart(fig, use_container_width=True)
-
-    # =====================================================
-    # CHART 3: DISTRIBUTION
-    # =====================================================
-
-    st.subheader("📊 Heartbeat Distribution")
-
-    fig = px.histogram(
-        sender_counts,
-        x="heartbeats",
-        nbins=30,
-        title="Heartbeat Distribution per Validator"
-    )
-
-    fig.update_layout(height=450)
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    # =====================================================
     # TABLE
     # =====================================================
 
@@ -663,7 +567,7 @@ Total span: **{total_span.days} days**
     st.dataframe(
         sender_counts,
         use_container_width=True,
-        height=500
+        height=100
     )
 
 else:
