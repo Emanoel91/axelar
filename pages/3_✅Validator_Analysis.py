@@ -78,6 +78,22 @@ st.sidebar.markdown(
 )
 
 # =====================================================
+# TIME RANGE
+# =====================================================
+    start_time = polls_df["timestamp"].min()
+    end_time = polls_df["timestamp"].max()
+    total_span = end_time - start_time
+
+    st.info(
+        f"""
+📅 Data Time Range:
+From **{start_time}**  
+To **{end_time}**  
+Total span: **{total_span.days} days**
+        """
+    )
+
+# =====================================================
 # LOAD DATA
 # =====================================================
 
