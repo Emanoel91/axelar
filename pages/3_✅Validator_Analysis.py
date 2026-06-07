@@ -574,9 +574,8 @@ else:
     st.warning("No heartbeat data available.")
 
 # =====================================================================Part IV=================================================================
-
 # =====================================================
-# EVM POLLS ANALYSIS (UPDATED)
+# EVM POLLS ANALYSIS (UPDATED - FINAL)
 # =====================================================
 
 EVM_POLLS_API = "https://api.axelarscan.io/validator/searchEVMPolls"
@@ -639,7 +638,7 @@ if not polls_df.empty:
 
     st.info(
         f"""
-📅 Polls Data Range:
+📅 Data Time Range:
 From **{start_time}**  
 To **{end_time}**  
 Total span: **{total_span.days} days**
@@ -694,7 +693,7 @@ Total span: **{total_span.days} days**
         st.metric(
             "Positive Vote Rate",
             f"{vote_rate:.2f}%",
-            help="Percentage of votes marked as approval"
+            help="Share of approval votes (true)"
         )
 
     with col4:
@@ -707,11 +706,14 @@ Total span: **{total_span.days} days**
     st.divider()
 
     # =====================================================
-    # CHART 1: TOP VOTERS
+    # CHARTS
     # =====================================================
 
     col1, col2 = st.columns(2)
 
+    # -----------------------------------------------------
+    # TOP VOTERS
+    # -----------------------------------------------------
     with col1:
 
         fig = px.bar(
@@ -726,19 +728,40 @@ Total span: **{total_span.days} days**
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # =====================================================
-    # CHART 2: VOTE DISTRIBUTION (UPDATED PIE)
-    # =====================================================
-
+    # -----------------------------------------------------
+    # VOTE DISTRIBUTION (FIXED)
+    # -----------------------------------------------------
     with col2:
 
-        top_voters = voter_activity.head(10)
+        # تعداد رأی هر voter
+        voter_counts = (
+            polls_df["voter"]
+            .value_counts()
+            .reset_index()
+        )
 
-        fig = px.pie(
-            top_voters,
-            names="voter",
-            values="votes",
-            title="Vote Distribution (Top 10 Validators)"
+        voter_counts.columns = ["voter", "votes"]
+
+        # توزیع: چند validator چند رأی داده‌اند
+        distribution = (
+            voter_counts["votes"]
+            .value_counts()
+            .reset_index()
+        )
+
+        distribution.columns = ["vote_count", "num_validators"]
+
+        distribution = distribution.sort_values("vote_count")
+
+        fig = px.bar(
+            distribution,
+            x="vote_count",
+            y="num_validators",
+            title="Distribution of Votes per Validator",
+            labels={
+                "vote_count": "Number of Votes per Validator",
+                "num_validators": "Number of Validators"
+            }
         )
 
         fig.update_layout(height=550)
@@ -746,7 +769,7 @@ Total span: **{total_span.days} days**
         st.plotly_chart(fig, use_container_width=True)
 
     # =====================================================
-    # CHART 3: VOTES OVER TIME
+    # TIME SERIES
     # =====================================================
 
     st.subheader("📈 Voting Activity Over Time")
