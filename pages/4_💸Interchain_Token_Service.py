@@ -793,3 +793,143 @@ with right:
         use_container_width=True
     )
 
+# ===================================================================== Part 2 ==============================================================================================
+# -----------------------------
+# API URLs
+# -----------------------------
+URLS = [
+    "https://api.axelarscan.io/gmp/GMPChart?contractAddress=axelar1aqcj54lzz0rk22gvqgcn8fr5tx4rzwdv5wv5j9dmnacgefvd7wzsy2j2mr",
+    "https://api.axelarscan.io/gmp/GMPChart?contractAddress=0xB5FB4BE02232B1bBA4dC8f81dc24C26980dE9e3C"
+]
+
+
+@st.cache_data(ttl=3600)
+def load_its_data():
+
+    dfs = []
+
+    for url in URLS:
+        data = requests.get(url).json()["data"]
+        df = pd.DataFrame(data)
+
+        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+        df = df.groupby("timestamp", as_index=False).agg({
+            "volume": "sum",
+            "num_txs": "sum"
+        })
+
+        dfs.append(df)
+
+    # Merge both contracts
+    df = pd.concat(dfs)
+
+    df = (
+        df.groupby("timestamp", as_index=False)
+          .agg({
+              "volume": "sum",
+              "num_txs": "sum"
+          })
+          .sort_values("timestamp")
+          .reset_index(drop=True)
+    )
+
+    return df
+
+
+df = load_its_data()
+
+# ===================================================
+# KPI Calculations
+# ===================================================
+
+# ATH Volume
+ath_volume_row = df.loc[df["volume"].idxmax()]
+
+ath_volume = ath_volume_row["volume"]
+ath_volume_date = ath_volume_row["timestamp"].strftime("%Y-%m-%d")
+
+# ATH Transactions
+ath_tx_row = df.loc[df["num_txs"].idxmax()]
+
+ath_tx = int(ath_tx_row["num_txs"])
+ath_tx_date = ath_tx_row["timestamp"].strftime("%Y-%m-%d")
+
+# Daily averages
+avg_volume = df["volume"].mean()
+avg_tx = df["num_txs"].mean()
+
+
+# Rolling averages
+df["volume_7d"] = df["volume"].rolling(7).mean()
+df["volume_30d"] = df["volume"].rolling(30).mean()
+
+df["tx_7d"] = df["num_txs"].rolling(7).mean()
+df["tx_30d"] = df["num_txs"].rolling(30).mean()
+
+
+# ===================================================
+# Dashboard
+# ===================================================
+
+st.subheader("Interchain Token Service")
+
+
+# ---------------- First Row ----------------
+
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric(
+    "ATH Volume",
+    f"${ath_volume:,.2f}",
+    ath_volume_date
+)
+
+col2.metric(
+    "ATH Transactions",
+    f"{ath_tx:,}",
+    ath_tx_date
+)
+
+col3.metric(
+    "Avg Daily Volume",
+    f"${avg_volume:,.2f}"
+)
+
+col4.metric(
+    "Avg Daily Transactions",
+    f"{avg_tx:,.0f}"
+)
+
+
+# ---------------- Second Row ----------------
+
+st.markdown("### Rolling Trends")
+
+c1, c2 = st.columns(2)
+
+with c1:
+    st.caption("7-Day Volume")
+    st.line_chart(
+        df.set_index("timestamp")["volume_7d"],
+        height=250
+    )
+
+    st.caption("30-Day Volume")
+    st.line_chart(
+        df.set_index("timestamp")["volume_30d"],
+        height=250
+    )
+
+with c2:
+    st.caption("7-Day Transactions")
+    st.line_chart(
+        df.set_index("timestamp")["tx_7d"],
+        height=250
+    )
+
+    st.caption("30-Day Transactions")
+    st.line_chart(
+        df.set_index("timestamp")["tx_30d"],
+        height=250
+    )
+
