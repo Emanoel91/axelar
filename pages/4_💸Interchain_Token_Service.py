@@ -940,7 +940,7 @@ tx30_delta = pct_change(last30_tx, prev30_tx)
 # Dashboard
 # ==========================================================
 
-st.subheader("Interchain Token Service")
+st.write("-")
 
 
 # ==========================================================
