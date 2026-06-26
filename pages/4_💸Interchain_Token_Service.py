@@ -59,12 +59,12 @@ st.markdown("""
 
 ITS_HUB_URL = (
     "https://api.axelarscan.io/gmp/GMPChart?"
-    "contracts=axelar1aqcj54lzz0rk22gvqgcn8fr5tx4rzwdv5wv5j9dmnacgefvd7wzsy2j2mr"
+    "contractAddress=axelar1aqcj54lzz0rk22gvqgcn8fr5tx4rzwdv5wv5j9dmnacgefvd7wzsy2j2mr"
 )
 
 ITS_SERVICE_URL = (
     "https://api.axelarscan.io/gmp/GMPChart?"
-    "contracts=0xB5FB4BE02232B1bBA4dC8f81dc24C26980dE9e3C"
+    "contractAddress=0xB5FB4BE02232B1bBA4dC8f81dc24C26980dE9e3C"
 )
 
 # =====================================================
