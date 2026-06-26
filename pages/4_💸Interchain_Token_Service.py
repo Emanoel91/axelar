@@ -792,3 +792,159 @@ with right:
         fig,
         use_container_width=True
     )
+
+# =============================================================================================================================================================================
+# GLOBAL KPI (NOT AFFECTED BY FILTERS)
+# =============================================================================================================================================================================
+
+st.info(
+    "⚠️ These KPIs are calculated using the complete historical dataset from both Axelar ITS APIs and are NOT affected by the selected Start Date, End Date, or Timeframe."
+)
+
+# -----------------------------------------------------
+# DAILY DATA (FULL HISTORY)
+# -----------------------------------------------------
+
+daily_global = (
+    df_all.groupby("timestamp")
+    .agg(
+        volume=("volume", "sum"),
+        num_txs=("num_txs", "sum")
+    )
+    .sort_index()
+)
+
+# -----------------------------------------------------
+# ATH VOLUME
+# -----------------------------------------------------
+
+ath_volume_date = daily_global["volume"].idxmax()
+ath_volume = daily_global["volume"].max()
+
+# -----------------------------------------------------
+# ATH TXS
+# -----------------------------------------------------
+
+ath_tx_date = daily_global["num_txs"].idxmax()
+ath_txs = int(daily_global["num_txs"].max())
+
+# -----------------------------------------------------
+# AVERAGES
+# -----------------------------------------------------
+
+avg_daily_volume = daily_global["volume"].mean()
+
+avg_daily_txs = daily_global["num_txs"].mean()
+
+# -----------------------------------------------------
+# CHANGE FUNCTION
+# -----------------------------------------------------
+
+def percent_change(series, days):
+
+    if len(series) < days * 2:
+        return 0
+
+    recent = series.iloc[-days:].sum()
+
+    previous = series.iloc[-2 * days:-days].sum()
+
+    if previous == 0:
+        return 0
+
+    return (recent - previous) / previous * 100
+
+
+volume_change_7 = percent_change(
+    daily_global["volume"],
+    7
+)
+
+volume_change_30 = percent_change(
+    daily_global["volume"],
+    30
+)
+
+tx_change_7 = percent_change(
+    daily_global["num_txs"],
+    7
+)
+
+tx_change_30 = percent_change(
+    daily_global["num_txs"],
+    30
+)
+
+# =====================================================
+# ROW 1
+# =====================================================
+
+c1, c2, c3, c4 = st.columns(4)
+
+with c1:
+
+    st.metric(
+        label="ATH Volume",
+        value=f"${ath_volume:,.2f}",
+        delta=ath_volume_date.strftime("%Y-%m-%d")
+    )
+
+with c2:
+
+    st.metric(
+        label="ATH Transactions",
+        value=f"{ath_txs:,}",
+        delta=ath_tx_date.strftime("%Y-%m-%d")
+    )
+
+with c3:
+
+    st.metric(
+        label="Avg Daily Volume",
+        value=f"${avg_daily_volume:,.2f}"
+    )
+
+with c4:
+
+    st.metric(
+        label="Avg Daily Transactions",
+        value=f"{avg_daily_txs:,.0f}"
+    )
+
+# =====================================================
+# ROW 2
+# =====================================================
+
+c1, c2, c3, c4 = st.columns(4)
+
+with c1:
+
+    st.metric(
+        "7-Day Volume Change",
+        f"{volume_change_7:.2f}%",
+        delta=f"{volume_change_7:.2f}%"
+    )
+
+with c2:
+
+    st.metric(
+        "30-Day Volume Change",
+        f"{volume_change_30:.2f}%",
+        delta=f"{volume_change_30:.2f}%"
+    )
+
+with c3:
+
+    st.metric(
+        "7-Day Transaction Change",
+        f"{tx_change_7:.2f}%",
+        delta=f"{tx_change_7:.2f}%"
+    )
+
+with c4:
+
+    st.metric(
+        "30-Day Transaction Change",
+        f"{tx_change_30:.2f}%",
+        delta=f"{tx_change_30:.2f}%"
+    )
