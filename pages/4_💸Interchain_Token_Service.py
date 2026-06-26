@@ -381,7 +381,7 @@ with left:
 
         title="Transactions by Contract Over Time",
 
-        barmode="group",
+        barmode="stack",
 
         xaxis_title="",
 
@@ -442,7 +442,7 @@ with right:
 
         title="Volume by Contract Over Time",
 
-        barmode="group",
+        barmode="stack",
 
         xaxis_title="",
 
