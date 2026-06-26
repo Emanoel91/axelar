@@ -794,142 +794,218 @@ with right:
     )
 
 # ===================================================================== Part 2 ==============================================================================================
-# -----------------------------
+# =====================================================
+# GLOBAL KPI (NOT AFFECTED BY FILTERS)
+# =====================================================
+
+st.info(
+    "⚠️ These KPIs are calculated using the complete historical dataset from both Axelar ITS APIs and are NOT affected by the selected Start Date, End Date, or Timeframe."
+)
+
+# ==========================================================
 # API URLs
-# -----------------------------
+# ==========================================================
+
 URLS = [
     "https://api.axelarscan.io/gmp/GMPChart?contractAddress=axelar1aqcj54lzz0rk22gvqgcn8fr5tx4rzwdv5wv5j9dmnacgefvd7wzsy2j2mr",
     "https://api.axelarscan.io/gmp/GMPChart?contractAddress=0xB5FB4BE02232B1bBA4dC8f81dc24C26980dE9e3C"
 ]
 
 
+# ==========================================================
+# Load Data
+# ==========================================================
+
 @st.cache_data(ttl=3600)
-def load_its_data():
+def load_data():
 
     dfs = []
 
     for url in URLS:
-        data = requests.get(url).json()["data"]
+
+        response = requests.get(url)
+        response.raise_for_status()
+
+        data = response.json()["data"]
+
         df = pd.DataFrame(data)
 
         df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-        df = df.groupby("timestamp", as_index=False).agg({
-            "volume": "sum",
-            "num_txs": "sum"
-        })
 
         dfs.append(df)
 
-    # Merge both contracts
+    # Merge two contracts
     df = pd.concat(dfs)
 
     df = (
         df.groupby("timestamp", as_index=False)
-          .agg({
-              "volume": "sum",
-              "num_txs": "sum"
-          })
-          .sort_values("timestamp")
-          .reset_index(drop=True)
+        .agg(
+            volume=("volume", "sum"),
+            num_txs=("num_txs", "sum"),
+        )
+        .sort_values("timestamp")
+    )
+
+    # ------------------------------------------------------
+    # Fill Missing Dates
+    # ------------------------------------------------------
+
+    df = (
+        df.set_index("timestamp")
+          .resample("D")
+          .sum()
+          .fillna(0)
+          .reset_index()
     )
 
     return df
 
 
-df = load_its_data()
+df = load_data()
 
-# ===================================================
-# KPI Calculations
-# ===================================================
+# ==========================================================
+# Historical KPIs
+# ==========================================================
 
-# ATH Volume
 ath_volume_row = df.loc[df["volume"].idxmax()]
-
 ath_volume = ath_volume_row["volume"]
 ath_volume_date = ath_volume_row["timestamp"].strftime("%Y-%m-%d")
 
-# ATH Transactions
 ath_tx_row = df.loc[df["num_txs"].idxmax()]
-
 ath_tx = int(ath_tx_row["num_txs"])
 ath_tx_date = ath_tx_row["timestamp"].strftime("%Y-%m-%d")
 
-# Daily averages
-avg_volume = df["volume"].mean()
-avg_tx = df["num_txs"].mean()
+
+# ==========================================================
+# Average (Last 30 Days)
+# ==========================================================
+
+avg_volume = df["volume"].tail(30).mean()
+avg_tx = df["num_txs"].tail(30).mean()
 
 
-# Rolling averages
-df["volume_7d"] = df["volume"].rolling(7).mean()
-df["volume_30d"] = df["volume"].rolling(30).mean()
+# ==========================================================
+# Helper Functions
+# ==========================================================
 
-df["tx_7d"] = df["num_txs"].rolling(7).mean()
-df["tx_30d"] = df["num_txs"].rolling(30).mean()
+def current_period(series, days):
+    return series.tail(days).sum()
 
 
-# ===================================================
+def previous_period(series, days):
+    return series.iloc[-2 * days:-days].sum()
+
+
+def pct_change(current, previous):
+
+    if previous == 0:
+        return None
+
+    return ((current - previous) / previous) * 100
+
+
+def delta_string(delta):
+
+    if delta is None:
+        return "N/A"
+
+    return f"{delta:+.2f}%"
+
+
+# ==========================================================
+# Recent Activity
+# ==========================================================
+
+last7_volume = current_period(df["volume"], 7)
+prev7_volume = previous_period(df["volume"], 7)
+
+last30_volume = current_period(df["volume"], 30)
+prev30_volume = previous_period(df["volume"], 30)
+
+last7_tx = current_period(df["num_txs"], 7)
+prev7_tx = previous_period(df["num_txs"], 7)
+
+last30_tx = current_period(df["num_txs"], 30)
+prev30_tx = previous_period(df["num_txs"], 30)
+
+
+vol7_delta = pct_change(last7_volume, prev7_volume)
+vol30_delta = pct_change(last30_volume, prev30_volume)
+
+tx7_delta = pct_change(last7_tx, prev7_tx)
+tx30_delta = pct_change(last30_tx, prev30_tx)
+
+
+# ==========================================================
 # Dashboard
-# ===================================================
+# ==========================================================
 
 st.subheader("Interchain Token Service")
 
 
-# ---------------- First Row ----------------
+# ==========================================================
+# Row 1
+# ==========================================================
 
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric(
-    "ATH Volume",
-    f"${ath_volume:,.2f}",
-    ath_volume_date
-)
-
-col2.metric(
-    "ATH Transactions",
-    f"{ath_tx:,}",
-    ath_tx_date
-)
-
-col3.metric(
-    "Avg Daily Volume",
-    f"${avg_volume:,.2f}"
-)
-
-col4.metric(
-    "Avg Daily Transactions",
-    f"{avg_tx:,.0f}"
-)
-
-
-# ---------------- Second Row ----------------
-
-st.markdown("### Rolling Trends")
-
-c1, c2 = st.columns(2)
-
-with c1:
-    st.caption("7-Day Volume")
-    st.line_chart(
-        df.set_index("timestamp")["volume_7d"],
-        height=250
+with col1:
+    st.metric(
+        "ATH Volume",
+        f"${ath_volume:,.2f}",
+        ath_volume_date,
     )
 
-    st.caption("30-Day Volume")
-    st.line_chart(
-        df.set_index("timestamp")["volume_30d"],
-        height=250
+with col2:
+    st.metric(
+        "ATH Transactions",
+        f"{ath_tx:,}",
+        ath_tx_date,
     )
 
-with c2:
-    st.caption("7-Day Transactions")
-    st.line_chart(
-        df.set_index("timestamp")["tx_7d"],
-        height=250
+with col3:
+    st.metric(
+        "Avg Daily Volume (30D)",
+        f"${avg_volume:,.2f}",
     )
 
-    st.caption("30-Day Transactions")
-    st.line_chart(
-        df.set_index("timestamp")["tx_30d"],
-        height=250
+with col4:
+    st.metric(
+        "Avg Daily Transactions (30D)",
+        f"{avg_tx:,.0f}",
     )
 
+
+# ==========================================================
+# Row 2
+# ==========================================================
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric(
+        "7D Volume",
+        f"${last7_volume:,.2f}",
+        delta_string(vol7_delta),
+    )
+
+with col2:
+    st.metric(
+        "30D Volume",
+        f"${last30_volume:,.2f}",
+        delta_string(vol30_delta),
+    )
+
+with col3:
+    st.metric(
+        "7D Transactions",
+        f"{last7_tx:,}",
+        delta_string(tx7_delta),
+    )
+
+with col4:
+    st.metric(
+        "30D Transactions",
+        f"{last30_tx:,}",
+        delta_string(tx30_delta),
+    )
