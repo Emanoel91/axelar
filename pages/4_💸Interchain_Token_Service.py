@@ -208,9 +208,9 @@ with col1:
     timeframe = st.selectbox(
         "Timeframe",
         [
-            "Day",
+            "Month",
             "Week",
-            "Month"
+            "Day"
         ]
     )
 
