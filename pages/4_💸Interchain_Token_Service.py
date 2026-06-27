@@ -1009,13 +1009,13 @@ from datetime import datetime, date
 # ==========================================================
 # Section Title
 # ==========================================================
-st.title("Axelar Interchain Token Service - Top Users")
+st.title("📊 Analysis of Users")
 
 # ==========================================================
 # Date Filter
 # ==========================================================
 
-st.markdown("### Date Filter")
+st.markdown("#### Please select your desired time range:")
 
 col1, col2, col3 = st.columns([1, 1, 4])
 
@@ -1024,7 +1024,7 @@ default_end = date.today()
 
 with col1:
     start_date = st.date_input(
-        "From",
+        "Start Date",
         value=default_start,
         min_value=default_start,
         max_value=default_end,
@@ -1032,7 +1032,7 @@ with col1:
 
 with col2:
     end_date = st.date_input(
-        "To",
+        "End Date",
         value=default_end,
         min_value=default_start,
         max_value=default_end,
