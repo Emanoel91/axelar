@@ -1249,7 +1249,7 @@ total_transactions = df["num_txs"].sum()
 # ==========================================================
 
 st.markdown("---")
-st.subheader("Network Statistics")
+st.subheader("👥 User Metrics")
 
 c1, c2, c3 = st.columns(3)
 
@@ -1273,7 +1273,7 @@ c3.metric(
 # ==========================================================
 
 st.markdown("---")
-st.subheader("Users by Transfer Volume")
+st.subheader("Distribution of Users by Transfer Volume")
 
 col1, col2 = st.columns(2)
 
@@ -1328,7 +1328,7 @@ col2.plotly_chart(
 # ==========================================================
 
 st.markdown("---")
-st.subheader("Users by Number of Transactions")
+st.subheader("Distribution of Users by Number of Transactions")
 
 col1, col2 = st.columns(2)
 
@@ -1383,7 +1383,7 @@ col2.plotly_chart(
 # ==========================================================
 
 st.markdown("---")
-st.subheader("Top 10 Addresses")
+st.subheader("🏆 Top 10 Addresses")
 
 col1, col2 = st.columns(2)
 
@@ -1393,7 +1393,7 @@ col1, col2 = st.columns(2)
 
 with col1:
 
-    st.markdown("#### Top 10 by Volume")
+    st.markdown("###### Top 10 Addresses by Volume")
 
     volume_table = top_volume.copy()
 
@@ -1436,7 +1436,7 @@ with col1:
 
 with col2:
 
-    st.markdown("#### Top 10 by Transactions")
+    st.markdown("###### Top 10 Addresses by Transactions")
 
     tx_table = top_tx.copy()
 
