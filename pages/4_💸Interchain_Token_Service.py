@@ -1015,24 +1015,28 @@ st.title("Axelar Interchain Token Service - Top Users")
 # Date Filter
 # ==========================================================
 
-st.sidebar.header("Date Filter")
+st.markdown("### Date Filter")
+
+col1, col2, col3 = st.columns([1, 1, 4])
 
 default_start = date(2023, 12, 18)
 default_end = date.today()
 
-start_date = st.sidebar.date_input(
-    "From",
-    value=default_start,
-    min_value=default_start,
-    max_value=default_end
-)
+with col1:
+    start_date = st.date_input(
+        "From",
+        value=default_start,
+        min_value=default_start,
+        max_value=default_end,
+    )
 
-end_date = st.sidebar.date_input(
-    "To",
-    value=default_end,
-    min_value=default_start,
-    max_value=default_end
-)
+with col2:
+    end_date = st.date_input(
+        "To",
+        value=default_end,
+        min_value=default_start,
+        max_value=default_end,
+    )
 
 if start_date > end_date:
     st.error("Start date must be before End date.")
@@ -1046,6 +1050,7 @@ to_time = int(
     datetime.combine(end_date, datetime.max.time()).timestamp()
 )
 
+st.markdown("---")
 # ==========================================================
 # API URLs
 # ==========================================================
