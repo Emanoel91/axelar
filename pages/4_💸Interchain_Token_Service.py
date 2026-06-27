@@ -1388,70 +1388,87 @@ st.subheader("Top 10 Addresses")
 col1, col2 = st.columns(2)
 
 # ----------------------------------------------------------
-# Top Volume
+# Top 10 by Volume
 # ----------------------------------------------------------
 
-orange_colors = px.colors.sequential.Oranges[::-1][:10]
+with col1:
 
-fig_top_volume = go.Figure()
+    st.markdown("#### Top 10 by Volume")
 
-fig_top_volume.add_trace(
-    go.Bar(
-        x=top_volume["volume"],
-        y=top_volume["key"],
-        orientation="h",
-        marker_color=orange_colors,
-        text=[f"${v:,.0f}" for v in top_volume["volume"]],
-        textposition="outside",
-        hovertemplate="<b>%{y}</b><br>$%{x:,.2f}<extra></extra>"
+    volume_table = top_volume.copy()
+
+    volume_table.insert(
+        0,
+        "Rank",
+        range(1, len(volume_table) + 1)
     )
-)
 
-fig_top_volume.update_layout(
-    title="Top 10 by Transfer Volume",
-    xaxis_title="Volume ($)",
-    yaxis_title="Address",
-    height=600,
-    yaxis=dict(autorange="reversed")
-)
-
-col1.plotly_chart(
-    fig_top_volume,
-    use_container_width=True
-)
-
-# ----------------------------------------------------------
-# Top Transactions
-# ----------------------------------------------------------
-
-blue_colors = px.colors.sequential.Blues[::-1][:10]
-
-fig_top_tx = go.Figure()
-
-fig_top_tx.add_trace(
-    go.Bar(
-        x=top_tx["num_txs"],
-        y=top_tx["key"],
-        orientation="h",
-        marker_color=blue_colors,
-        text=top_tx["num_txs"],
-        textposition="outside",
-        hovertemplate="<b>%{y}</b><br>%{x} Transactions<extra></extra>"
+    volume_table["Volume ($)"] = volume_table["volume"].map(
+        lambda x: f"${x:,.2f}"
     )
-)
 
-fig_top_tx.update_layout(
-    title="Top 10 by Number of Transactions",
-    xaxis_title="Transactions",
-    yaxis_title="Address",
-    height=600,
-    yaxis=dict(autorange="reversed")
-)
+    volume_table = volume_table.rename(
+        columns={
+            "key": "Address"
+        }
+    )
 
-col2.plotly_chart(
-    fig_top_tx,
-    use_container_width=True
-)
+    st.dataframe(
+        volume_table[
+            [
+                "Rank",
+                "Address",
+                "Volume ($)",
+                "num_txs"
+            ]
+        ].rename(
+            columns={
+                "num_txs": "Transactions"
+            }
+        ),
+        hide_index=True,
+        use_container_width=True
+    )
+
+# ----------------------------------------------------------
+# Top 10 by Transactions
+# ----------------------------------------------------------
+
+with col2:
+
+    st.markdown("#### Top 10 by Transactions")
+
+    tx_table = top_tx.copy()
+
+    tx_table.insert(
+        0,
+        "Rank",
+        range(1, len(tx_table) + 1)
+    )
+
+    tx_table["Volume ($)"] = tx_table["volume"].map(
+        lambda x: f"${x:,.2f}"
+    )
+
+    tx_table = tx_table.rename(
+        columns={
+            "key": "Address",
+            "num_txs": "Transactions"
+        }
+    )
+
+    st.dataframe(
+        tx_table[
+            [
+                "Rank",
+                "Address",
+                "Transactions",
+                "Volume ($)"
+            ]
+        ],
+        hide_index=True,
+        use_container_width=True
+    )
 
 # ==========================================================
 # Address Lookup
