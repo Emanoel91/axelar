@@ -1057,7 +1057,7 @@ st.markdown("---")
 
 BASE_URL = "https://api.axelarscan.io/gmp/GMPTopUsers"
 
-CONTRACT_1 = "0xce16F69375520ab01377ce7B88f5BA8C48F8D666"
+CONTRACT_1 = "axelar1aqcj54lzz0rk22gvqgcn8fr5tx4rzwdv5wv5j9dmnacgefvd7wzsy2j2mr"
 CONTRACT_2 = "0xB5FB4BE02232B1bBA4dC8f81dc24C26980dE9e3C"
 
 # ==========================================================
