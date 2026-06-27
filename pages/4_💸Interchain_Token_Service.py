@@ -1001,3 +1001,542 @@ with col4:
         f"{last30_tx:,}",
         delta_string(tx30_delta),
     )
+
+# =========================================================== Part 3: User Analysis ====================================================================================
+import numpy as np
+from datetime import datetime, date
+
+# ==========================================================
+# Section Title
+# ==========================================================
+st.title("Axelar Interchain Token Service - Top Users")
+
+# ==========================================================
+# Date Filter
+# ==========================================================
+
+st.sidebar.header("Date Filter")
+
+default_start = date(2023, 12, 18)
+default_end = date.today()
+
+start_date = st.sidebar.date_input(
+    "From",
+    value=default_start,
+    min_value=default_start,
+    max_value=default_end
+)
+
+end_date = st.sidebar.date_input(
+    "To",
+    value=default_end,
+    min_value=default_start,
+    max_value=default_end
+)
+
+if start_date > end_date:
+    st.error("Start date must be before End date.")
+    st.stop()
+
+from_time = int(
+    datetime.combine(start_date, datetime.min.time()).timestamp()
+)
+
+to_time = int(
+    datetime.combine(end_date, datetime.max.time()).timestamp()
+)
+
+# ==========================================================
+# API URLs
+# ==========================================================
+
+BASE_URL = "https://api.axelarscan.io/gmp/GMPTopUsers"
+
+CONTRACT_1 = "0xce16F69375520ab01377ce7B88f5BA8C48F8D666"
+CONTRACT_2 = "0xB5FB4BE02232B1bBA4dC8f81dc24C26980dE9e3C"
+
+# ==========================================================
+# Load Data
+# ==========================================================
+
+@st.cache_data(ttl=600)
+def load_data(from_time, to_time):
+
+    urls = [
+        f"{BASE_URL}?contractAddress={CONTRACT_1}&fromTime={from_time}&toTime={to_time}",
+        f"{BASE_URL}?contractAddress={CONTRACT_2}&fromTime={from_time}&toTime={to_time}"
+    ]
+
+    data = []
+
+    for url in urls:
+
+        try:
+
+            response = requests.get(url, timeout=30)
+
+            if response.status_code == 200:
+
+                js = response.json()
+
+                if "data" in js:
+                    data.extend(js["data"])
+
+        except Exception:
+            pass
+
+    if len(data) == 0:
+        return pd.DataFrame(
+            columns=["key", "volume", "num_txs"]
+        )
+
+    df = pd.DataFrame(data)
+
+    df["volume"] = pd.to_numeric(df["volume"])
+    df["num_txs"] = pd.to_numeric(df["num_txs"])
+
+    # Merge duplicate addresses
+    df = (
+        df.groupby("key", as_index=False)
+        .agg(
+            volume=("volume", "sum"),
+            num_txs=("num_txs", "sum")
+        )
+    )
+
+    return df
+
+
+df = load_data(from_time, to_time)
+
+if df.empty:
+    st.warning("No data found.")
+    st.stop()
+
+# ==========================================================
+# Rankings
+# ==========================================================
+
+df["Volume Rank"] = (
+    df["volume"]
+    .rank(method="min", ascending=False)
+    .astype(int)
+)
+
+df["Tx Rank"] = (
+    df["num_txs"]
+    .rank(method="min", ascending=False)
+    .astype(int)
+)
+
+# ==========================================================
+# Volume Groups
+# ==========================================================
+
+volume_bins = [
+    0,
+    10,
+    100,
+    1_000,
+    10_000,
+    100_000,
+    1_000_000,
+    np.inf
+]
+
+volume_labels = [
+    "<10$",
+    "10$-100$",
+    "100$-1K$",
+    "1K$-10K$",
+    "10K$-100K$",
+    "100K$-1M$",
+    ">1M$"
+]
+
+df["Volume Group"] = pd.cut(
+    df["volume"],
+    bins=volume_bins,
+    labels=volume_labels,
+    include_lowest=True
+)
+
+volume_count = (
+    df["Volume Group"]
+    .value_counts()
+    .sort_index()
+)
+
+# ==========================================================
+# Transaction Groups
+# ==========================================================
+
+tx_bins = [
+    0,
+    1,
+    2,
+    5,
+    10,
+    50,
+    100,
+    np.inf
+]
+
+tx_labels = [
+    "1",
+    "2",
+    "3-5",
+    "6-10",
+    "11-50",
+    "51-100",
+    ">100"
+]
+
+df["Tx Group"] = pd.cut(
+    df["num_txs"],
+    bins=tx_bins,
+    labels=tx_labels,
+    include_lowest=True
+)
+
+tx_count = (
+    df["Tx Group"]
+    .value_counts()
+    .sort_index()
+)
+
+# ==========================================================
+# Top 10 Tables
+# ==========================================================
+
+top_volume = (
+    df.sort_values(
+        "volume",
+        ascending=False
+    )
+    .head(10)
+)
+
+top_tx = (
+    df.sort_values(
+        "num_txs",
+        ascending=False
+    )
+    .head(10)
+)
+
+# ==========================================================
+# KPIs
+# ==========================================================
+
+unique_addresses = len(df)
+
+avg_volume = df["volume"].mean()
+
+avg_transactions = df["num_txs"].mean()
+
+total_volume = df["volume"].sum()
+
+total_transactions = df["num_txs"].sum()
+
+# ==========================================================
+# KPI Section
+# ==========================================================
+
+st.markdown("---")
+st.subheader("Network Statistics")
+
+c1, c2, c3 = st.columns(3)
+
+c1.metric(
+    "Unique Addresses",
+    f"{unique_addresses:,}"
+)
+
+c2.metric(
+    "Avg Volume per Address",
+    f"${avg_volume:,.2f}"
+)
+
+c3.metric(
+    "Avg Transactions per Address",
+    f"{avg_transactions:,.2f}"
+)
+
+# ==========================================================
+# Volume Distribution
+# ==========================================================
+
+st.markdown("---")
+st.subheader("Users by Transfer Volume")
+
+col1, col2 = st.columns(2)
+
+fig_volume_bar = px.bar(
+    x=volume_count.index,
+    y=volume_count.values,
+    text=volume_count.values,
+    color=volume_count.values,
+    color_continuous_scale="Oranges"
+)
+
+fig_volume_bar.update_traces(
+    textposition="outside"
+)
+
+fig_volume_bar.update_layout(
+    showlegend=False,
+    coloraxis_showscale=False,
+    xaxis_title="Transfer Volume",
+    yaxis_title="Number of Users",
+    height=500
+)
+
+col1.plotly_chart(
+    fig_volume_bar,
+    use_container_width=True
+)
+
+fig_volume_pie = px.pie(
+    names=volume_count.index,
+    values=volume_count.values,
+    hole=0.45,
+    color_discrete_sequence=px.colors.sequential.Oranges_r
+)
+
+fig_volume_pie.update_traces(
+    textposition="inside",
+    textinfo="percent+label"
+)
+
+fig_volume_pie.update_layout(
+    height=500
+)
+
+col2.plotly_chart(
+    fig_volume_pie,
+    use_container_width=True
+)
+
+# ==========================================================
+# Transaction Distribution
+# ==========================================================
+
+st.markdown("---")
+st.subheader("Users by Number of Transactions")
+
+col1, col2 = st.columns(2)
+
+fig_tx_bar = px.bar(
+    x=tx_count.index,
+    y=tx_count.values,
+    text=tx_count.values,
+    color=tx_count.values,
+    color_continuous_scale="Blues"
+)
+
+fig_tx_bar.update_traces(
+    textposition="outside"
+)
+
+fig_tx_bar.update_layout(
+    showlegend=False,
+    coloraxis_showscale=False,
+    xaxis_title="Transactions",
+    yaxis_title="Number of Users",
+    height=500
+)
+
+col1.plotly_chart(
+    fig_tx_bar,
+    use_container_width=True
+)
+
+fig_tx_pie = px.pie(
+    names=tx_count.index,
+    values=tx_count.values,
+    hole=0.45,
+    color_discrete_sequence=px.colors.sequential.Blues_r
+)
+
+fig_tx_pie.update_traces(
+    textposition="inside",
+    textinfo="percent+label"
+)
+
+fig_tx_pie.update_layout(
+    height=500
+)
+
+col2.plotly_chart(
+    fig_tx_pie,
+    use_container_width=True
+)
+
+# ==========================================================
+# Top 10 Addresses
+# ==========================================================
+
+st.markdown("---")
+st.subheader("Top 10 Addresses")
+
+col1, col2 = st.columns(2)
+
+# ----------------------------------------------------------
+# Top Volume
+# ----------------------------------------------------------
+
+orange_colors = px.colors.sequential.Oranges[::-1][:10]
+
+fig_top_volume = go.Figure()
+
+fig_top_volume.add_trace(
+    go.Bar(
+        x=top_volume["volume"],
+        y=top_volume["key"],
+        orientation="h",
+        marker_color=orange_colors,
+        text=[f"${v:,.0f}" for v in top_volume["volume"]],
+        textposition="outside",
+        hovertemplate="<b>%{y}</b><br>$%{x:,.2f}<extra></extra>"
+    )
+)
+
+fig_top_volume.update_layout(
+    title="Top 10 by Transfer Volume",
+    xaxis_title="Volume ($)",
+    yaxis_title="Address",
+    height=600,
+    yaxis=dict(autorange="reversed")
+)
+
+col1.plotly_chart(
+    fig_top_volume,
+    use_container_width=True
+)
+
+# ----------------------------------------------------------
+# Top Transactions
+# ----------------------------------------------------------
+
+blue_colors = px.colors.sequential.Blues[::-1][:10]
+
+fig_top_tx = go.Figure()
+
+fig_top_tx.add_trace(
+    go.Bar(
+        x=top_tx["num_txs"],
+        y=top_tx["key"],
+        orientation="h",
+        marker_color=blue_colors,
+        text=top_tx["num_txs"],
+        textposition="outside",
+        hovertemplate="<b>%{y}</b><br>%{x} Transactions<extra></extra>"
+    )
+)
+
+fig_top_tx.update_layout(
+    title="Top 10 by Number of Transactions",
+    xaxis_title="Transactions",
+    yaxis_title="Address",
+    height=600,
+    yaxis=dict(autorange="reversed")
+)
+
+col2.plotly_chart(
+    fig_top_tx,
+    use_container_width=True
+)
+
+# ==========================================================
+# Address Lookup
+# ==========================================================
+
+st.markdown("---")
+st.subheader("Address Lookup")
+
+with st.container(border=True):
+
+    address = st.text_input(
+        "Enter Wallet Address",
+        placeholder="0x..."
+    )
+
+    if address:
+
+        address = address.strip().lower()
+
+        result = df[
+            df["key"].str.lower() == address
+        ]
+
+        if result.empty:
+
+            st.error("Address not found in selected time range.")
+
+        else:
+
+            r = result.iloc[0]
+
+            volume_share = (
+                r["volume"] / total_volume * 100
+                if total_volume > 0 else 0
+            )
+
+            tx_share = (
+                r["num_txs"] / total_transactions * 100
+                if total_transactions > 0 else 0
+            )
+
+            st.success("Address Found")
+
+            st.code(r["key"], language=None)
+
+            c1, c2, c3, c4 = st.columns(4)
+
+            c1.metric(
+                "Transfer Volume",
+                f"${r['volume']:,.2f}"
+            )
+
+            c2.metric(
+                "Transactions",
+                f"{int(r['num_txs']):,}"
+            )
+
+            c3.metric(
+                "Volume Rank",
+                f"#{int(r['Volume Rank'])}"
+            )
+
+            c4.metric(
+                "Transaction Rank",
+                f"#{int(r['Tx Rank'])}"
+            )
+
+            st.markdown("### Address Statistics")
+
+            cc1, cc2 = st.columns(2)
+
+            cc1.metric(
+                "Share of Total Volume",
+                f"{volume_share:.4f}%"
+            )
+
+            cc2.metric(
+                "Share of Total Transactions",
+                f"{tx_share:.4f}%"
+            )
+
+# ==========================================================
+# Footer
+# ==========================================================
+
+st.markdown("---")
+
+st.caption(
+    f"""
+    Showing data from **{start_date.strftime('%Y-%m-%d')}**
+    to **{end_date.strftime('%Y-%m-%d')}**
+    """
+)
