@@ -1050,7 +1050,6 @@ to_time = int(
     datetime.combine(end_date, datetime.max.time()).timestamp()
 )
 
-st.markdown("---")
 # ==========================================================
 # API URLs
 # ==========================================================
