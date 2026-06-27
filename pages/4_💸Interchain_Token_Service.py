@@ -1549,15 +1549,3 @@ with st.container(border=True):
                 f"{tx_share:.4f}%"
             )
 
-# ==========================================================
-# Footer
-# ==========================================================
-
-st.markdown("---")
-
-st.caption(
-    f"""
-    Showing data from **{start_date.strftime('%Y-%m-%d')}**
-    to **{end_date.strftime('%Y-%m-%d')}**
-    """
-)
