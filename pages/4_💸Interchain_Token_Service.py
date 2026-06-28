@@ -2138,7 +2138,7 @@ def its_tx_bucket(tx):
         return ">10000 Txns"
 
     else:
-        return None
+        return "<=10 Txns"
 # =============================================================
 # Transaction Distribution
 # =============================================================
