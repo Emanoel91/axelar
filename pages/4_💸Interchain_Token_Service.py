@@ -2162,7 +2162,7 @@ its_tx_df = (
 )
 
 its_tx_df = its_symbol_df[
-    its_symbol_df["total_transactions"] > 0
+    its_symbol_df["total_transactions"] >= 0
 ].copy()
 
 its_tx_df["Range"] = its_tx_df["total_transactions"].apply(
