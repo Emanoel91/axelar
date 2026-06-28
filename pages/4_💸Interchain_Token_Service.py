@@ -1769,10 +1769,6 @@ its_stats_df = its_build_stats_df(
     its_stats_json
 )
 
-its_stats_df["num_txs"] = pd.to_numeric(
-    its_stats_df["num_txs"],
-    errors="coerce"
-).fillna(0).astype(int)
 # =============================================================
 # Merge
 # =============================================================
@@ -2180,13 +2176,13 @@ its_tx_df["Range"] = its_tx_df["total_transactions"].apply(
 )
 
 its_tx_labels = [
-    "1",
-    "2",
-    "3-5",
-    "6-10",
-    "11-50",
-    "51-100",
-    ">100"
+    "1 Txn",
+    "2 Txns",
+    "3-5 Txns",
+    "6-10 Txns",
+    "11-50 Txns",
+    "51-100 Txns",
+    ">100 Txns"
 ]
 
 its_tx_distribution = (
