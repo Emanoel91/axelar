@@ -147,27 +147,30 @@ except Exception as e:
 import streamlit as st
 import requests
 import pandas as pd
-from datetime import datetime, timedelta
+import os
+from datetime import datetime
 
 # =========================
-# Config
+# CONFIG
 # =========================
 TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
 BASE_URL = f"https://coins.llama.fi/chart/{TOKEN}"
 
+CACHE_FILE = "axl_price_cache_2023.csv"
+
 START_TS = int(datetime(2023, 1, 1).timestamp())
 END_TS = int(datetime.now().timestamp())
 
-SPAN_LIMIT = 500  # API limit
+SPAN_LIMIT = 500
 
 # =========================
-# Fetch function (chunked)
+# FETCH FUNCTION
 # =========================
-def fetch_chunked_prices(start_ts, end_ts):
+def fetch_chunked():
     all_prices = []
-    current_start = start_ts
+    current_start = START_TS
 
-    while current_start < end_ts:
+    while current_start < END_TS:
 
         params = {
             "start": current_start,
@@ -178,9 +181,7 @@ def fetch_chunked_prices(start_ts, end_ts):
         r = requests.get(BASE_URL, params=params)
         data = r.json()
 
-        coins = data.get("coins", {})
-        token_data = coins.get(TOKEN, {})
-
+        token_data = data.get("coins", {}).get(TOKEN, {})
         prices = token_data.get("prices", [])
 
         if not prices:
@@ -188,7 +189,6 @@ def fetch_chunked_prices(start_ts, end_ts):
 
         all_prices.extend(prices)
 
-        # move forward
         last_ts = prices[-1]["timestamp"]
         current_start = last_ts + 1
 
@@ -196,40 +196,48 @@ def fetch_chunked_prices(start_ts, end_ts):
 
 
 # =========================
-# Streamlit UI
+# LOAD CACHE OR FETCH
 # =========================
-st.title("AXL Price Chart (2023 → Today)")
+@st.cache_data(show_spinner=False)
+def load_data(force_refresh=False):
 
-with st.spinner("Fetching data from DefiLlama..."):
-    prices = fetch_chunked_prices(START_TS, END_TS)
+    if os.path.exists(CACHE_FILE) and not force_refresh:
+        df = pd.read_csv(CACHE_FILE)
+        df["date"] = pd.to_datetime(df["timestamp"], unit="s")
+        return df
 
-if not prices:
-    st.error("No data received from API")
-    st.stop()
+    prices = fetch_chunked()
 
-# =========================
-# DataFrame
-# =========================
-df = pd.DataFrame(prices)
+    df = pd.DataFrame(prices)
+    df = df.drop_duplicates(subset=["timestamp"])
+    df = df.sort_values("timestamp")
 
-df = df.drop_duplicates(subset=["timestamp"])
-df = df.sort_values("timestamp")
+    df.to_csv(CACHE_FILE, index=False)
 
-df["date"] = pd.to_datetime(df["timestamp"], unit="s")
+    df["date"] = pd.to_datetime(df["timestamp"], unit="s")
+    return df
 
-# =========================
-# Chart
-# =========================
-st.subheader("AXL Daily Price")
-
-st.line_chart(
-    df.set_index("date")["price"]
-)
 
 # =========================
-# Stats
+# UI
 # =========================
-st.subheader("Summary")
+st.title("AXL Price Chart (Optimized)")
+
+force = st.button("🔄 Refresh Data from API")
+
+df = load_data(force_refresh=force)
+
+# =========================
+# CHART
+# =========================
+st.subheader("Price (2023 → Now)")
+
+st.line_chart(df.set_index("date")["price"])
+
+# =========================
+# KPI
+# =========================
+st.subheader("KPIs")
 
 col1, col2, col3 = st.columns(3)
 
