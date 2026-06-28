@@ -143,4 +143,119 @@ try:
 except Exception as e:
     st.error(f"❌ Error fetching token data: {e}")
 
+# =========================================================================== Part 2: Price Analysis ====================================================================
+import requests
+import pandas as pd
+from datetime import datetime
+import numpy as np
 
+# -----------------------------
+# تنظیمات
+# -----------------------------
+TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
+BASE_URL = "https://coins.llama.fi/chart"
+
+# از سال 2015 شروع می‌کنیم تا مطمئن باشیم همه داده‌ها را می‌گیریم
+START = int(datetime(2015, 1, 1).timestamp())
+
+# -----------------------------
+# دریافت داده
+# -----------------------------
+url = f"{BASE_URL}/{TOKEN}"
+
+params = {
+    "start": START,
+    "period": "1d"
+}
+
+response = requests.get(url, params=params)
+response.raise_for_status()
+
+data = response.json()
+
+prices = data["coins"][TOKEN]["prices"]
+
+df = pd.DataFrame(prices)
+
+df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
+
+print("=" * 60)
+print("Token:", TOKEN)
+print("=" * 60)
+
+# -----------------------------
+# اطلاعات کلی
+# -----------------------------
+print(f"Number of data points : {len(df)}")
+
+print(f"First timestamp       : {df['datetime'].min()}")
+
+print(f"Last timestamp        : {df['datetime'].max()}")
+
+print(f"Min price             : {df['price'].min():.6f}")
+
+print(f"Max price             : {df['price'].max():.6f}")
+
+# -----------------------------
+# بررسی فاصله زمانی
+# -----------------------------
+df = df.sort_values("timestamp")
+
+diffs = df["timestamp"].diff().dropna()
+
+unique_diffs = np.sort(diffs.unique())
+
+print("\nUnique time intervals (seconds):")
+
+print(unique_diffs)
+
+print("\nUnique time intervals (human readable):")
+
+for d in unique_diffs:
+    print(f"{int(d):>8} sec = {pd.to_timedelta(int(d), unit='s')}")
+
+# -----------------------------
+# تست periodهای مختلف
+# -----------------------------
+print("\n")
+print("=" * 60)
+print("Testing supported periods")
+print("=" * 60)
+
+periods = [
+    "1m",
+    "5m",
+    "15m",
+    "30m",
+    "1h",
+    "4h",
+    "12h",
+    "1d",
+    "7d",
+    "1w"
+]
+
+for period in periods:
+
+    try:
+
+        params = {
+            "start": START,
+            "period": period,
+            "span": 10
+        }
+
+        r = requests.get(url, params=params)
+
+        if r.status_code != 200:
+            print(f"{period:>5} --> ERROR ({r.status_code})")
+            continue
+
+        js = r.json()
+
+        p = js["coins"][TOKEN]["prices"]
+
+        print(f"{period:>5} --> OK ({len(p)} points)")
+
+    except Exception as e:
+        print(f"{period:>5} --> FAILED ({e})")
