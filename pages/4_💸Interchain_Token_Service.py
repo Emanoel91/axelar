@@ -2153,7 +2153,7 @@ its_tx_df = (
 
     [
 
-        its_symbol_df["total_transactions"] > 0
+        its_symbol_df["total_transactions"] >= 0
 
     ]
 
@@ -2174,8 +2174,7 @@ its_tx_labels = [
     "11-100 Txns",
     "101-1000 Txns",
     "1001-10000 Txns",
-    ">10000 Txns",
-    "None"
+    ">10000 Txns"
 ]
 
 its_tx_distribution = (
