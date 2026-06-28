@@ -1550,7 +1550,7 @@ with st.container(border=True):
             )
 
 # ====================================================================== Part 3: ITS Assets ===================================================================================
-
+st.title("💎 Analysis of ITS Assets")
 # =============================================================
 # ITS DASHBOARD
 # Part 1
@@ -1866,7 +1866,7 @@ its_table_df["Avg Volume per Txn"] = (
 # =============================================================
 
 st.markdown("---")
-st.subheader("ITS Overview")
+st.subheader("📄 ITS Assets Overview")
 
 # =============================================================
 # KPI
@@ -1909,7 +1909,7 @@ its_top_tx_asset = (
 # KPI Row
 # =============================================================
 
-its_kpi1, its_kpi2, its_kpi3, its_kpi4 = st.columns(4)
+its_kpi1, its_kpi2, its_kpi3 = st.columns(3)
 
 its_kpi1.metric(
     "Number of ITS Assets",
@@ -1917,17 +1917,12 @@ its_kpi1.metric(
 )
 
 its_kpi2.metric(
-    "Supported Chains",
-    f"{its_supported_chains:,}"
-)
-
-its_kpi3.metric(
     "Top Asset by Volume",
     its_top_volume_asset["symbol"],
     f"${its_top_volume_asset['total_volume']:,.2f}"
 )
 
-its_kpi4.metric(
+its_kpi3.metric(
     "Top Asset by Transactions",
     its_top_tx_asset["symbol"],
     f"{its_top_tx_asset['total_transactions']:,}"
