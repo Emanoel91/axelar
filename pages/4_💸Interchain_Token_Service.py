@@ -2119,26 +2119,20 @@ with its_col2:
 
 def its_tx_bucket(tx):
 
-    if tx == 1:
-        return "1 Txn"
+    if tx <= 10:
+        return "<=10 Txns"
 
-    elif tx == 2:
-        return "2 Txns"
+    elif 11 <= tx <= 100:
+        return "11-100 Txns"
 
-    elif 3 <= tx <= 5:
-        return "3-5 Txns"
+    elif 101 <= tx <= 1000:
+        return "101-1000 Txns"
 
-    elif 6 <= tx <= 10:
-        return "6-10 Txns"
+    elif 1001 <= tx <= 10000:
+        return "1001-10000 Txns"
 
-    elif 11 <= tx <= 50:
-        return "11-50 Txns"
-
-    elif 51 <= tx <= 100:
-        return "51-100 Txns"
-
-    elif tx > 100:
-        return ">100 Txns"
+    elif tx > 10000:
+        return ">10000 Txns"
 
     else:
         return None
@@ -2176,13 +2170,11 @@ its_tx_df["Range"] = its_tx_df["total_transactions"].apply(
 )
 
 its_tx_labels = [
-    "1 Txn",
-    "2 Txns",
-    "3-5 Txns",
-    "6-10 Txns",
-    "11-50 Txns",
-    "51-100 Txns",
-    ">100 Txns"
+    "<=10 Txns",
+    "11-100 Txns",
+    "101-1000 Txns",
+    "1001-10000 Txns",
+    ">10000 Txns"
 ]
 
 its_tx_distribution = (
