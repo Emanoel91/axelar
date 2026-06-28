@@ -2113,7 +2113,35 @@ with its_col2:
         key="its_volume_bar"
 
     )
+###############################################################
+# Transaction Bucket
+###############################################################
 
+def its_tx_bucket(tx):
+
+    if tx == 1:
+        return "1"
+
+    elif tx == 2:
+        return "2"
+
+    elif 3 <= tx <= 5:
+        return "3-5"
+
+    elif 6 <= tx <= 10:
+        return "6-10"
+
+    elif 11 <= tx <= 50:
+        return "11-50"
+
+    elif 51 <= tx <= 100:
+        return "51-100"
+
+    elif tx > 100:
+        return ">100"
+
+    else:
+        return None
 # =============================================================
 # Transaction Distribution
 # =============================================================
@@ -2139,68 +2167,30 @@ its_tx_df = (
 
 )
 
-its_tx_labels = [
+its_tx_df = its_symbol_df[
+    its_symbol_df["total_transactions"] > 0
+].copy()
 
-    "1",
-
-    "2",
-
-    "3-5",
-
-    "6-10",
-
-    "11-50",
-
-    "51-100",
-
-    ">100"
-
-]
-
-its_tx_bins = [
-
-    0,
-
-    1,
-
-    2,
-
-    5,
-
-    10,
-
-    50,
-
-    100,
-
-    float("inf")
-
-]
-
-its_tx_df["Range"] = pd.cut(
-
-    its_tx_df["total_transactions"],
-
-    bins=its_tx_bins,
-
-    labels=its_tx_labels,
-
-    include_lowest=True
-
+its_tx_df["Range"] = its_tx_df["total_transactions"].apply(
+    its_tx_bucket
 )
 
+its_tx_labels = [
+    "1",
+    "2",
+    "3-5",
+    "6-10",
+    "11-50",
+    "51-100",
+    ">100"
+]
+
 its_tx_distribution = (
-
     its_tx_df
-
     .groupby("Range")
-
     .size()
-
     .reindex(its_tx_labels, fill_value=0)
-
     .reset_index(name="Assets")
-
 )
 
 # =============================================================
@@ -2310,12 +2300,6 @@ with its_col4:
         key="its_tx_bar"
 
     )
-
-# =============================================================
-# ITS DASHBOARD
-# Part 3
-# Top Assets + Ranking Table
-# =============================================================
 
 st.markdown("---")
 st.subheader("Top ITS Assets")
@@ -2630,12 +2614,6 @@ st.dataframe(
     key="its_ranking_table"
 
 )
-
-# =============================================================
-# ITS DASHBOARD
-# Part 4
-# Footer + Styling + Download
-# =============================================================
 
 import time
 
