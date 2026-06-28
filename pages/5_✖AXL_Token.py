@@ -144,3 +144,75 @@ except Exception as e:
     st.error(f"❌ Error fetching token data: {e}")
 
 # =========================================================================== Part 2: Price Analysis ====================================================================
+import streamlit as st
+import requests
+import pandas as pd
+from datetime import datetime, timedelta
+
+# =========================
+# CONFIG
+# =========================
+TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
+BASE_URL = f"https://coins.llama.fi/chart/{TOKEN}"
+
+SPAN_LIMIT = 500
+PERIOD = "1d"
+
+# 500 روز قبل
+start_date = datetime.now() - timedelta(days=500)
+START_TS = int(start_date.timestamp())
+
+# =========================
+# FETCH DATA
+# =========================
+def fetch_data():
+
+    params = {
+        "start": START_TS,
+        "period": PERIOD,
+        "span": SPAN_LIMIT
+    }
+
+    r = requests.get(BASE_URL, params=params)
+    data = r.json()
+
+    prices = data.get("coins", {}).get(TOKEN, {}).get("prices", [])
+
+    return prices
+
+
+# =========================
+# STREAMLIT UI
+# =========================
+st.title("AXL Price - Last 500 Days")
+
+prices = fetch_data()
+
+if not prices:
+    st.error("No data received")
+    st.stop()
+
+df = pd.DataFrame(prices)
+
+df = df.drop_duplicates(subset=["timestamp"])
+df = df.sort_values("timestamp")
+
+df["date"] = pd.to_datetime(df["timestamp"], unit="s")
+
+# =========================
+# CHART
+# =========================
+st.subheader("Price (Last 500 Days)")
+
+st.line_chart(df.set_index("date")["price"])
+
+# =========================
+# METRICS
+# =========================
+st.subheader("Stats")
+
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Start Price", round(df["price"].iloc[0], 4))
+col2.metric("Latest Price", round(df["price"].iloc[-1], 4))
+col3.metric("Data Points", len(df))
