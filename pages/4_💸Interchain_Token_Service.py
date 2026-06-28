@@ -2120,25 +2120,25 @@ with its_col2:
 def its_tx_bucket(tx):
 
     if tx == 1:
-        return "1"
+        return "1 Txn"
 
     elif tx == 2:
-        return "2"
+        return "2 Txns"
 
     elif 3 <= tx <= 5:
-        return "3-5"
+        return "3-5 Txns"
 
     elif 6 <= tx <= 10:
-        return "6-10"
+        return "6-10 Txns"
 
     elif 11 <= tx <= 50:
-        return "11-50"
+        return "11-50 Txns"
 
     elif 51 <= tx <= 100:
-        return "51-100"
+        return "51-100 Txns"
 
     elif tx > 100:
-        return ">100"
+        return ">100 Txns"
 
     else:
         return None
