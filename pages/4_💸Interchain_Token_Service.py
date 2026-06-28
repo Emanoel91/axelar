@@ -1571,9 +1571,7 @@ ITS_STATS_API = "https://api.axelarscan.io/gmp/GMPTopITSAssets"
 # =============================================================
 # ITS Date Filter
 # =============================================================
-
-st.markdown("---")
-st.subheader("ITS Date Filter")
+st.markdown("#### Please select your desired time range:")
 
 its_col1, its_col2 = st.columns(2)
 
