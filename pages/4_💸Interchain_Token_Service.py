@@ -2122,6 +2122,9 @@ def its_tx_bucket(tx):
     if 0 <= tx <= 10:
         return "<=10 Txns"
 
+    elif tx = 0:
+        return "<=10 Txns"
+
     elif 11 <= tx <= 100:
         return "11-100 Txns"
 
