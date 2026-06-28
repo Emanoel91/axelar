@@ -146,116 +146,139 @@ except Exception as e:
 # =========================================================================== Part 2: Price Analysis ====================================================================
 import requests
 import pandas as pd
-from datetime import datetime
 import numpy as np
+from datetime import datetime
+from time import time
 
-# -----------------------------
-# تنظیمات
-# -----------------------------
+# =====================================================
+# Configuration
+# =====================================================
+
 TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
+
 BASE_URL = "https://coins.llama.fi/chart"
 
-# از سال 2015 شروع می‌کنیم تا مطمئن باشیم همه داده‌ها را می‌گیریم
 START = int(datetime(2015, 1, 1).timestamp())
+END = int(time())
 
-# -----------------------------
-# دریافت داده
-# -----------------------------
+# =====================================================
+# Request
+# =====================================================
+
 url = f"{BASE_URL}/{TOKEN}"
 
 params = {
     "start": START,
+    "end": END,
     "period": "1d"
 }
 
+print("=" * 80)
+print("Request URL:")
+print(url)
+print()
+
+print("Parameters:")
+print(params)
+print("=" * 80)
+
 response = requests.get(url, params=params)
-response.raise_for_status()
 
-data = response.json()
+print("\nHTTP Status Code:", response.status_code)
 
-prices = data["coins"][TOKEN]["prices"]
+try:
+    data = response.json()
+except Exception:
+    print("Response is not JSON.")
+    print(response.text)
+    raise
+
+print("\nFull API Response:")
+print(data)
+
+# =====================================================
+# Check response
+# =====================================================
+
+if "coins" not in data:
+    raise Exception("API response does not contain 'coins' field.")
+
+coins = data["coins"]
+
+print("\nCoins returned by API:")
+print(list(coins.keys()))
+
+if TOKEN not in coins:
+
+    print("\nRequested token:")
+    print(TOKEN)
+
+    raise Exception(
+        "Requested token was not found in API response.\n"
+        "See the list of returned keys above."
+    )
+
+# =====================================================
+# Extract prices
+# =====================================================
+
+prices = coins[TOKEN]["prices"]
+
+if len(prices) == 0:
+    raise Exception("Price list is empty.")
 
 df = pd.DataFrame(prices)
 
 df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
 
-print("=" * 60)
-print("Token:", TOKEN)
-print("=" * 60)
-
-# -----------------------------
-# اطلاعات کلی
-# -----------------------------
-print(f"Number of data points : {len(df)}")
-
-print(f"First timestamp       : {df['datetime'].min()}")
-
-print(f"Last timestamp        : {df['datetime'].max()}")
-
-print(f"Min price             : {df['price'].min():.6f}")
-
-print(f"Max price             : {df['price'].max():.6f}")
-
-# -----------------------------
-# بررسی فاصله زمانی
-# -----------------------------
 df = df.sort_values("timestamp")
+
+# =====================================================
+# Summary
+# =====================================================
+
+print("\n")
+print("=" * 80)
+print("SUMMARY")
+print("=" * 80)
+
+print("Symbol :", coins[TOKEN].get("symbol"))
+
+print("Decimals :", coins[TOKEN].get("decimals"))
+
+print("Confidence :", coins[TOKEN].get("confidence"))
+
+print("Number of observations :", len(df))
+
+print("First date :", df["datetime"].min())
+
+print("Last date :", df["datetime"].max())
+
+print("Minimum price :", df["price"].min())
+
+print("Maximum price :", df["price"].max())
+
+print("Average price :", df["price"].mean())
+
+# =====================================================
+# Time intervals
+# =====================================================
 
 diffs = df["timestamp"].diff().dropna()
 
-unique_diffs = np.sort(diffs.unique())
+print("\nUnique time intervals:")
 
-print("\nUnique time intervals (seconds):")
+for d in np.sort(diffs.unique()):
+    print(f"{int(d)} seconds  -->  {pd.to_timedelta(int(d), unit='s')}")
 
-print(unique_diffs)
+# =====================================================
+# First rows
+# =====================================================
 
-print("\nUnique time intervals (human readable):")
+print("\nFirst observations")
 
-for d in unique_diffs:
-    print(f"{int(d):>8} sec = {pd.to_timedelta(int(d), unit='s')}")
+print(df.head())
 
-# -----------------------------
-# تست periodهای مختلف
-# -----------------------------
-print("\n")
-print("=" * 60)
-print("Testing supported periods")
-print("=" * 60)
+print("\nLast observations")
 
-periods = [
-    "1m",
-    "5m",
-    "15m",
-    "30m",
-    "1h",
-    "4h",
-    "12h",
-    "1d",
-    "7d",
-    "1w"
-]
-
-for period in periods:
-
-    try:
-
-        params = {
-            "start": START,
-            "period": period,
-            "span": 10
-        }
-
-        r = requests.get(url, params=params)
-
-        if r.status_code != 200:
-            print(f"{period:>5} --> ERROR ({r.status_code})")
-            continue
-
-        js = r.json()
-
-        p = js["coins"][TOKEN]["prices"]
-
-        print(f"{period:>5} --> OK ({len(p)} points)")
-
-    except Exception as e:
-        print(f"{period:>5} --> FAILED ({e})")
+print(df.tail())
