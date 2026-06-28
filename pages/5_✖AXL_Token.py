@@ -144,141 +144,95 @@ except Exception as e:
     st.error(f"❌ Error fetching token data: {e}")
 
 # =========================================================================== Part 2: Price Analysis ====================================================================
+import streamlit as st
 import requests
 import pandas as pd
-import numpy as np
-from datetime import datetime
-from time import time
+from datetime import datetime, timedelta
 
-# =====================================================
-# Configuration
-# =====================================================
-
+# =========================
+# Config
+# =========================
 TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
+BASE_URL = f"https://coins.llama.fi/chart/{TOKEN}"
 
-BASE_URL = "https://coins.llama.fi/chart"
+START_TS = int(datetime(2023, 1, 1).timestamp())
+END_TS = int(datetime.now().timestamp())
 
-START = int(datetime(2015, 1, 1).timestamp())
-END = int(time())
+SPAN_LIMIT = 500  # API limit
 
-# =====================================================
-# Request
-# =====================================================
+# =========================
+# Fetch function (chunked)
+# =========================
+def fetch_chunked_prices(start_ts, end_ts):
+    all_prices = []
+    current_start = start_ts
 
-url = f"{BASE_URL}/{TOKEN}"
+    while current_start < end_ts:
 
-params = {
-    "start": START,
-    "end": END,
-    "period": "1d"
-}
+        params = {
+            "start": current_start,
+            "period": "1d",
+            "span": SPAN_LIMIT
+        }
 
-print("=" * 80)
-print("Request URL:")
-print(url)
-print()
+        r = requests.get(BASE_URL, params=params)
+        data = r.json()
 
-print("Parameters:")
-print(params)
-print("=" * 80)
+        coins = data.get("coins", {})
+        token_data = coins.get(TOKEN, {})
 
-response = requests.get(url, params=params)
+        prices = token_data.get("prices", [])
 
-print("\nHTTP Status Code:", response.status_code)
+        if not prices:
+            break
 
-try:
-    data = response.json()
-except Exception:
-    print("Response is not JSON.")
-    print(response.text)
-    raise
+        all_prices.extend(prices)
 
-print("\nFull API Response:")
-print(data)
+        # move forward
+        last_ts = prices[-1]["timestamp"]
+        current_start = last_ts + 1
 
-# =====================================================
-# Check response
-# =====================================================
+    return all_prices
 
-if "coins" not in data:
-    raise Exception("API response does not contain 'coins' field.")
 
-coins = data["coins"]
+# =========================
+# Streamlit UI
+# =========================
+st.title("AXL Price Chart (2023 → Today)")
 
-print("\nCoins returned by API:")
-print(list(coins.keys()))
+with st.spinner("Fetching data from DefiLlama..."):
+    prices = fetch_chunked_prices(START_TS, END_TS)
 
-if TOKEN not in coins:
+if not prices:
+    st.error("No data received from API")
+    st.stop()
 
-    print("\nRequested token:")
-    print(TOKEN)
-
-    raise Exception(
-        "Requested token was not found in API response.\n"
-        "See the list of returned keys above."
-    )
-
-# =====================================================
-# Extract prices
-# =====================================================
-
-prices = coins[TOKEN]["prices"]
-
-if len(prices) == 0:
-    raise Exception("Price list is empty.")
-
+# =========================
+# DataFrame
+# =========================
 df = pd.DataFrame(prices)
 
-df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
-
+df = df.drop_duplicates(subset=["timestamp"])
 df = df.sort_values("timestamp")
 
-# =====================================================
-# Summary
-# =====================================================
+df["date"] = pd.to_datetime(df["timestamp"], unit="s")
 
-print("\n")
-print("=" * 80)
-print("SUMMARY")
-print("=" * 80)
+# =========================
+# Chart
+# =========================
+st.subheader("AXL Daily Price")
 
-print("Symbol :", coins[TOKEN].get("symbol"))
+st.line_chart(
+    df.set_index("date")["price"]
+)
 
-print("Decimals :", coins[TOKEN].get("decimals"))
+# =========================
+# Stats
+# =========================
+st.subheader("Summary")
 
-print("Confidence :", coins[TOKEN].get("confidence"))
+col1, col2, col3 = st.columns(3)
 
-print("Number of observations :", len(df))
-
-print("First date :", df["datetime"].min())
-
-print("Last date :", df["datetime"].max())
-
-print("Minimum price :", df["price"].min())
-
-print("Maximum price :", df["price"].max())
-
-print("Average price :", df["price"].mean())
-
-# =====================================================
-# Time intervals
-# =====================================================
-
-diffs = df["timestamp"].diff().dropna()
-
-print("\nUnique time intervals:")
-
-for d in np.sort(diffs.unique()):
-    print(f"{int(d)} seconds  -->  {pd.to_timedelta(int(d), unit='s')}")
-
-# =====================================================
-# First rows
-# =====================================================
-
-print("\nFirst observations")
-
-print(df.head())
-
-print("\nLast observations")
-
-print(df.tail())
+col1.metric("Start Price", round(df["price"].iloc[0], 4))
+col2.metric("Latest Price", round(df["price"].iloc[-1], 4))
+col3.metric("Data Points", len(df))
