@@ -2119,10 +2119,7 @@ with its_col2:
 
 def its_tx_bucket(tx):
 
-    if 0 <= tx <= 10:
-        return "<=10 Txns"
-
-    elif tx == 0:
+    if tx <= 10:
         return "<=10 Txns"
 
     elif 11 <= tx <= 100:
@@ -2138,7 +2135,7 @@ def its_tx_bucket(tx):
         return ">10000 Txns"
 
     else:
-        return "<=10 Txns"
+        return None
 # =============================================================
 # Transaction Distribution
 # =============================================================
@@ -2178,6 +2175,7 @@ its_tx_labels = [
     "101-1000 Txns",
     "1001-10000 Txns",
     ">10000 Txns"
+    "None"
 ]
 
 its_tx_distribution = (
