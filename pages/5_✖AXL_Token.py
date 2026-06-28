@@ -448,3 +448,131 @@ def get_candle_chart(start_ts, span):
     response.raise_for_status()
 
     return response.json()["coins"].get(coin)
+
+c1,c2,c3 = st.columns(3)
+
+with c1:
+    start_date = st.date_input(
+        "Start Date",
+        value=datetime(2024,1,1).date()
+    )
+
+with c2:
+    end_date = st.date_input(
+        "End Date",
+        value=datetime.utcnow().date()
+    )
+
+with c3:
+    period = st.selectbox(
+        "Interval",
+        ["1H","4H","12H","1D","7D"],
+        index=3
+    )
+
+start_ts = int(
+    datetime.combine(
+        start_date,
+        datetime.min.time()
+    ).replace(
+        tzinfo=timezone.utc
+    ).timestamp()
+)
+
+end_ts = int(
+    datetime.combine(
+        end_date,
+        datetime.min.time()
+    ).replace(
+        tzinfo=timezone.utc
+    ).timestamp()
+)
+
+seconds_map={
+    "1H":3600,
+    "4H":14400,
+    "12H":43200,
+    "1D":86400,
+    "7D":604800
+}
+
+span=max(
+    1,
+    int((end_ts-start_ts)/seconds_map[period])
+)
+
+token=get_price_chart(
+    start_ts,
+    span,
+    period
+)
+
+if token is None:
+    st.error("No data found.")
+    st.stop()
+
+df_chart=pd.DataFrame(token["prices"])
+df_chart["datetime"]=pd.to_datetime(
+    df_chart["timestamp"],
+    unit="s"
+)
+
+fig=px.line(
+    df_chart,
+    x="datetime",
+    y="price",
+    title="Axelar (AXL) Price"
+)
+
+fig.update_traces(line_width=3)
+
+fig.update_layout(
+    height=600,
+    hovermode="x unified"
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+first_price=df_chart.price.iloc[0]
+last_price=df_chart.price.iloc[-1]
+
+change=((last_price-first_price)/first_price)*100
+
+st.subheader("📊 Price Statistics")
+
+c1,c2,c3=st.columns(3)
+
+c1.metric(
+    "Start Price",
+    f"${first_price:,.4f}"
+)
+
+c2.metric(
+    "Latest Price",
+    f"${last_price:,.4f}"
+)
+
+c3.metric(
+    "Return",
+    f"{change:.2f}%"
+)
+
+c4,c5,c6=st.columns(3)
+
+c4.metric(
+    "Highest",
+    f"${df_chart.price.max():,.4f}"
+)
+
+c5.metric(
+    "Lowest",
+    f"${df_chart.price.min():,.4f}"
+)
+
+c6.metric(
+    "Average",
+    f"${df_chart.price.mean():,.4f}"
+)
