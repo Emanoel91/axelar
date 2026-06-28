@@ -1769,6 +1769,10 @@ its_stats_df = its_build_stats_df(
     its_stats_json
 )
 
+its_stats_df["num_txs"] = pd.to_numeric(
+    its_stats_df["num_txs"],
+    errors="coerce"
+).fillna(0).astype(int)
 # =============================================================
 # Merge
 # =============================================================
