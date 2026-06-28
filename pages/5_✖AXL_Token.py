@@ -147,7 +147,8 @@ except Exception as e:
 import streamlit as st
 import requests
 import pandas as pd
-from datetime import datetime, timedelta
+import os
+from datetime import datetime
 
 # =========================
 # CONFIG
@@ -155,64 +156,89 @@ from datetime import datetime, timedelta
 TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
 BASE_URL = f"https://coins.llama.fi/chart/{TOKEN}"
 
+CACHE_FILE = "axl_2023_full.csv"
+
+START_TS = int(datetime(2023, 1, 1).timestamp())
+END_TS = int(datetime.now().timestamp())
+
 SPAN_LIMIT = 500
-PERIOD = "1d"
-
-# 500 روز قبل
-start_date = datetime.now() - timedelta(days=500)
-START_TS = int(start_date.timestamp())
 
 # =========================
-# FETCH DATA
+# FETCH ALL DATA (ONLY ONCE)
 # =========================
-def fetch_data():
+def fetch_all_from_2023():
 
-    params = {
-        "start": START_TS,
-        "period": PERIOD,
-        "span": SPAN_LIMIT
-    }
+    all_prices = []
+    current_start = START_TS
 
-    r = requests.get(BASE_URL, params=params)
-    data = r.json()
+    while current_start < END_TS:
 
-    prices = data.get("coins", {}).get(TOKEN, {}).get("prices", [])
+        params = {
+            "start": current_start,
+            "period": "1d",
+            "span": SPAN_LIMIT
+        }
 
-    return prices
+        r = requests.get(BASE_URL, params=params)
+        data = r.json()
+
+        prices = data.get("coins", {}).get(TOKEN, {}).get("prices", [])
+
+        if not prices:
+            break
+
+        all_prices.extend(prices)
+
+        last_ts = prices[-1]["timestamp"]
+        current_start = last_ts + 1
+
+    return all_prices
+
+
+# =========================
+# LOAD OR BUILD CACHE
+# =========================
+@st.cache_data(show_spinner=False)
+def load_data():
+
+    if os.path.exists(CACHE_FILE):
+        df = pd.read_csv(CACHE_FILE)
+    else:
+        with st.spinner("Fetching full dataset from 2023..."):
+            prices = fetch_all_from_2023()
+
+        df = pd.DataFrame(prices)
+        df = df.drop_duplicates(subset=["timestamp"])
+        df = df.sort_values("timestamp")
+
+        df.to_csv(CACHE_FILE, index=False)
+
+    df["date"] = pd.to_datetime(df["timestamp"], unit="s")
+    return df
 
 
 # =========================
 # STREAMLIT UI
 # =========================
-st.title("AXL Price - Last 500 Days")
+st.title("AXL Price (2023 → Today)")
 
-prices = fetch_data()
+df = load_data()
 
-if not prices:
-    st.error("No data received")
-    st.stop()
+# آخر 500 روز فقط برای نمایش سریع
+df_last = df.sort_values("timestamp").tail(500)
 
-df = pd.DataFrame(prices)
+st.subheader("Last 500 Data Points")
 
-df = df.drop_duplicates(subset=["timestamp"])
-df = df.sort_values("timestamp")
+st.line_chart(df_last.set_index("date")["price"])
 
-df["date"] = pd.to_datetime(df["timestamp"], unit="s")
 
 # =========================
-# CHART
-# =========================
-st.subheader("Price (Last 500 Days)")
-
-st.line_chart(df.set_index("date")["price"])
-
-# =========================
-# METRICS
+# STATS
 # =========================
 st.subheader("Stats")
 
 col1, col2, col3 = st.columns(3)
 
-col1.metric("Start Price", round(df["price"].iloc[0], 4))
-col2.metric("Latest Price", round(df["price"].iloc[-1], 4))
-col3.metric("Data Points", len(df))
+col1.metric("Start (2023)", round(df["price"].iloc[0], 4))
+col2.metric("Latest", round(df["price"].iloc[-1], 4))
+col3.metric("Total Points", len(df))
