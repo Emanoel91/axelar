@@ -1549,3 +1549,695 @@ with st.container(border=True):
                 f"{tx_share:.4f}%"
             )
 
+# ====================================================================== Part 3: ITS Assets ===================================================================================
+from datetime import datetime, timedelta
+
+st.title("ITS Assets Analysis")
+
+# =============================================================
+# API URLs
+# =============================================================
+
+ITS_ASSETS_API = "https://api.axelarscan.io/api/getITSAssets"
+ITS_STATS_API = "https://api.axelarscan.io/gmp/GMPTopITSAssets"
+
+# =============================================================
+# Date Filter
+# =============================================================
+
+col1, col2 = st.columns(2)
+
+with col1:
+    start_date = st.date_input(
+        "Start Date",
+        datetime.today() - timedelta(days=30)
+    )
+
+with col2:
+    end_date = st.date_input(
+        "End Date",
+        datetime.today()
+    )
+
+from_time = int(
+    datetime.combine(start_date, datetime.min.time()).timestamp()
+)
+
+to_time = int(
+    datetime.combine(end_date, datetime.max.time()).timestamp()
+)
+
+# =============================================================
+# Load APIs
+# =============================================================
+
+@st.cache_data(ttl=600)
+def load_assets():
+
+    response = requests.get(ITS_ASSETS_API)
+
+    response.raise_for_status()
+
+    return response.json()
+
+
+@st.cache_data(ttl=600)
+def load_statistics(from_time, to_time):
+
+    url = (
+        f"{ITS_STATS_API}"
+        f"?fromTime={from_time}"
+        f"&toTime={to_time}"
+    )
+
+    response = requests.get(url)
+
+    response.raise_for_status()
+
+    return response.json()["data"]
+
+# =============================================================
+# Parse Chain + Address
+# =============================================================
+
+def parse_addresses(address_list):
+    """
+    Converts
+
+    ethereum:0x....
+    avalanche:0x....
+
+    to
+
+    chain,address
+    """
+
+    rows = []
+
+    for item in address_list:
+
+        if ":" in item:
+
+            chain, address = item.split(":", 1)
+
+        else:
+
+            chain = "Unknown"
+            address = item
+
+        rows.append(
+            {
+                "chain": chain,
+                "address": address.lower()
+            }
+        )
+
+    return rows
+
+# =============================================================
+# Build Assets DataFrame
+# =============================================================
+
+def build_assets_dataframe(asset_json):
+
+    rows = []
+
+    for token in asset_json:
+
+        parsed = parse_addresses(token["addresses"])
+
+        for row in parsed:
+
+            rows.append(
+                {
+                    "symbol": token["symbol"],
+                    "token_id": token["id"],
+                    "decimals": token["decimals"],
+                    "coingecko": token["coingecko_id"],
+                    "chain": row["chain"],
+                    "address": row["address"]
+                }
+            )
+
+    return pd.DataFrame(rows)
+
+# =============================================================
+# Build Statistics DataFrame
+# =============================================================
+
+def build_stats_dataframe(stats_json):
+
+    rows = []
+
+    for item in stats_json:
+
+        key = item["key"]
+
+        if ":" in key:
+
+            chain, address = key.split(":", 1)
+
+        else:
+
+            chain = "Unknown"
+            address = key
+
+        rows.append(
+            {
+                "chain": chain,
+                "address": address.lower(),
+                "volume": float(item["volume"]),
+                "num_txs": int(item["num_txs"])
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+# =============================================================
+# Merge APIs
+# =============================================================
+
+assets = load_assets()
+
+stats = load_statistics(from_time, to_time)
+
+assets_df = build_assets_dataframe(assets)
+
+stats_df = build_stats_dataframe(stats)
+
+merged_df = assets_df.merge(
+    stats_df,
+    how="left",
+    on=["chain", "address"]
+)
+
+merged_df["volume"] = merged_df["volume"].fillna(0)
+
+merged_df["num_txs"] = merged_df["num_txs"].fillna(0).astype(int)
+
+# =============================================================
+# Aggregate By Symbol
+# =============================================================
+
+symbol_df = (
+    merged_df
+    .groupby("symbol", as_index=False)
+    .agg(
+        volume=("volume", "sum"),
+        num_txs=("num_txs", "sum")
+    )
+)
+
+# =============================================================
+# Rank Table Dataset
+# =============================================================
+
+table_df = (
+    symbol_df
+    .sort_values(
+        "volume",
+        ascending=False
+    )
+    .reset_index(drop=True)
+)
+
+table_df["Rank"] = table_df.index + 1
+
+table_df["Avg Volume per Txn"] = (
+    table_df["volume"] /
+    table_df["num_txs"].replace(0, pd.NA)
+)
+
+table_df["Avg Volume per Txn"] = (
+    table_df["Avg Volume per Txn"]
+    .fillna(0)
+)
+
+# ============================================================
+# KPI SECTION
+# ============================================================
+
+st.markdown("---")
+
+num_assets = symbol_df["symbol"].nunique()
+
+supported_chains = merged_df["chain"].nunique()
+
+top_volume_asset = (
+    symbol_df.sort_values("volume", ascending=False)
+    .iloc[0]
+)
+
+top_tx_asset = (
+    symbol_df.sort_values("num_txs", ascending=False)
+    .iloc[0]
+)
+
+kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+
+kpi1.metric(
+    "Number of ITS Assets",
+    f"{num_assets:,}"
+)
+
+kpi2.metric(
+    "Supported Chains",
+    f"{supported_chains:,}"
+)
+
+kpi3.metric(
+    "Top Asset by Volume",
+    top_volume_asset["symbol"],
+    delta=f"${top_volume_asset['volume']:,.2f}"
+)
+
+kpi4.metric(
+    "Top Asset by Transaction",
+    top_tx_asset["symbol"],
+    delta=f"{top_tx_asset['num_txs']:,} Txns"
+)
+
+# ============================================================
+# Volume Distribution
+# ============================================================
+
+st.markdown("---")
+
+st.subheader("ITS Assets Distribution by Total Volume")
+
+volume_bins = [
+    0,
+    10,
+    100,
+    1000,
+    10000,
+    100000,
+    1000000,
+    float("inf")
+]
+
+volume_labels = [
+    "<10$",
+    "10$-100$",
+    "100$-1k$",
+    "1k$-10k$",
+    "10k$-100k$",
+    "100k$-1M$",
+    ">1M$"
+]
+
+symbol_df["Volume Range"] = pd.cut(
+    symbol_df["volume"],
+    bins=volume_bins,
+    labels=volume_labels,
+    include_lowest=True
+)
+
+volume_dist = (
+    symbol_df.groupby("Volume Range")
+    .size()
+    .reset_index(name="Assets")
+)
+
+# ============================================================
+# Green Palette
+# ============================================================
+
+greens = [
+    "#E8F5E9",
+    "#C8E6C9",
+    "#A5D6A7",
+    "#81C784",
+    "#66BB6A",
+    "#43A047",
+    "#1B5E20"
+]
+
+col1, col2 = st.columns(2)
+
+with col1:
+
+    fig = px.pie(
+        volume_dist,
+        names="Volume Range",
+        values="Assets",
+        hole=0.65,
+        color="Volume Range",
+        color_discrete_sequence=greens
+    )
+
+    fig.update_layout(
+        legend_title="Volume Range",
+        height=500
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+with col2:
+
+    fig = px.bar(
+        volume_dist,
+        x="Volume Range",
+        y="Assets",
+        color="Volume Range",
+        color_discrete_sequence=greens,
+        text="Assets"
+    )
+
+    fig.update_layout(
+        showlegend=False,
+        xaxis_title="Volume Range",
+        yaxis_title="Number of Assets",
+        height=500
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+# ============================================================
+# Transaction Distribution
+# ============================================================
+
+st.markdown("---")
+
+st.subheader("ITS Assets Distribution by Total Transactions")
+
+tx_bins = [
+    0,
+    1,
+    2,
+    5,
+    10,
+    50,
+    100,
+    float("inf")
+]
+
+tx_labels = [
+    "1",
+    "2",
+    "3-5",
+    "6-10",
+    "11-50",
+    "51-100",
+    ">100"
+]
+
+symbol_df["Transaction Range"] = pd.cut(
+    symbol_df["num_txs"],
+    bins=tx_bins,
+    labels=tx_labels,
+    include_lowest=True
+)
+
+tx_dist = (
+    symbol_df.groupby("Transaction Range")
+    .size()
+    .reset_index(name="Assets")
+)
+
+# ============================================================
+# Yellow Palette
+# ============================================================
+
+yellows = [
+    "#FFF9C4",
+    "#FFF176",
+    "#FFEE58",
+    "#FDD835",
+    "#FBC02D",
+    "#F9A825",
+    "#F57F17"
+]
+
+col1, col2 = st.columns(2)
+
+with col1:
+
+    fig = px.pie(
+        tx_dist,
+        names="Transaction Range",
+        values="Assets",
+        hole=0.65,
+        color="Transaction Range",
+        color_discrete_sequence=yellows
+    )
+
+    fig.update_layout(
+        legend_title="Transactions",
+        height=500
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+with col2:
+
+    fig = px.bar(
+        tx_dist,
+        x="Transaction Range",
+        y="Assets",
+        color="Transaction Range",
+        color_discrete_sequence=yellows,
+        text="Assets"
+    )
+
+    fig.update_layout(
+        showlegend=False,
+        xaxis_title="Transactions",
+        yaxis_title="Number of Assets",
+        height=500
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+# =============================================================
+# Top 10 Charts
+# =============================================================
+
+st.markdown("---")
+
+st.subheader("Top ITS Assets")
+
+top_volume = (
+    symbol_df
+    .sort_values("volume", ascending=False)
+    .head(10)
+)
+
+top_tx = (
+    symbol_df
+    .sort_values("num_txs", ascending=False)
+    .head(10)
+)
+
+col1, col2 = st.columns(2)
+
+# =============================================================
+# Top Volume
+# =============================================================
+
+with col1:
+
+    fig = px.bar(
+        top_volume,
+        x="symbol",
+        y="volume",
+        text="volume",
+        color="volume",
+        color_continuous_scale="Greens"
+    )
+
+    fig.update_traces(
+        texttemplate="$%{y:,.0f}",
+        textposition="outside"
+    )
+
+    fig.update_layout(
+        title="Top 10 Assets by Volume",
+        xaxis_title="Symbol",
+        yaxis_title="Volume ($)",
+        coloraxis_showscale=False,
+        height=520
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+# =============================================================
+# Top Transactions
+# =============================================================
+
+with col2:
+
+    fig = px.bar(
+        top_tx,
+        x="symbol",
+        y="num_txs",
+        text="num_txs",
+        color="num_txs",
+        color_continuous_scale="YlOrBr"
+    )
+
+    fig.update_traces(
+        texttemplate="%{y:,}",
+        textposition="outside"
+    )
+
+    fig.update_layout(
+        title="Top 10 Assets by Transactions",
+        xaxis_title="Symbol",
+        yaxis_title="Transactions",
+        coloraxis_showscale=False,
+        height=520
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+# =============================================================
+# Ranking Table
+# =============================================================
+
+st.markdown("---")
+
+st.subheader("ITS Assets Ranking")
+
+table_df = table_df.copy()
+
+table_df = table_df.rename(
+    columns={
+        "symbol": "Symbol",
+        "volume": "Volume ($)",
+        "num_txs": "Transactions",
+        "Avg Volume per Txn": "Avg Volume per Txn"
+    }
+)
+
+table_df = table_df[
+    [
+        "Rank",
+        "Symbol",
+        "Volume ($)",
+        "Transactions",
+        "Avg Volume per Txn"
+    ]
+]
+
+table_df["Volume ($)"] = table_df["Volume ($)"].map(
+    lambda x: f"${x:,.2f}"
+)
+
+table_df["Transactions"] = table_df["Transactions"].map(
+    lambda x: f"{x:,}"
+)
+
+table_df["Avg Volume per Txn"] = table_df["Avg Volume per Txn"].map(
+    lambda x: f"${x:,.2f}"
+)
+
+st.dataframe(
+    table_df,
+    use_container_width=True,
+    hide_index=True,
+    height=650
+)
+
+# =============================================================
+# Professional Styling
+# =============================================================
+
+st.markdown(
+    """
+<style>
+
+div[data-testid="metric-container"]{
+    border:1px solid #e6e6e6;
+    padding:18px;
+    border-radius:12px;
+    background-color:#fafafa;
+}
+
+div[data-testid="metric-container"] label{
+    font-size:15px;
+}
+
+div[data-testid="metric-container"] div[data-testid="stMetricValue"]{
+    font-size:28px;
+}
+
+</style>
+""",
+    unsafe_allow_html=True
+)
+
+# =============================================================
+# Number Formatter
+# =============================================================
+
+def human_format(num):
+
+    num = float(num)
+
+    if abs(num) >= 1_000_000_000:
+        return f"{num/1_000_000_000:.2f}B"
+
+    elif abs(num) >= 1_000_000:
+        return f"{num/1_000_000:.2f}M"
+
+    elif abs(num) >= 1_000:
+        return f"{num/1_000:.2f}K"
+
+    else:
+        return f"{num:.2f}"
+
+# =============================================================
+# Download Table
+# =============================================================
+
+csv = (
+    table_df
+    .replace(r'[$,]', '', regex=True)
+    .to_csv(index=False)
+)
+
+st.download_button(
+    label="⬇ Download Ranking CSV",
+    data=csv,
+    file_name="its_assets_ranking.csv",
+    mime="text/csv"
+)
+
+# =============================================================
+# Summary
+# =============================================================
+
+st.markdown("---")
+
+total_volume = symbol_df["volume"].sum()
+total_txs = symbol_df["num_txs"].sum()
+
+st.info(
+    f"""
+Total ITS Volume : **${human_format(total_volume)}**
+
+Total ITS Transactions : **{human_format(total_txs)}**
+
+Dashboard Last Updated : **{datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}**
+"""
+)
+
