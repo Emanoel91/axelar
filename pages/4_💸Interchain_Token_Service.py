@@ -2174,7 +2174,7 @@ its_tx_labels = [
     "11-100 Txns",
     "101-1000 Txns",
     "1001-10000 Txns",
-    ">10000 Txns"
+    ">10000 Txns",
     "None"
 ]
 
