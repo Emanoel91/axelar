@@ -397,3 +397,115 @@ fig.add_hline(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+# ==================================================
+# Weekly & Monthly Price Change (%)
+# ==================================================
+
+import plotly.graph_objects as go
+
+# ---------- Weekly ----------
+df_weekly = df.copy()
+
+df_weekly = (
+    df_weekly
+    .set_index("date")
+    .resample("W")
+    .last()
+    .dropna()
+)
+
+df_weekly["weekly_return"] = df_weekly["price"].pct_change() * 100
+df_weekly = df_weekly.dropna()
+
+weekly_colors = [
+    "green" if x >= 0 else "red"
+    for x in df_weekly["weekly_return"]
+]
+
+fig_weekly = go.Figure()
+
+fig_weekly.add_trace(
+    go.Bar(
+        x=df_weekly.index,
+        y=df_weekly["weekly_return"],
+        marker_color=weekly_colors,
+        name="Weekly Return"
+    )
+)
+
+fig_weekly.add_hline(
+    y=0,
+    line_dash="dash",
+    line_color="black",
+    line_width=1
+)
+
+fig_weekly.update_layout(
+    title="AXL Weekly Price Change (%)",
+    template="plotly_white",
+    height=450,
+    showlegend=False,
+    xaxis_title="Date",
+    yaxis_title="Weekly Return (%)",
+    hovermode="x unified"
+)
+
+# ---------- Monthly ----------
+df_monthly = df.copy()
+
+df_monthly = (
+    df_monthly
+    .set_index("date")
+    .resample("ME")
+    .last()
+    .dropna()
+)
+
+df_monthly["monthly_return"] = df_monthly["price"].pct_change() * 100
+df_monthly = df_monthly.dropna()
+
+monthly_colors = [
+    "green" if x >= 0 else "red"
+    for x in df_monthly["monthly_return"]
+]
+
+fig_monthly = go.Figure()
+
+fig_monthly.add_trace(
+    go.Bar(
+        x=df_monthly.index,
+        y=df_monthly["monthly_return"],
+        marker_color=monthly_colors,
+        name="Monthly Return"
+    )
+)
+
+fig_monthly.add_hline(
+    y=0,
+    line_dash="dash",
+    line_color="black",
+    line_width=1
+)
+
+fig_monthly.update_layout(
+    title="AXL Monthly Price Change (%)",
+    template="plotly_white",
+    height=450,
+    showlegend=False,
+    xaxis_title="Date",
+    yaxis_title="Monthly Return (%)",
+    hovermode="x unified"
+)
+
+# ==================================================
+# Display Side by Side
+# ==================================================
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.plotly_chart(fig_weekly, use_container_width=True)
+
+with col2:
+    st.plotly_chart(fig_monthly, use_container_width=True)
