@@ -313,6 +313,7 @@ with col3:
         f"${avg_price:.4f}"
     )
 st.write(" ")
+st.write(" ")
 # ==================================================
 # Row 2
 # ==================================================
@@ -330,6 +331,7 @@ with col5:
 with col6:
     st.markdown("**⚖️ Current vs Avg**")
     st.markdown(f"## {colored_percent(current_vs_avg)}")
+st.write(" ")
 st.write(" ")
 # ==================================================
 # Row 3
