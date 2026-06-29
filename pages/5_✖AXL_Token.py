@@ -203,14 +203,14 @@ fig.add_trace(
         y=df["price"],
         mode="lines",
         name="AXL",
-        line=dict(width=2, color="#2962FF")
+        line=dict(width=2, color="#000000")
     )
 )
 
 fig.update_layout(
     title=dict(
         text="AXL Daily Price (Last 500 Days)",
-        x=0.5
+        x=0.1
     ),
     template="plotly_white",
     height=600,
