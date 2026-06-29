@@ -70,7 +70,7 @@ ITS_SERVICE_URL = (
 # =====================================================
 # LOAD DATA
 # =====================================================
-st.markdown("#### Part I: Transfer Analysis")
+
 @st.cache_data(ttl=3600)
 def load_data():
 
@@ -191,8 +191,8 @@ unsafe_allow_html=True
 # TITLE
 # =====================================================
 
-st.title("🌉 Interchain Token Service")
-
+st.title("🌉 Interchain Token Service (ITS)")
+st.markdown("#### Part I: Transfer Analysis")
 st.info(
     "All data is loaded directly from Axelar public APIs."
 )
