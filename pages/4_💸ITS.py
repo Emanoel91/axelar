@@ -194,8 +194,7 @@ unsafe_allow_html=True
 st.title("🌉 Interchain Token Service (ITS)")
 st.markdown("#### Part I: Transfer Analysis")
 st.info(
-    #"All data is loaded directly from Axelar public APIs."
-    st.markdown("#### Part I: Transfer Analysis")
+    "All data is loaded directly from Axelar public APIs."
 )
 
 # =====================================================
