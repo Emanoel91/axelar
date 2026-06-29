@@ -157,12 +157,14 @@ import plotly.graph_objects as go
 TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
 URL = f"https://coins.llama.fi/chart/{TOKEN}"
 
-# 500 روز گذشته
-start_timestamp = int((datetime.utcnow() - timedelta(days=500)).timestamp())
+# شروع از 500 روز قبل
+start_date = datetime.utcnow() - timedelta(days=500)
+start_timestamp = int(start_date.timestamp())
 
 params = {
     "start": start_timestamp,
-    "period": "1d"
+    "period": "1d",
+    "span": 500
 }
 
 # ==================================================
@@ -174,24 +176,23 @@ response.raise_for_status()
 
 data = response.json()
 
+if "coins" not in data or TOKEN not in data["coins"]:
+    st.error(data)
+    st.stop()
+
 prices = data["coins"][TOKEN]["prices"]
 
 if len(prices) == 0:
     st.error("No data returned from API.")
     st.stop()
 
-# ==================================================
-# DataFrame
-# ==================================================
-
 df = pd.DataFrame(prices)
 
 df["date"] = pd.to_datetime(df["timestamp"], unit="s")
-
 df = df.sort_values("date")
 
 # ==================================================
-# Plotly Figure
+# Plot
 # ==================================================
 
 fig = go.Figure()
@@ -201,25 +202,21 @@ fig.add_trace(
         x=df["date"],
         y=df["price"],
         mode="lines",
-        name="AXL Price",
-        line=dict(width=2)
+        name="AXL",
+        line=dict(width=2, color="#2962FF")
     )
 )
 
 fig.update_layout(
-    title="AXL Daily Price (Last 500 Days)",
-    xaxis_title="Date",
-    yaxis_title="Price (USD)",
-    hovermode="x unified",
+    title=dict(
+        text="AXL Daily Price (Last 500 Days)",
+        x=0.5
+    ),
     template="plotly_white",
-    height=550,
-    legend=dict(
-        orientation="h",
-        yanchor="bottom",
-        y=1.02,
-        xanchor="right",
-        x=1
-    )
+    height=600,
+    hovermode="x unified",
+    xaxis_title="Date",
+    yaxis_title="Price (USD)"
 )
 
 st.plotly_chart(fig, use_container_width=True)
