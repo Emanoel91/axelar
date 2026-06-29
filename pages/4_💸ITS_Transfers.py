@@ -9,7 +9,7 @@ import plotly.express as px
 # =====================================================
 
 st.set_page_config(
-    page_title="Interchain Token Service (ITS)",
+    page_title="ITS Transfers",
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
@@ -191,8 +191,7 @@ unsafe_allow_html=True
 # TITLE
 # =====================================================
 
-st.title("🌉 Interchain Token Service (ITS)")
-st.markdown("#### Part I: Transfer Analysis")
+st.title("🌉 Interchain Token Service (ITS): Transfers Analysis")
 st.info(
     "All data is loaded directly from Axelar public APIs."
 )
