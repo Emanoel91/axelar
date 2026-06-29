@@ -147,98 +147,56 @@ except Exception as e:
 import streamlit as st
 import requests
 import pandas as pd
-import os
-from datetime import datetime
+import matplotlib.pyplot as plt
 
-# =========================
-# CONFIG
-# =========================
+# ==========================
+# Configuration
+# ==========================
 TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
-BASE_URL = f"https://coins.llama.fi/chart/{TOKEN}"
+URL = f"https://coins.llama.fi/chart/{TOKEN}"
 
-CACHE_FILE = "axl_2023_full.csv"
+# ==========================
+# Get last 500 daily prices
+# ==========================
+params = {
+    "period": "1d",
+    "span": 500
+}
 
-START_TS = int(datetime(2023, 1, 1).timestamp())
-END_TS = int(datetime.now().timestamp())
+response = requests.get(URL, params=params, timeout=30)
+response.raise_for_status()
 
-SPAN_LIMIT = 500
+data = response.json()
 
-# =========================
-# FETCH ALL DATA (ONLY ONCE)
-# =========================
-def fetch_all_from_2023():
+prices = data["coins"][TOKEN]["prices"]
 
-    all_prices = []
-    current_start = START_TS
+# ==========================
+# DataFrame
+# ==========================
+df = pd.DataFrame(prices)
 
-    while current_start < END_TS:
+df["date"] = pd.to_datetime(df["timestamp"], unit="s")
 
-        params = {
-            "start": current_start,
-            "period": "1d",
-            "span": SPAN_LIMIT
-        }
+df = df.sort_values("date")
 
-        r = requests.get(BASE_URL, params=params)
-        data = r.json()
+# ==========================
+# Streamlit
+# ==========================
+st.title("AXL Daily Price (Last 500 Days)")
 
-        prices = data.get("coins", {}).get(TOKEN, {}).get("prices", [])
+st.write(f"Number of observations: {len(df)}")
 
-        if not prices:
-            break
+fig, ax = plt.subplots(figsize=(12,5))
 
-        all_prices.extend(prices)
+ax.plot(df["date"], df["price"], linewidth=2)
 
-        last_ts = prices[-1]["timestamp"]
-        current_start = last_ts + 1
+ax.set_xlabel("Date")
+ax.set_ylabel("Price (USD)")
+ax.set_title("AXL Price - Last 500 Days")
 
-    return all_prices
+ax.grid(True)
 
+st.pyplot(fig)
 
-# =========================
-# LOAD OR BUILD CACHE
-# =========================
-@st.cache_data(show_spinner=False)
-def load_data():
-
-    if os.path.exists(CACHE_FILE):
-        df = pd.read_csv(CACHE_FILE)
-    else:
-        with st.spinner("Fetching full dataset from 2023..."):
-            prices = fetch_all_from_2023()
-
-        df = pd.DataFrame(prices)
-        df = df.drop_duplicates(subset=["timestamp"])
-        df = df.sort_values("timestamp")
-
-        df.to_csv(CACHE_FILE, index=False)
-
-    df["date"] = pd.to_datetime(df["timestamp"], unit="s")
-    return df
-
-
-# =========================
-# STREAMLIT UI
-# =========================
-st.title("AXL Price (2023 → Today)")
-
-df = load_data()
-
-# آخر 500 روز فقط برای نمایش سریع
-df_last = df.sort_values("timestamp").tail(500)
-
-st.subheader("Last 500 Data Points")
-
-st.line_chart(df_last.set_index("date")["price"])
-
-
-# =========================
-# STATS
-# =========================
-st.subheader("Stats")
-
-col1, col2, col3 = st.columns(3)
-
-col1.metric("Start (2023)", round(df["price"].iloc[0], 4))
-col2.metric("Latest", round(df["price"].iloc[-1], 4))
-col3.metric("Total Points", len(df))
+# نمایش داده‌ها (اختیاری)
+st.dataframe(df)
