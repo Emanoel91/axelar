@@ -210,7 +210,6 @@ fig.add_trace(
 fig.update_layout(
     title=dict(
         text="AXL Daily Price (Last 500 Days)",
-     #   x=0.1
     ),
     template="plotly_white",
     height=600,
@@ -220,3 +219,140 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+
+# ==================================================
+# AXL Price KPIs
+# ==================================================
+
+st.markdown("### 💎 AXL Price Key Performance Indicators")
+
+st.markdown(
+    """
+    <style>
+    div[data-testid="stMetricValue"] {
+        font-size: 28px;
+        font-weight: 700;
+        color: #00B8F4;
+    }
+    div[data-testid="stMetricLabel"] {
+        font-size: 15px;
+        color: #888;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# -----------------------------
+# Basic Statistics
+# -----------------------------
+current_price = df["price"].iloc[-1]
+max_price = df["price"].max()
+min_price = df["price"].min()
+avg_price = df["price"].mean()
+
+# -----------------------------
+# Percentage Change Function
+# -----------------------------
+def pct_change(current, reference):
+    return (current - reference) / reference * 100
+
+current_vs_max = pct_change(current_price, max_price)
+current_vs_min = pct_change(current_price, min_price)
+current_vs_avg = pct_change(current_price, avg_price)
+
+# -----------------------------
+# Historical Returns
+# -----------------------------
+def historical_return(days):
+
+    if len(df) <= days:
+        return None
+
+    old_price = df["price"].iloc[-(days + 1)]
+
+    return (current_price - old_price) / old_price * 100
+
+
+ret_1d = historical_return(1)
+ret_7d = historical_return(7)
+ret_30d = historical_return(30)
+
+# ==================================================
+# Row 1
+# ==================================================
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric(
+        "📈 Max Price",
+        f"${max_price:.4f}"
+    )
+
+with col2:
+    st.metric(
+        "📉 Min Price",
+        f"${min_price:.4f}"
+    )
+
+with col3:
+    st.metric(
+        "📊 Avg Price",
+        f"${avg_price:.4f}"
+    )
+
+# ==================================================
+# Row 2
+# ==================================================
+
+col4, col5, col6 = st.columns(3)
+
+with col4:
+    st.metric(
+        "🔻 Current vs Max",
+        f"{current_vs_max:.2f}%",
+        delta=f"{current_vs_max:.2f}%"
+    )
+
+with col5:
+    st.metric(
+        "🔺 Current vs Min",
+        f"{current_vs_min:.2f}%",
+        delta=f"{current_vs_min:.2f}%"
+    )
+
+with col6:
+    st.metric(
+        "⚖️ Current vs Avg",
+        f"{current_vs_avg:.2f}%",
+        delta=f"{current_vs_avg:.2f}%"
+    )
+
+# ==================================================
+# Row 3
+# ==================================================
+
+col7, col8, col9 = st.columns(3)
+
+with col7:
+    st.metric(
+        "🕒 24h Change",
+        f"{ret_1d:.2f}%" if ret_1d is not None else "-",
+        delta=f"{ret_1d:.2f}%" if ret_1d is not None else None
+    )
+
+with col8:
+    st.metric(
+        "📅 7d Change",
+        f"{ret_7d:.2f}%" if ret_7d is not None else "-",
+        delta=f"{ret_7d:.2f}%" if ret_7d is not None else None
+    )
+
+with col9:
+    st.metric(
+        "🗓️ 30d Change",
+        f"{ret_30d:.2f}%" if ret_30d is not None else "-",
+        delta=f"{ret_30d:.2f}%" if ret_30d is not None else None
+    )
