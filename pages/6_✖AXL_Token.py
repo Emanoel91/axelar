@@ -380,7 +380,6 @@ fig.add_trace(
 fig.update_layout(
     title=dict(
         text="AXL Daily Price Change (%)",
-        x=0.5
     ),
     template="plotly_white",
     height=500,
@@ -390,7 +389,6 @@ fig.update_layout(
     showlegend=False
 )
 
-# خط صفر
 fig.add_hline(
     y=0,
     line_width=1,
