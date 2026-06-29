@@ -634,8 +634,13 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-import numpy as np
-import plotly.graph_objects as go
+st.warning(
+    "⚠️ Important Note (Critical for Sharpe Ratio)\n\n"
+    "In the two charts below:\n"
+    "- Risk-free rate = 0 (standard assumption in crypto markets)\n"
+    "- Annualization factor = √365\n"
+    "- Rolling window = 30 days"
+)
 
 # ==================================================
 # Prepare Data
