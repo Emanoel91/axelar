@@ -350,3 +350,52 @@ with col8:
 with col9:
     st.markdown("**🗓️ 30d Change**")
     st.markdown(f"## {colored_percent(ret_30d)}")
+
+# ==================================================
+# Daily Price Change (%)
+# ==================================================
+
+df_return = df.copy()
+
+df_return["daily_return"] = df_return["price"].pct_change() * 100
+
+df_return = df_return.dropna()
+
+colors = [
+    "green" if value >= 0 else "red"
+    for value in df_return["daily_return"]
+]
+
+fig = go.Figure()
+
+fig.add_trace(
+    go.Bar(
+        x=df_return["date"],
+        y=df_return["daily_return"],
+        marker_color=colors,
+        name="Daily Return (%)"
+    )
+)
+
+fig.update_layout(
+    title=dict(
+        text="AXL Daily Price Change (%)",
+        x=0.5
+    ),
+    template="plotly_white",
+    height=500,
+    xaxis_title="Date",
+    yaxis_title="Daily Return (%)",
+    hovermode="x unified",
+    showlegend=False
+)
+
+# خط صفر
+fig.add_hline(
+    y=0,
+    line_width=1,
+    line_dash="dash",
+    line_color="black"
+)
+
+st.plotly_chart(fig, use_container_width=True)
