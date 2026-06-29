@@ -797,7 +797,7 @@ fig.add_trace(
         name="Lower Band",
         line=dict(color="red", width=1),
         opacity=0.7,
-        fill="tonexty" 
+ #       fill="tonexty" 
     )
 )
 
