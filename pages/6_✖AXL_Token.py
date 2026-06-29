@@ -796,8 +796,7 @@ fig.add_trace(
         mode="lines",
         name="Lower Band",
         line=dict(color="red", width=1),
-        opacity=0.7,
- #       fill="tonexty" 
+        opacity=0.7
     )
 )
 
@@ -808,7 +807,6 @@ fig.add_trace(
 fig.update_layout(
     title=dict(
         text="AXL Bollinger Bands (20-day)",
-        x=0.5
     ),
     template="plotly_white",
     height=600,
@@ -820,6 +818,7 @@ fig.update_layout(
         yanchor="bottom",
         y=1.02,
         xanchor="center",
+        x=0.5
     )
 )
 
