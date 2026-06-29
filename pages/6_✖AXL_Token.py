@@ -645,7 +645,8 @@ st.warning(
 # ==================================================
 # Prepare Data
 # ==================================================
-
+import numpy as np
+#import plotly.graph_objects as go
 df_rs = df.copy()
 
 # Daily returns
