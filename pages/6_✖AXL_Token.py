@@ -607,3 +607,73 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+# ==================================================
+# Rolling Volatility (30-Day)
+# ==================================================
+
+import plotly.graph_objects as go
+import numpy as np
+
+df_vol = df.copy()
+
+# -----------------------------
+# Daily Return
+# -----------------------------
+df_vol["daily_return"] = df_vol["price"].pct_change()
+
+# -----------------------------
+# 30-Day Rolling Volatility
+# Annualized (%)
+# -----------------------------
+WINDOW = 30
+
+df_vol["rolling_volatility"] = (
+    df_vol["daily_return"]
+    .rolling(WINDOW)
+    .std()
+    * np.sqrt(365)
+    * 100
+)
+
+df_vol = df_vol.dropna()
+
+# -----------------------------
+# Plot
+# -----------------------------
+fig = go.Figure()
+
+fig.add_trace(
+    go.Scatter(
+        x=df_vol["date"],
+        y=df_vol["rolling_volatility"],
+        mode="lines",
+        name="30-Day Rolling Volatility",
+        line=dict(
+            color="purple",
+            width=2
+        )
+    )
+)
+
+fig.update_layout(
+
+    title=dict(
+        text="AXL 30-Day Rolling Volatility (%)",
+        x=0.5
+    ),
+
+    template="plotly_white",
+
+    height=550,
+
+    hovermode="x unified",
+
+    xaxis_title="Date",
+
+    yaxis_title="Volatility (%)",
+
+    showlegend=False
+)
+
+st.plotly_chart(fig, use_container_width=True)
