@@ -244,17 +244,17 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# -----------------------------
-# Basic Statistics
-# -----------------------------
+# ==================================================
+# Calculate KPIs
+# ==================================================
+
 current_price = df["price"].iloc[-1]
+
 max_price = df["price"].max()
 min_price = df["price"].min()
 avg_price = df["price"].mean()
 
-# -----------------------------
-# Percentage Change Function
-# -----------------------------
+# درصد تغییر نسبت به مرجع
 def pct_change(current, reference):
     return (current - reference) / reference * 100
 
@@ -262,9 +262,7 @@ current_vs_max = pct_change(current_price, max_price)
 current_vs_min = pct_change(current_price, min_price)
 current_vs_avg = pct_change(current_price, avg_price)
 
-# -----------------------------
-# Historical Returns
-# -----------------------------
+# بازده تاریخی
 def historical_return(days):
 
     if len(df) <= days:
@@ -274,10 +272,22 @@ def historical_return(days):
 
     return (current_price - old_price) / old_price * 100
 
-
 ret_1d = historical_return(1)
 ret_7d = historical_return(7)
 ret_30d = historical_return(30)
+
+# ==================================================
+# Helper for colored text
+# ==================================================
+
+def colored_percent(value):
+
+    if value is None:
+        return "-"
+
+    color = "green" if value >= 0 else "red"
+
+    return f":{color}[{value:.2f}%]"
 
 # ==================================================
 # Row 1
@@ -310,25 +320,16 @@ with col3:
 col4, col5, col6 = st.columns(3)
 
 with col4:
-    st.metric(
-        "🔻 Current vs Max",
-        f"{current_vs_max:.2f}%",
-        delta=f"{current_vs_max:.2f}%"
-    )
+    st.markdown("**🔻 Current vs Max**")
+    st.markdown(f"## {colored_percent(current_vs_max)}")
 
 with col5:
-    st.metric(
-        "🔺 Current vs Min",
-        f"{current_vs_min:.2f}%",
-        delta=f"{current_vs_min:.2f}%"
-    )
+    st.markdown("**🔺 Current vs Min**")
+    st.markdown(f"## {colored_percent(current_vs_min)}")
 
 with col6:
-    st.metric(
-        "⚖️ Current vs Avg",
-        f"{current_vs_avg:.2f}%",
-        delta=f"{current_vs_avg:.2f}%"
-    )
+    st.markdown("**⚖️ Current vs Avg**")
+    st.markdown(f"## {colored_percent(current_vs_avg)}")
 
 # ==================================================
 # Row 3
@@ -337,22 +338,13 @@ with col6:
 col7, col8, col9 = st.columns(3)
 
 with col7:
-    st.metric(
-        "🕒 24h Change",
-        f"{ret_1d:.2f}%" if ret_1d is not None else "-",
-        delta=f"{ret_1d:.2f}%" if ret_1d is not None else None
-    )
+    st.markdown("**🕒 24h Change**")
+    st.markdown(f"## {colored_percent(ret_1d)}")
 
 with col8:
-    st.metric(
-        "📅 7d Change",
-        f"{ret_7d:.2f}%" if ret_7d is not None else "-",
-        delta=f"{ret_7d:.2f}%" if ret_7d is not None else None
-    )
+    st.markdown("**📅 7d Change**")
+    st.markdown(f"## {colored_percent(ret_7d)}")
 
 with col9:
-    st.metric(
-        "🗓️ 30d Change",
-        f"{ret_30d:.2f}%" if ret_30d is not None else "-",
-        delta=f"{ret_30d:.2f}%" if ret_30d is not None else None
-    )
+    st.markdown("**🗓️ 30d Change**")
+    st.markdown(f"## {colored_percent(ret_30d)}")
