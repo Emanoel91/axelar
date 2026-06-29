@@ -210,7 +210,7 @@ fig.add_trace(
 fig.update_layout(
     title=dict(
         text="AXL Daily Price (Last 500 Days)",
-        x=0.1
+     #   x=0.1
     ),
     template="plotly_white",
     height=600,
