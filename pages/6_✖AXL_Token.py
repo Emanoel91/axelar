@@ -585,7 +585,6 @@ fig.update_layout(
 
     title=dict(
         text="AXL Price with Moving Averages",
-        x=0.5
     ),
 
     template="plotly_white",
