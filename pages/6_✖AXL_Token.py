@@ -509,3 +509,102 @@ with col1:
 
 with col2:
     st.plotly_chart(fig_monthly, use_container_width=True)
+
+# ==================================================
+# Price with Moving Averages
+# ==================================================
+
+import plotly.graph_objects as go
+
+df_ma = df.copy()
+
+# Moving Averages
+df_ma["MA20"] = df_ma["price"].rolling(window=20).mean()
+df_ma["MA50"] = df_ma["price"].rolling(window=50).mean()
+df_ma["MA100"] = df_ma["price"].rolling(window=100).mean()
+df_ma["MA200"] = df_ma["price"].rolling(window=200).mean()
+
+fig = go.Figure()
+
+# ---------------- Price ----------------
+fig.add_trace(
+    go.Scatter(
+        x=df_ma["date"],
+        y=df_ma["price"],
+        mode="lines",
+        name="Price",
+        line=dict(color="black", width=2)
+    )
+)
+
+# ---------------- MA20 ----------------
+fig.add_trace(
+    go.Scatter(
+        x=df_ma["date"],
+        y=df_ma["MA20"],
+        mode="lines",
+        name="MA 20",
+        line=dict(color="blue", width=2)
+    )
+)
+
+# ---------------- MA50 ----------------
+fig.add_trace(
+    go.Scatter(
+        x=df_ma["date"],
+        y=df_ma["MA50"],
+        mode="lines",
+        name="MA 50",
+        line=dict(color="orange", width=2)
+    )
+)
+
+# ---------------- MA100 ----------------
+fig.add_trace(
+    go.Scatter(
+        x=df_ma["date"],
+        y=df_ma["MA100"],
+        mode="lines",
+        name="MA 100",
+        line=dict(color="green", width=2)
+    )
+)
+
+# ---------------- MA200 ----------------
+fig.add_trace(
+    go.Scatter(
+        x=df_ma["date"],
+        y=df_ma["MA200"],
+        mode="lines",
+        name="MA 200",
+        line=dict(color="red", width=2)
+    )
+)
+
+fig.update_layout(
+
+    title=dict(
+        text="AXL Price with Moving Averages",
+        x=0.5
+    ),
+
+    template="plotly_white",
+
+    height=650,
+
+    hovermode="x unified",
+
+    xaxis_title="Date",
+
+    yaxis_title="Price (USD)",
+
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="center",
+        x=0.5
+    )
+)
+
+st.plotly_chart(fig, use_container_width=True)
