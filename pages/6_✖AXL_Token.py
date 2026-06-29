@@ -634,3 +634,96 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
+import numpy as np
+import plotly.graph_objects as go
+
+# ==================================================
+# Prepare Data
+# ==================================================
+
+df_rs = df.copy()
+
+# Daily returns
+df_rs["return"] = df_rs["price"].pct_change()
+
+# ---------------- Rolling Return (30D cumulative) ----------------
+WINDOW = 30
+
+df_rs["rolling_return"] = (
+    df_rs["return"]
+    .rolling(WINDOW)
+    .mean() * 100
+)
+
+# ---------------- Rolling Sharpe (30D) ----------------
+risk_free_rate = 0  # crypto assumption
+
+df_rs["rolling_sharpe"] = (
+    (df_rs["return"].rolling(WINDOW).mean() - risk_free_rate)
+    / df_rs["return"].rolling(WINDOW).std()
+) * np.sqrt(365)
+
+# Clean NaN
+df_rs = df_rs.dropna()
+
+# ==================================================
+# FIGURE 1 - Rolling Return
+# ==================================================
+
+fig1 = go.Figure()
+
+fig1.add_trace(
+    go.Scatter(
+        x=df_rs["date"],
+        y=df_rs["rolling_return"],
+        mode="lines",
+        name="Rolling Return",
+        line=dict(color="blue", width=2)
+    )
+)
+
+fig1.update_layout(
+    title="AXL Rolling Return (30D)",
+    template="plotly_white",
+    height=450,
+    hovermode="x unified",
+    xaxis_title="Date",
+    yaxis_title="Return (%)"
+)
+
+# ==================================================
+# FIGURE 2 - Rolling Sharpe
+# ==================================================
+
+fig2 = go.Figure()
+
+fig2.add_trace(
+    go.Scatter(
+        x=df_rs["date"],
+        y=df_rs["rolling_sharpe"],
+        mode="lines",
+        name="Rolling Sharpe",
+        line=dict(color="purple", width=2)
+    )
+)
+
+fig2.update_layout(
+    title="AXL Rolling Sharpe (30D)",
+    template="plotly_white",
+    height=450,
+    hovermode="x unified",
+    xaxis_title="Date",
+    yaxis_title="Sharpe Ratio"
+)
+
+# ==================================================
+# Display Side by Side
+# ==================================================
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.plotly_chart(fig1, use_container_width=True)
+
+with col2:
+    st.plotly_chart(fig2, use_container_width=True)
