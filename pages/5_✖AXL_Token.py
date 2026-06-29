@@ -147,14 +147,27 @@ except Exception as e:
 import streamlit as st
 import requests
 import pandas as pd
+from datetime import datetime, timedelta
+import plotly.graph_objects as go
+
+# ==================================================
+# Configuration
+# ==================================================
 
 TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
 URL = f"https://coins.llama.fi/chart/{TOKEN}"
 
+# 500 روز گذشته
+start_timestamp = int((datetime.utcnow() - timedelta(days=500)).timestamp())
+
 params = {
-    "period": "1d",
-    "span": 500
+    "start": start_timestamp,
+    "period": "1d"
 }
+
+# ==================================================
+# Fetch Data
+# ==================================================
 
 response = requests.get(URL, params=params, timeout=30)
 response.raise_for_status()
@@ -167,15 +180,46 @@ if len(prices) == 0:
     st.error("No data returned from API.")
     st.stop()
 
+# ==================================================
+# DataFrame
+# ==================================================
+
 df = pd.DataFrame(prices)
 
 df["date"] = pd.to_datetime(df["timestamp"], unit="s")
+
 df = df.sort_values("date")
 
-st.title("AXL Daily Price (Last 500 Days)")
+# ==================================================
+# Plotly Figure
+# ==================================================
 
-st.line_chart(
-    df.set_index("date")["price"]
+fig = go.Figure()
+
+fig.add_trace(
+    go.Scatter(
+        x=df["date"],
+        y=df["price"],
+        mode="lines",
+        name="AXL Price",
+        line=dict(width=2)
+    )
 )
 
-st.dataframe(df)
+fig.update_layout(
+    title="AXL Daily Price (Last 500 Days)",
+    xaxis_title="Date",
+    yaxis_title="Price (USD)",
+    hovermode="x unified",
+    template="plotly_white",
+    height=550,
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    )
+)
+
+st.plotly_chart(fig, use_container_width=True)
