@@ -352,6 +352,35 @@ with col9:
     st.markdown(f"## {colored_percent(ret_30d)}")
 
 # ==================================================
+# Row 4
+# ==================================================
+
+median_price = df["price"].median()
+daily_return = df["price"].pct_change() * 100
+max_daily_gain = daily_return.max()
+max_daily_loss = daily_return.min()
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric(
+        "📍 Median Price",
+        f"${median_price:.4f}"
+    )
+
+with col2:
+    st.metric(
+        "🚀 Maximum Daily Gain",
+        f"{max_daily_gain:.2f}%"
+    )
+
+with col3:
+    st.metric(
+        "📉 Maximum Daily Loss",
+        f"{max_daily_loss:.2f}%"
+    )
+
+# ==================================================
 # Daily Price Change (%)
 # ==================================================
 
@@ -608,72 +637,3 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-# ==================================================
-# Rolling Volatility (30-Day)
-# ==================================================
-
-import plotly.graph_objects as go
-import numpy as np
-
-df_vol = df.copy()
-
-# -----------------------------
-# Daily Return
-# -----------------------------
-df_vol["daily_return"] = df_vol["price"].pct_change()
-
-# -----------------------------
-# 30-Day Rolling Volatility
-# Annualized (%)
-# -----------------------------
-WINDOW = 30
-
-df_vol["rolling_volatility"] = (
-    df_vol["daily_return"]
-    .rolling(WINDOW)
-    .std()
-    * np.sqrt(365)
-    * 100
-)
-
-df_vol = df_vol.dropna()
-
-# -----------------------------
-# Plot
-# -----------------------------
-fig = go.Figure()
-
-fig.add_trace(
-    go.Scatter(
-        x=df_vol["date"],
-        y=df_vol["rolling_volatility"],
-        mode="lines",
-        name="30-Day Rolling Volatility",
-        line=dict(
-            color="purple",
-            width=2
-        )
-    )
-)
-
-fig.update_layout(
-
-    title=dict(
-        text="AXL 30-Day Rolling Volatility (%)",
-        x=0.5
-    ),
-
-    template="plotly_white",
-
-    height=550,
-
-    hovermode="x unified",
-
-    xaxis_title="Date",
-
-    yaxis_title="Volatility (%)",
-
-    showlegend=False
-)
-
-st.plotly_chart(fig, use_container_width=True)
