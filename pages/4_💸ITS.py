@@ -9,11 +9,11 @@ import plotly.express as px
 # =====================================================
 
 st.set_page_config(
-    page_title="Interchain Token Service",
+    page_title="Interchain Token Service (ITS)",
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
-
+st.markdown("#### Part I: Transfer Analysis")
 # =====================================================
 # CSS
 # =====================================================
