@@ -820,7 +820,6 @@ fig.update_layout(
         yanchor="bottom",
         y=1.02,
         xanchor="center",
-        x=0.5
     )
 )
 
