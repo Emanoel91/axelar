@@ -147,17 +147,10 @@ except Exception as e:
 import streamlit as st
 import requests
 import pandas as pd
-import matplotlib.pyplot as plt
 
-# ==========================
-# Configuration
-# ==========================
 TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
 URL = f"https://coins.llama.fi/chart/{TOKEN}"
 
-# ==========================
-# Get last 500 daily prices
-# ==========================
 params = {
     "period": "1d",
     "span": 500
@@ -170,33 +163,19 @@ data = response.json()
 
 prices = data["coins"][TOKEN]["prices"]
 
-# ==========================
-# DataFrame
-# ==========================
+if len(prices) == 0:
+    st.error("No data returned from API.")
+    st.stop()
+
 df = pd.DataFrame(prices)
 
 df["date"] = pd.to_datetime(df["timestamp"], unit="s")
-
 df = df.sort_values("date")
 
-# ==========================
-# Streamlit
-# ==========================
 st.title("AXL Daily Price (Last 500 Days)")
 
-st.write(f"Number of observations: {len(df)}")
+st.line_chart(
+    df.set_index("date")["price"]
+)
 
-fig, ax = plt.subplots(figsize=(12,5))
-
-ax.plot(df["date"], df["price"], linewidth=2)
-
-ax.set_xlabel("Date")
-ax.set_ylabel("Price (USD)")
-ax.set_title("AXL Price - Last 500 Days")
-
-ax.grid(True)
-
-st.pyplot(fig)
-
-# نمایش داده‌ها (اختیاری)
 st.dataframe(df)
