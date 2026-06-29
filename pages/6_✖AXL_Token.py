@@ -156,8 +156,6 @@ import plotly.graph_objects as go
 
 TOKEN = "ethereum:0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
 URL = f"https://coins.llama.fi/chart/{TOKEN}"
-
-# شروع از 500 روز قبل
 start_date = datetime.utcnow() - timedelta(days=500)
 start_timestamp = int(start_date.timestamp())
 
@@ -225,7 +223,7 @@ st.plotly_chart(fig, use_container_width=True)
 # AXL Price KPIs
 # ==================================================
 
-st.markdown("### 💎 AXL Price Key Performance Indicators")
+st.markdown("### 💎 AXL Price KPIs (Last 500 Days)")
 
 st.markdown(
     """
@@ -254,7 +252,6 @@ max_price = df["price"].max()
 min_price = df["price"].min()
 avg_price = df["price"].mean()
 
-# درصد تغییر نسبت به مرجع
 def pct_change(current, reference):
     return (current - reference) / reference * 100
 
@@ -262,7 +259,6 @@ current_vs_max = pct_change(current_price, max_price)
 current_vs_min = pct_change(current_price, min_price)
 current_vs_avg = pct_change(current_price, avg_price)
 
-# بازده تاریخی
 def historical_return(days):
 
     if len(df) <= days:
@@ -350,7 +346,8 @@ with col8:
 with col9:
     st.markdown("**🗓️ 30d Change**")
     st.markdown(f"## {colored_percent(ret_30d)}")
-
+st.write(" ")
+st.write(" ")
 # ==================================================
 # Row 4
 # ==================================================
