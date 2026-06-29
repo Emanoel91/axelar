@@ -13,7 +13,7 @@ st.set_page_config(
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
-st.markdown("#### Part I: Transfer Analysis")
+
 # =====================================================
 # CSS
 # =====================================================
@@ -70,7 +70,7 @@ ITS_SERVICE_URL = (
 # =====================================================
 # LOAD DATA
 # =====================================================
-
+st.markdown("#### Part I: Transfer Analysis")
 @st.cache_data(ttl=3600)
 def load_data():
 
