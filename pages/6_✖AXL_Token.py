@@ -733,3 +733,95 @@ with col1:
 
 with col2:
     st.plotly_chart(fig2, use_container_width=True)
+
+import plotly.graph_objects as go
+
+# ==================================================
+# Bollinger Bands (20-day)
+# ==================================================
+
+df_bb = df.copy()
+
+WINDOW = 20
+df_bb["MA20"] = df_bb["price"].rolling(WINDOW).mean()
+df_bb["STD20"] = df_bb["price"].rolling(WINDOW).std()
+df_bb["upper_band"] = df_bb["MA20"] + 2 * df_bb["STD20"]
+df_bb["lower_band"] = df_bb["MA20"] - 2 * df_bb["STD20"]
+
+df_bb = df_bb.dropna()
+
+# ==================================================
+# Plot
+# ==================================================
+
+fig = go.Figure()
+fig.add_trace(
+    go.Scatter(
+        x=df_bb["date"],
+        y=df_bb["price"],
+        mode="lines",
+        name="Price",
+        line=dict(color="black", width=2)
+    )
+)
+
+# MA20
+fig.add_trace(
+    go.Scatter(
+        x=df_bb["date"],
+        y=df_bb["MA20"],
+        mode="lines",
+        name="MA 20",
+        line=dict(color="blue", width=1.5)
+    )
+)
+
+# Upper Band
+fig.add_trace(
+    go.Scatter(
+        x=df_bb["date"],
+        y=df_bb["upper_band"],
+        mode="lines",
+        name="Upper Band",
+        line=dict(color="green", width=1),
+        opacity=0.7
+    )
+)
+
+# Lower Band
+fig.add_trace(
+    go.Scatter(
+        x=df_bb["date"],
+        y=df_bb["lower_band"],
+        mode="lines",
+        name="Lower Band",
+        line=dict(color="red", width=1),
+        opacity=0.7,
+        fill="tonexty" 
+    )
+)
+
+# ==================================================
+# Layout
+# ==================================================
+
+fig.update_layout(
+    title=dict(
+        text="AXL Bollinger Bands (20-day)",
+        x=0.5
+    ),
+    template="plotly_white",
+    height=600,
+    hovermode="x unified",
+    xaxis_title="Date",
+    yaxis_title="Price (USD)",
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="center",
+        x=0.5
+    )
+)
+
+st.plotly_chart(fig, use_container_width=True)
