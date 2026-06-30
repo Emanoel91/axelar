@@ -526,7 +526,6 @@ with col1:
         x="Deployment Date",
         y="Cumulative",
         color="chain",
-        markers=True,
         title="Cumulative Token Deployments by Chain"
     )
 
