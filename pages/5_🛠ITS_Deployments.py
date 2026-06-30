@@ -573,3 +573,40 @@ with col2:
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+# =====================================================
+# UNIQUE TOKENS BY CHAIN
+# =====================================================
+
+unique_chain = (
+    chart_df
+    .drop_duplicates(["tokenID", "chain"])
+    .groupby("chain")["tokenID"]
+    .nunique()
+    .reset_index(name="Unique Tokens")
+    .sort_values("Unique Tokens", ascending=False)
+)
+
+fig = px.bar(
+    unique_chain,
+    x="chain",
+    y="Unique Tokens",
+    text="Unique Tokens",
+    title="Unique Tokens Deployed by Chain"
+)
+
+fig.update_layout(
+    template="plotly_dark",
+    height=500,
+    xaxis_title="Chain",
+    yaxis_title="Unique Tokens"
+)
+
+fig.update_traces(
+    textposition="outside"
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
