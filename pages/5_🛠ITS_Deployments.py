@@ -489,3 +489,88 @@ with col2:
         fig2,
         use_container_width=True
     )
+
+# =====================================================
+# CUMULATIVE + PIE
+# =====================================================
+
+col1, col2 = st.columns(2)
+
+# -----------------------------------------------------
+# Cumulative Deployments by Chain
+# -----------------------------------------------------
+
+with col1:
+
+    cumulative_df = chart_df.copy()  
+    cumulative_df = cumulative_df.drop_duplicates(
+        subset=["tokenID", "chain"]
+    )
+
+    cumulative_df = cumulative_df.sort_values("Deployment Date")
+    cumulative = (
+        cumulative_df
+        .groupby(["chain", "Deployment Date"])
+        .size()
+        .reset_index(name="Deployments")
+    )
+
+    cumulative["Cumulative"] = (
+        cumulative
+        .groupby("chain")["Deployments"]
+        .cumsum()
+    )
+
+    fig = px.line(
+        cumulative,
+        x="Deployment Date",
+        y="Cumulative",
+        color="chain",
+        markers=True,
+        title="Cumulative Token Deployments by Chain"
+    )
+
+    fig.update_layout(
+        template="plotly_dark",
+        height=450,
+        xaxis_title="",
+        yaxis_title="Cumulative Deployments",
+        legend_title="Chain"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+# -----------------------------------------------------
+# Pie Chart
+# -----------------------------------------------------
+
+with col2:
+
+    pie_df = (
+        chart_df
+        .drop_duplicates(["tokenID", "chain"])
+        .groupby("chain")["tokenID"]
+        .nunique()
+        .reset_index(name="Deployments")
+        .sort_values("Deployments", ascending=False)
+    )
+
+    fig = px.pie(
+        pie_df,
+        values="Deployments",
+        names="chain",
+        hole=0.45,
+        title="Share of Deployments by Chain"
+    )
+
+    fig.update_layout(
+        template="plotly_dark",
+        height=450
+    )
+
+    fig.update_traces(
+        textposition="inside",
+        textinfo="percent+label"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
