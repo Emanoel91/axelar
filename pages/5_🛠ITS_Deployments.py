@@ -192,7 +192,109 @@ with col3:
         "End Date",
         value=pd.Timestamp.utcnow().date()
     )
+# =====================================================
+# KPI CARDS
+# =====================================================
 
+# Total Deployments (تمام رکوردهای Deployment در بازه انتخابی)
+total_deployments = len(chart_df)
+
+# Total Unique Tokens
+total_unique_tokens = chart_df["tokenID"].nunique()
+
+# Active Chains
+active_chains = chart_df["chain"].nunique()
+
+# Average Chains per Token
+avg_chains_per_token = (
+    chart_df
+    .groupby("tokenID")["chain"]
+    .nunique()
+    .mean()
+)
+
+if pd.isna(avg_chains_per_token):
+    avg_chains_per_token = 0
+
+# Latest Deployment (در بازه انتخابی)
+if len(chart_df) > 0:
+    latest_deployment = (
+        chart_df["Deployment Date"]
+        .max()
+        .strftime("%Y-%m-%d")
+    )
+else:
+    latest_deployment = "-"
+
+
+# =====================================================
+# Deployments (Last 30 Days)
+# همیشه نسبت به امروز محاسبه می‌شود
+# =====================================================
+
+all_df = pd.DataFrame(data)
+
+all_df["Deployment Date"] = pd.to_datetime(
+    all_df["timestamp"],
+    unit="s",
+    utc=True
+).dt.tz_localize(None)
+
+today = pd.Timestamp.utcnow().tz_localize(None)
+last_30_days = today - pd.Timedelta(days=30)
+
+deployments_30d = (
+    all_df[
+        all_df["Deployment Date"] >= last_30_days
+    ]["tokenID"]
+    .nunique()
+)
+
+
+# =====================================================
+# SHOW KPIs
+# =====================================================
+
+row1_col1, row1_col2, row1_col3 = st.columns(3)
+
+with row1_col1:
+    st.metric(
+        "Total Deployments",
+        f"{total_deployments:,}"
+    )
+
+with row1_col2:
+    st.metric(
+        "Total Unique Tokens",
+        f"{total_unique_tokens:,}"
+    )
+
+with row1_col3:
+    st.metric(
+        "Active Chains",
+        active_chains
+    )
+
+
+row2_col1, row2_col2, row2_col3 = st.columns(3)
+
+with row2_col1:
+    st.metric(
+        "Average Chains / Token",
+        f"{avg_chains_per_token:.2f}"
+    )
+
+with row2_col2:
+    st.metric(
+        "Latest Deployment",
+        latest_deployment
+    )
+
+with row2_col3:
+    st.metric(
+        "Deployments (Last 30 Days)",
+        f"{deployments_30d:,}"
+    )
 # -----------------------------------------------------
 # Prepare dataframe
 # -----------------------------------------------------
@@ -276,89 +378,7 @@ st.plotly_chart(
     fig,
     use_container_width=True
 )
-# =====================================================
-# KPI CARDS
-# =====================================================
 
-# Total Deployments (تمام رکوردهای Deployment در بازه زمانی)
-total_deployments = len(chart_df)
-
-# Total Unique Tokens
-total_unique_tokens = chart_df["tokenID"].nunique()
-
-# Active Chains
-active_chains = chart_df["chain"].nunique()
-
-# Average Chains per Token
-avg_chains_per_token = (
-    chart_df
-    .groupby("tokenID")["chain"]
-    .nunique()
-    .mean()
-)
-
-if pd.isna(avg_chains_per_token):
-    avg_chains_per_token = 0
-
-# Latest Deployment
-if len(chart_df) > 0:
-    latest_deployment = (
-        chart_df["Deployment Date"]
-        .max()
-        .strftime("%Y-%m-%d")
-    )
-else:
-    latest_deployment = "-"
-
-# Deployments in Last 30 Days
-if len(chart_df) > 0:
-
-    latest_date = chart_df["Deployment Date"].max()
-
-    deployments_30d = chart_df[
-        chart_df["Deployment Date"] >= latest_date - pd.Timedelta(days=30)
-    ]["tokenID"].nunique()
-
-else:
-
-    deployments_30d = 0
-
-
-# =====================================================
-# SHOW KPIs
-# =====================================================
-
-k1, k2, k3, k4, k5, k6 = st.columns(6)
-
-k1.metric(
-    "Total Deployments",
-    f"{total_deployments:,}"
-)
-
-k2.metric(
-    "Total Unique Tokens",
-    f"{total_unique_tokens:,}"
-)
-
-k3.metric(
-    "Active Chains",
-    active_chains
-)
-
-k4.metric(
-    "Average Chains / Token",
-    f"{avg_chains_per_token:.2f}"
-)
-
-k5.metric(
-    "Latest Deployment",
-    latest_deployment
-)
-
-k6.metric(
-    "Deployments (30d)",
-    f"{deployments_30d:,}"
-)
 # =====================================================
 # STACKED BAR CHARTS
 # =====================================================
