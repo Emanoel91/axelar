@@ -52,3 +52,60 @@ st.markdown("""
 
 </style>
 """, unsafe_allow_html=True)
+
+# =====================================================
+# ITS TOKEN DEPLOYMENTS TABLE
+# =====================================================
+
+API_URL = "https://api.axelarscan.io/gmp/getITSTokenDeployments"
+
+try:
+    response = requests.get(API_URL, timeout=15)
+    response.raise_for_status()
+
+    data = response.json()["data"]
+
+    df = pd.DataFrame(data)
+
+    # Convert timestamp to datetime
+    df["Deployment Date"] = pd.to_datetime(
+        df["timestamp"],
+        unit="s",
+        utc=True
+    ).dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    # Select required columns
+    df = df.rename(columns={
+        "chain": "Chain",
+        "symbol": "Symbol",
+        "name": "Name",
+        "tokenID": "Token_ID"
+    })
+
+    df = df[
+        [
+            "Deployment Date",
+            "Chain",
+            "Symbol",
+            "Name",
+            "Token_ID",
+            "timestamp"
+        ]
+    ]
+
+    # Sort by newest deployment
+    df = df.sort_values("timestamp", ascending=False)
+
+    # Remove helper column
+    df = df.drop(columns=["timestamp"]).reset_index(drop=True)
+
+    st.subheader("ITS Token Deployments")
+
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True
+    )
+
+except Exception as e:
+    st.error(f"Error loading deployment data: {e}")
