@@ -162,3 +162,114 @@ try:
 
 except Exception as e:
     st.error(f"Error loading deployment data: {e}")
+
+# =====================================================
+# TOKEN DEPLOYMENTS CHART
+# =====================================================
+
+st.subheader("Token Deployments Over Time")
+
+col1, col2, col3 = st.columns([1,1,2])
+
+with col1:
+    timeframe = st.selectbox(
+        "Timeframe",
+        ["Month", "Week", "Day"],
+        index=0
+    )
+
+with col2:
+    start_date = st.date_input(
+        "Start Date",
+        value=pd.Timestamp("2024-01-01").date()
+    )
+
+with col3:
+    end_date = st.date_input(
+        "End Date",
+        value=pd.Timestamp.utcnow().date()
+    )
+
+# -----------------------------------------------------
+# Prepare dataframe
+# -----------------------------------------------------
+
+chart_df = pd.DataFrame(data)
+
+chart_df["Deployment Date"] = pd.to_datetime(
+    chart_df["timestamp"],
+    unit="s",
+    utc=True
+).dt.tz_localize(None)
+
+# Filter dates
+chart_df = chart_df[
+    (chart_df["Deployment Date"] >= pd.Timestamp(start_date))
+    &
+    (chart_df["Deployment Date"] <= pd.Timestamp(end_date) + pd.Timedelta(days=1))
+]
+
+# Grouping
+if timeframe == "Day":
+
+    chart_df["Period"] = chart_df["Deployment Date"].dt.strftime("%Y-%m-%d")
+
+elif timeframe == "Week":
+
+    chart_df["Period"] = (
+        chart_df["Deployment Date"]
+        .dt.to_period("W")
+        .astype(str)
+    )
+
+else:
+
+    chart_df["Period"] = (
+        chart_df["Deployment Date"]
+        .dt.strftime("%Y-%m")
+    )
+
+# Count unique Token IDs
+deployments = (
+    chart_df
+    .groupby("Period")["tokenID"]
+    .nunique()
+    .reset_index(name="Deployments")
+)
+
+# Plot
+fig = px.bar(
+    deployments,
+    x="Period",
+    y="Deployments",
+    text="Deployments"
+)
+
+fig.update_layout(
+
+    template="plotly_dark",
+
+    height=450,
+
+    xaxis_title="",
+
+    yaxis_title="Unique Token Deployments",
+
+    margin=dict(
+        l=20,
+        r=20,
+        t=20,
+        b=20
+    ),
+
+    showlegend=False
+)
+
+fig.update_traces(
+    textposition="outside"
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
