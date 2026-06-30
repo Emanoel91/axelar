@@ -276,3 +276,104 @@ st.plotly_chart(
     fig,
     use_container_width=True
 )
+
+# =====================================================
+# STACKED BAR CHARTS
+# =====================================================
+
+stack_df = chart_df.copy()
+
+stack_df = stack_df.drop_duplicates(
+    subset=["tokenID", "chain"]
+)
+
+if timeframe == "Day":
+
+    stack_df["Period"] = stack_df["Deployment Date"].dt.strftime("%Y-%m-%d")
+
+elif timeframe == "Week":
+
+    stack_df["Period"] = (
+        stack_df["Deployment Date"]
+        .dt.to_period("W")
+        .astype(str)
+    )
+
+else:
+
+    stack_df["Period"] = (
+        stack_df["Deployment Date"]
+        .dt.strftime("%Y-%m")
+    )
+
+stack_summary = (
+    stack_df
+    .groupby(["Period", "chain"])["tokenID"]
+    .nunique()
+    .reset_index(name="Deployments")
+)
+
+col1, col2 = st.columns(2)
+
+# ----------------------------------------------------
+# Stacked Bar Chart
+# ----------------------------------------------------
+
+with col1:
+
+    fig1 = px.bar(
+        stack_summary,
+        x="Period",
+        y="Deployments",
+        color="chain",
+        barmode="stack",
+        labels={
+            "chain": "Chain",
+            "Deployments": "Deployments"
+        },
+        title="Token Deployments by Chain"
+    )
+
+    fig1.update_layout(
+        template="plotly_dark",
+        height=450,
+        legend_title="Chain",
+        margin=dict(l=20, r=20, t=50, b=20)
+    )
+
+    st.plotly_chart(
+        fig1,
+        use_container_width=True
+    )
+
+# ----------------------------------------------------
+# Normalized Stacked Bar Chart
+# ----------------------------------------------------
+
+with col2:
+
+    fig2 = px.bar(
+        stack_summary,
+        x="Period",
+        y="Deployments",
+        color="chain",
+        barmode="relative",
+        barnorm="percent",
+        labels={
+            "chain": "Chain",
+            "Deployments": "Percentage"
+        },
+        title="Normalized Token Deployments by Chain"
+    )
+
+    fig2.update_layout(
+        template="plotly_dark",
+        height=450,
+        legend_title="Chain",
+        margin=dict(l=20, r=20, t=50, b=20)
+    )
+
+    st.plotly_chart(
+        fig2,
+        use_container_width=True
+    )
