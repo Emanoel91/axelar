@@ -640,6 +640,58 @@ distribution.loc[
 
 col1, col2 = st.columns(2)
 
+# =====================================================
+# DISTRIBUTION OF TOKENS BY NUMBER OF CHAINS
+# =====================================================
+
+distribution = (
+    chart_df
+    .drop_duplicates(["tokenID", "chain"])
+    .groupby("tokenID")["chain"]
+    .nunique()
+    .reset_index(name="Chains")
+)
+
+
+def bucket(n):
+    if n == 1:
+        return "1 Chain"
+    elif n == 2:
+        return "2 Chains"
+    elif 3 <= n <= 5:
+        return "3–5 Chains"
+    elif 6 <= n <= 10:
+        return "6–10 Chains"
+    elif 11 <= n <= 15:
+        return "11–15 Chains"
+    elif 16 <= n <= 20:
+        return "16–20 Chains"
+    else:
+        return "20+ Chains"
+
+
+distribution["Category"] = distribution["Chains"].apply(bucket)
+
+bucket_order = [
+    "1 Chain",
+    "2 Chains",
+    "3–5 Chains",
+    "6–10 Chains",
+    "11–15 Chains",
+    "16–20 Chains",
+    "20+ Chains"
+]
+
+bucket_df = (
+    distribution
+    .groupby("Category")
+    .size()
+    .reindex(bucket_order, fill_value=0)
+    .reset_index(name="Tokens")
+)
+
+col1, col2 = st.columns(2)
+
 # -----------------------------------------------------
 # Donut Chart
 # -----------------------------------------------------
@@ -647,9 +699,9 @@ col1, col2 = st.columns(2)
 with col1:
 
     fig = px.pie(
-        distribution,
+        bucket_df,
+        names="Category",
         values="Tokens",
-        names="Label",
         hole=0.55,
         title="Distribution of Tokens by Number of Chains"
     )
@@ -668,17 +720,16 @@ with col1:
         use_container_width=True
     )
 
-
 # -----------------------------------------------------
-# Horizontal Bar Chart
+# Horizontal Bar
 # -----------------------------------------------------
 
 with col2:
 
     fig = px.bar(
-        distribution.sort_values("Tokens"),
+        bucket_df.iloc[::-1],
         x="Tokens",
-        y="Label",
+        y="Category",
         orientation="h",
         text="Tokens",
         title="Distribution of Tokens by Number of Chains"
@@ -687,7 +738,7 @@ with col2:
     fig.update_layout(
         template="plotly_dark",
         height=450,
-        xaxis_title="Number of Tokens",
+        xaxis_title="Tokens",
         yaxis_title=""
     )
 
