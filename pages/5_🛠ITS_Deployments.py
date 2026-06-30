@@ -610,3 +610,92 @@ st.plotly_chart(
     fig,
     use_container_width=True
 )
+
+# =====================================================
+# DISTRIBUTION OF TOKENS BY NUMBER OF CHAINS
+# =====================================================
+
+distribution = (
+    chart_df
+    .drop_duplicates(["tokenID", "chain"])
+    .groupby("tokenID")["chain"]
+    .nunique()
+    .reset_index(name="Number of Chains")
+)
+
+distribution = (
+    distribution
+    .groupby("Number of Chains")
+    .size()
+    .reset_index(name="Tokens")
+    .sort_values("Number of Chains")
+)
+
+distribution["Label"] = distribution["Number of Chains"].astype(str) + " Chain"
+
+distribution.loc[
+    distribution["Number of Chains"] > 1,
+    "Label"
+] = distribution["Number of Chains"].astype(str) + " Chains"
+
+col1, col2 = st.columns(2)
+
+# -----------------------------------------------------
+# Donut Chart
+# -----------------------------------------------------
+
+with col1:
+
+    fig = px.pie(
+        distribution,
+        values="Tokens",
+        names="Label",
+        hole=0.55,
+        title="Distribution of Tokens by Number of Chains"
+    )
+
+    fig.update_layout(
+        template="plotly_dark",
+        height=450
+    )
+
+    fig.update_traces(
+        textinfo="percent+label"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+
+# -----------------------------------------------------
+# Horizontal Bar Chart
+# -----------------------------------------------------
+
+with col2:
+
+    fig = px.bar(
+        distribution.sort_values("Tokens"),
+        x="Tokens",
+        y="Label",
+        orientation="h",
+        text="Tokens",
+        title="Distribution of Tokens by Number of Chains"
+    )
+
+    fig.update_layout(
+        template="plotly_dark",
+        height=450,
+        xaxis_title="Number of Tokens",
+        yaxis_title=""
+    )
+
+    fig.update_traces(
+        textposition="outside"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
