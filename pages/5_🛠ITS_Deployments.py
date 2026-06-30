@@ -352,16 +352,23 @@ with col1:
 
 with col2:
 
+    # Calculate percentage
+    normalized = stack_summary.copy()
+
+    normalized["Percentage"] = (
+        normalized["Deployments"] /
+        normalized.groupby("Period")["Deployments"].transform("sum")
+    ) * 100
+
     fig2 = px.bar(
-        stack_summary,
+        normalized,
         x="Period",
-        y="Deployments",
+        y="Percentage",
         color="chain",
-        barmode="relative",
-        barnorm="percent",
+        barmode="stack",
         labels={
             "chain": "Chain",
-            "Deployments": "Percentage"
+            "Percentage": "Percentage (%)"
         },
         title="Normalized Token Deployments by Chain"
     )
@@ -370,7 +377,11 @@ with col2:
         template="plotly_dark",
         height=450,
         legend_title="Chain",
-        margin=dict(l=20, r=20, t=50, b=20)
+        margin=dict(l=20, r=20, t=50, b=20),
+        yaxis=dict(
+            range=[0, 100],
+            ticksuffix="%"
+        )
     )
 
     st.plotly_chart(
