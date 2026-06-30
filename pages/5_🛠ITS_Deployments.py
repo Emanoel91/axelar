@@ -52,3 +52,107 @@ st.markdown("""
 
 </style>
 """, unsafe_allow_html=True)
+
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+# =====================================================
+# ITS TOKEN DEPLOYMENTS TABLE
+# =====================================================
+
+API_URL = "https://api.axelarscan.io/gmp/getITSTokenDeployments"
+
+try:
+
+    # Create Session
+    session = requests.Session()
+
+    retry = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+
+    # Request
+    response = session.get(API_URL, timeout=60)
+    response.raise_for_status()
+
+    data = response.json()["data"]
+
+    # Create DataFrame
+    df = pd.DataFrame(data)
+
+    # Convert Timestamp
+    df["Deployment Date"] = pd.to_datetime(
+        df["timestamp"],
+        unit="s",
+        utc=True
+    )
+
+    # Rename columns
+    df.rename(columns={
+        "chain": "Chain",
+        "symbol": "Symbol",
+        "name": "Name",
+        "tokenID": "Token_ID"
+    }, inplace=True)
+
+    # Keep required columns
+    df = df[
+        [
+            "Deployment Date",
+            "Chain",
+            "Symbol",
+            "Name",
+            "Token_ID",
+            "timestamp"
+        ]
+    ]
+
+    # Sort by newest
+    df = df.sort_values(
+        by="timestamp",
+        ascending=False
+    ).drop(columns=["timestamp"])
+
+    # Display Date
+    df["Deployment Date"] = df["Deployment Date"].dt.strftime(
+        "%Y-%m-%d %H:%M UTC"
+    )
+
+    st.subheader("ITS Token Deployments")
+
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        height=700,
+        column_config={
+            "Deployment Date": st.column_config.TextColumn(
+                "Deployment Date",
+                width="medium"
+            ),
+            "Chain": st.column_config.TextColumn(
+                "Chain",
+                width="small"
+            ),
+            "Symbol": st.column_config.TextColumn(
+                "Symbol",
+                width="small"
+            ),
+            "Name": st.column_config.TextColumn(
+                "Name",
+                width="medium"
+            ),
+            "Token_ID": st.column_config.TextColumn(
+                "Token ID",
+                width="large"
+            ),
+        }
+    )
+
+except Exception as e:
+    st.error(f"Error loading deployment data: {e}")
