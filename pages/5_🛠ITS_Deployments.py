@@ -13,7 +13,7 @@ st.set_page_config(
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
-st.title("🛠 Interchain Token Service (ITS): Token Deployments")
+st.title("### 🛠 Interchain Token Service (ITS): Token Deployments")
 st.info(
     "All data is loaded directly from Axelar public APIs."
 )
