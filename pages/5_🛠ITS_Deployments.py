@@ -62,9 +62,10 @@ from urllib3.util.retry import Retry
 
 API_URL = "https://api.axelarscan.io/gmp/getITSTokenDeployments"
 
-try:
 
-    # Create Session
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def load_deployments():
+
     session = requests.Session()
 
     retry = Retry(
@@ -76,11 +77,16 @@ try:
 
     session.mount("https://", HTTPAdapter(max_retries=retry))
 
-    # Request
     response = session.get(API_URL, timeout=60)
     response.raise_for_status()
 
-    data = response.json()["data"]
+    return response.json()["data"]
+
+
+try:
+
+    # Load data (cached)
+    data = load_deployments()
 
     # Create DataFrame
     df = pd.DataFrame(data)
@@ -113,10 +119,10 @@ try:
     ]
 
     # Sort by newest
-    df = df.sort_values(
-        by="timestamp",
-        ascending=False
-    ).drop(columns=["timestamp"])
+    df = (
+        df.sort_values(by="timestamp", ascending=False)
+          .drop(columns=["timestamp"])
+    )
 
     # Display Date
     df["Deployment Date"] = df["Deployment Date"].dt.strftime(
