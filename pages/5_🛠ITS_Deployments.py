@@ -3,7 +3,9 @@ import pandas as pd
 import requests
 import plotly.graph_objects as go
 import plotly.express as px
-
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from st_aggrid import AgGrid, GridOptionsBuilder
 # =====================================================
 # PAGE CONFIG
 # =====================================================
@@ -52,7 +54,6 @@ st.markdown("""
 
 </style>
 """, unsafe_allow_html=True)
-
 # =====================================================
 # ITS TOKEN DEPLOYMENTS TABLE
 # =====================================================
@@ -60,21 +61,42 @@ st.markdown("""
 API_URL = "https://api.axelarscan.io/gmp/getITSTokenDeployments"
 
 try:
-    response = requests.get(API_URL, timeout=15)
+
+    # -----------------------------
+    # Requests Session + Retry
+    # -----------------------------
+    session = requests.Session()
+
+    retry = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+
+    session.mount(
+        "https://",
+        HTTPAdapter(max_retries=retry)
+    )
+
+    response = session.get(API_URL, timeout=60)
     response.raise_for_status()
 
     data = response.json()["data"]
 
+    # -----------------------------
+    # DataFrame
+    # -----------------------------
     df = pd.DataFrame(data)
 
-    # Convert timestamp to datetime
+    # Convert timestamp
     df["Deployment Date"] = pd.to_datetime(
         df["timestamp"],
         unit="s",
         utc=True
-    ).dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+    )
 
-    # Select required columns
+    # Rename columns
     df = df.rename(columns={
         "chain": "Chain",
         "symbol": "Symbol",
@@ -82,6 +104,7 @@ try:
         "tokenID": "Token_ID"
     })
 
+    # Keep required columns
     df = df[
         [
             "Deployment Date",
@@ -93,18 +116,81 @@ try:
         ]
     ]
 
-    # Sort by newest deployment
-    df = df.sort_values("timestamp", ascending=False)
+    # Sort newest first
+    df = df.sort_values(
+        by="timestamp",
+        ascending=False
+    )
 
     # Remove helper column
-    df = df.drop(columns=["timestamp"]).reset_index(drop=True)
+    df = df.drop(columns=["timestamp"])
 
+    # Format date
+    df["Deployment Date"] = df["Deployment Date"].dt.strftime(
+        "%Y-%m-%d %H:%M UTC"
+    )
+
+    # -----------------------------
+    # Title
+    # -----------------------------
     st.subheader("ITS Token Deployments")
 
-    st.dataframe(
+    # -----------------------------
+    # AGGRID
+    # -----------------------------
+    gb = GridOptionsBuilder.from_dataframe(df)
+
+    gb.configure_default_column(
+        sortable=True,
+        filter=True,
+        resizable=True,
+        floatingFilter=True,
+    )
+
+    gb.configure_pagination(
+        paginationAutoPageSize=False,
+        paginationPageSize=20,
+    )
+
+    gb.configure_grid_options(
+        animateRows=True
+    )
+
+    # Column widths
+    gb.configure_column(
+        "Deployment Date",
+        width=170
+    )
+
+    gb.configure_column(
+        "Chain",
+        width=110
+    )
+
+    gb.configure_column(
+        "Symbol",
+        width=110
+    )
+
+    gb.configure_column(
+        "Name",
+        width=220
+    )
+
+    gb.configure_column(
+        "Token_ID",
+        width=500
+    )
+
+    gridOptions = gb.build()
+
+    AgGrid(
         df,
-        use_container_width=True,
-        hide_index=True
+        gridOptions=gridOptions,
+        height=700,
+        fit_columns_on_grid_load=True,
+        theme="streamlit",
+        allow_unsafe_jscode=True,
     )
 
 except Exception as e:
