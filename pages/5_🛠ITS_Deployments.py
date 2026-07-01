@@ -175,7 +175,7 @@ try:
         "%Y-%m-%d %H:%M UTC"
     )
 
-    st.subheader("ITS Token Deployments")
+    st.subheader("📃Deployed Tokens Sorted by Deployment Time")
 
     st.dataframe(
         df,
