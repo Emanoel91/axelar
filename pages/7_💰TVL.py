@@ -278,11 +278,11 @@ total_chains = len(chains_df)
 
 # --- Chain Ranking KPIs ---
 
-    st.metric(
-        label="🏆 Axelar TVL Rank",
-        value=f"#{axelar_rank}",
-        delta=f"Among {total_chains} tracked chains"
-    )
+st.metric(
+    label="🏆 Axelar TVL Rank",
+    value=f"#{axelar_rank}",
+    delta=f"Among {total_chains} tracked chains"
+)
 
 # --- Table ------------------------------------------------------
 st.markdown("### TVL of Different Chains")
