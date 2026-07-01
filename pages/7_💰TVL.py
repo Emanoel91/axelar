@@ -204,7 +204,7 @@ fig_asset_type = px.pie(
     names="Asset Type Label",
     hole=0.5,
     color="Asset Type Label",
-    color_discrete_map={"ITS": "#62cbff", "non-ITS": "#006ac9"},
+    color_discrete_map={"ITS": "#0ed145", "non-ITS": "#f8f17d"},
     title="Share of TVL by Asset Type"
 )
 
