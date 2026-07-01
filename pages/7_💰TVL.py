@@ -272,14 +272,14 @@ chains_df = pd.concat([
 chains_df = chains_df.sort_values("TVL (USD)", ascending=False).reset_index(drop=True)
 chains_df.index = chains_df.index + 1
 
-# --- Axelar TVL Rank ---
-axelar_rank = (
-    chains_df[chains_df["Chain Name"] == "Axelar"]
-    .index[0] + 1
-)
+# --- Chain Ranking KPIs ---
+axelar_rank = chains_df.index[chains_df["Chain Name"] == "Axelar"][0]
+total_chains = len(chains_df)
 
-col1 = st.columns(1)
-with col1:
+# --- Chain Ranking KPIs ---
+kpi1, kpi2 = st.columns(2)
+
+with kpi1:
     st.markdown(
         f"""
         <div style="
@@ -288,22 +288,48 @@ with col1:
             border-radius:15px;
             text-align:center;
         ">
-            <h2 style="color:#0f7b6c; font-size:22px;">
+            <h2 style="color:#fc9608; font-size:22px;">
                 Axelar TVL Rank
             </h2>
 
-            <h1 style="color:#00b894; font-size:48px;">
+            <h1 style="color:#006ac9; font-size:48px;">
                 #{axelar_rank}
             </h1>
 
             <p style="color:#444; font-size:16px;">
-                Among All Chains by TVL
+                Among all tracked chains
             </p>
         </div>
         """,
         unsafe_allow_html=True
     )
-# --- Table ---
+
+with kpi2:
+    st.markdown(
+        f"""
+        <div style="
+            background-color:#ffffff;
+            padding:20px;
+            border-radius:15px;
+            text-align:center;
+        ">
+            <h2 style="color:#d17c00; font-size:22px;">
+                Chains Tracked
+            </h2>
+
+            <h1 style="color:#ff7f50; font-size:48px;">
+                {total_chains}
+            </h1>
+
+            <p style="color:#444; font-size:16px;">
+                Included in TVL comparison
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# --- Table ------------------------------------------------------
 st.markdown("### TVL of Different Chains")
 
 st.dataframe(
