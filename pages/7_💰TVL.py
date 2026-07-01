@@ -10,17 +10,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- Convert date ---
-df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
-df = df.dropna(subset=["date"])
-
-# --- Ensure numeric TVL ---
-df["tvl"] = pd.to_numeric(df["tvl"], errors="coerce")
-df = df.dropna(subset=["tvl"])
-
-# --- Sort data ---
-df = df.sort_values("date")
-
 # --- Title ---
 st.title("💰TVL Analysis")
 
