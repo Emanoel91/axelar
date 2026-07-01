@@ -786,3 +786,69 @@ st.plotly_chart(
     fig,
     use_container_width=True
 )
+# =====================================================
+# ALL-TIME TOKENS BY NUMBER OF CHAINS
+# (NOT AFFECTED BY DATE FILTERS)
+# =====================================================
+
+st.subheader("All-Time Tokens by Number of Chains")
+st.caption("This table is not affected by the selected date range.")
+
+all_tokens = pd.DataFrame(data)
+all_tokens = all_tokens.drop_duplicates(
+    subset=["tokenID", "chain"]
+)
+ 
+token_summary = (
+    all_tokens
+    .groupby("tokenID")
+    .agg(
+        Symbol=("symbol", "first"),
+        Name=("name", "first"),
+        Number_of_Chains=("chain", "nunique"),
+        Chains=("chain", lambda x: ", ".join(sorted(x.unique())))
+    )
+    .reset_index()
+)
+
+token_summary.rename(
+    columns={
+        "tokenID": "Token_ID"
+    },
+    inplace=True
+)
+
+token_summary = token_summary.sort_values(
+    by=["Number_of_Chains", "Symbol"],
+    ascending=[False, True]
+).reset_index(drop=True)
+
+st.dataframe(
+    token_summary,
+    use_container_width=True,
+    hide_index=True,
+    height=700,
+    column_config={
+        "Symbol": st.column_config.TextColumn(
+            "Symbol",
+            width="small"
+        ),
+        "Name": st.column_config.TextColumn(
+            "Name",
+            width="medium"
+        ),
+        "Token_ID": st.column_config.TextColumn(
+            "Token ID",
+            width="large"
+        ),
+        "Number_of_Chains": st.column_config.NumberColumn(
+            "Number of Chains",
+            format="%d",
+            width="small"
+        ),
+        "Chains": st.column_config.TextColumn(
+            "Chains",
+            width="large"
+        ),
+    }
+)
