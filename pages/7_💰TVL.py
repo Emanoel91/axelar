@@ -277,7 +277,7 @@ axelar_rank = chains_df.index[chains_df["Chain Name"] == "Axelar"][0]
 total_chains = len(chains_df)
 
 # --- Chain Ranking KPIs ---
-kpi1 = st.columns(1)
+kpi1 = st.columns()
 
 with kpi1:
     st.metric(
