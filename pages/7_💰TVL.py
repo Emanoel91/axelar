@@ -280,53 +280,16 @@ total_chains = len(chains_df)
 kpi1, kpi2 = st.columns(2)
 
 with kpi1:
-    st.markdown(
-        f"""
-        <div style="
-            background-color:#ffffff;
-            padding:20px;
-            border-radius:15px;
-            text-align:center;
-        ">
-            <h2 style="color:#fc9608; font-size:22px;">
-                Axelar TVL Rank
-            </h2>
-
-            <h1 style="color:#006ac9; font-size:48px;">
-                #{axelar_rank}
-            </h1>
-
-            <p style="color:#444; font-size:16px;">
-                Among all tracked chains
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
+    st.metric(
+        label="🏆 Axelar TVL Rank",
+        value=f"#{axelar_rank}",
+        delta=f"Among {total_chains} tracked chains"
     )
 
 with kpi2:
-    st.markdown(
-        f"""
-        <div style="
-            background-color:#ffffff;
-            padding:20px;
-            border-radius:15px;
-            text-align:center;
-        ">
-            <h2 style="color:#d17c00; font-size:22px;">
-                Chains Tracked
-            </h2>
-
-            <h1 style="color:#ff7f50; font-size:48px;">
-                {total_chains}
-            </h1>
-
-            <p style="color:#444; font-size:16px;">
-                Included in TVL comparison
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
+    st.metric(
+        label="🌐 Chains Tracked",
+        value=f"{total_chains}"
     )
 
 # --- Table ------------------------------------------------------
