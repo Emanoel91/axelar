@@ -13,10 +13,8 @@ st.set_page_config(
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
-st.title("🛠 Interchain Token Service: Token Deployments")
-st.info(
-    "All data is loaded directly from Axelar public APIs."
-)
+st.title("🛠 ITS Token Deployments")
+st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
 
 # ------ SIDEBAR ---------
 
