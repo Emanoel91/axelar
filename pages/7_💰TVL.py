@@ -10,9 +10,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- Load CSV Data ---
-df = pd.read_csv("tvl_data.csv")
-
 # --- Convert date ---
 df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 df = df.dropna(subset=["date"])
