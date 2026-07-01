@@ -285,7 +285,7 @@ st.metric(
 )
 
 # --- Table ------------------------------------------------------
-st.markdown("### TVL of Different Chains")
+st.markdown("### ⛓TVL of Different Chains")
 
 st.dataframe(
     chains_df.style.format({
