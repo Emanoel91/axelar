@@ -750,3 +750,39 @@ with col2:
         fig,
         use_container_width=True
     )
+
+# =====================================================
+# EXACT DISTRIBUTION
+# =====================================================
+
+exact_distribution = (
+    distribution
+    .groupby("Chains")
+    .size()
+    .reset_index(name="Tokens")
+    .sort_values("Chains")
+)
+
+fig = px.bar(
+    exact_distribution,
+    x="Chains",
+    y="Tokens",
+    text="Tokens",
+    title="Exact Distribution of Tokens by Number of Chains"
+)
+
+fig.update_layout(
+    template="plotly_dark",
+    height=500,
+    xaxis_title="Number of Chains",
+    yaxis_title="Number of Tokens"
+)
+
+fig.update_traces(
+    textposition="outside"
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
