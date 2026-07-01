@@ -57,6 +57,8 @@ st.sidebar.markdown(
 # --- Title ---
 st.title("💰TVL Analysis")
 
+st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
+
 # --- Load API Data ---
 @st.cache_data(ttl=3600)
 def load_axelar_api():
