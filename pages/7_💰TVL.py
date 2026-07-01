@@ -27,40 +27,7 @@ df = df.sort_values("date")
 
 # --- Title ---------------------------------------------------------------------------------------------------
 st.title("💰Axelar TVL")
-
-# --- Row 1: Stacked Bar Chart ------------------
-
-# Plot order for columns (ITS is placed above non-ITS) --------------------------------
-category_order = {"asset_type": ["non-ITS", "ITS"]}
-
-fig1 = px.bar(
-    df,
-    x="date",
-    y="tvl",
-    color="asset_type",
-    title="Axelar TVL Over Time",
-    labels={"tvl": "TVL ($USD)", "date": "Date"},
-    category_orders=category_order,
-)
-
-# Calculate total daily TVL ---------------------
-daily_total = df.groupby("date")["tvl"].sum().reset_index()
-
-# Add TVL_total line on y-axis -----------------------------
-fig1.add_trace(
-    go.Scatter(
-        x=daily_total["date"],
-        y=daily_total["tvl"],
-        mode="lines",
-        name="Total TVL",
-        line=dict(color="black", width=2),
-        yaxis="y"
-    )
-)
-
-st.plotly_chart(fig1, use_container_width=True)
-
-# --- Row 2+ ----------------------------------------------------------------------------------------------------------------------------------------------------------
+# --- Row 1 ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # --- Load API Data ---
 @st.cache_data(ttl=3600)
@@ -131,8 +98,7 @@ def load_axl_price_supply():
         # get total supply
         supply_url = "https://api.axelarscan.io/api/getTotalSupply"
         supply_res = requests.get(supply_url).json()
-        axl_supply = float(supply_res)  # API فقط عدد برمی‌گردونه
-
+        axl_supply = float(supply_res)  
         # get fdv
         fdv = axl_price * axl_supply
         return axl_price, axl_supply, fdv
