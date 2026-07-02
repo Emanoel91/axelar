@@ -44,9 +44,9 @@ st.markdown("""
 </style>
 
 <div class="card">
-    For cross-chain token development using an interchain token service, you can visit 
-    <a href="https://interchain.axelar.dev/" target="_blank">this link</a>
-    to get started and explore the documentation.
+    For token deployments using Interchain Token Service (ITS), you can visit 
+    <a href="https://interchain.axelar.dev/" target="_blank">here</a>
+    .
 </div>
 """, unsafe_allow_html=True)
 # ------ SIDEBAR ---------
