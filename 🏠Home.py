@@ -36,12 +36,7 @@ st.markdown(
 st.markdown(
     """
     <div style="background-color: #d5fe8b; padding: 15px; border-radius: 10px; border: 1px solid #d5fe8b;">
-        This dashboard provides comprehensive monitoring of the entire <b>Axelar cross-chain infrastructure</b>
-        across both <b>testnet</b> and <b>mainnet</b> environments. It tracks the performance and health of
-        <b>Axelar’s cross-chain services</b>, monitors <b>tokens leveraging Axelar for cross-chain transfers</b>,
-        and oversees <b>smart contracts</b> built on the Axelar network.
-        <br><br>
-        With end-to-end visibility into the ecosystem, this dashboard serves as a unified platform for
+        With end-to-end visibility into the Axelar ecosystem, this dashboard serves as a unified platform for
         tracking, analyzing, and evaluating all <b>cross-chain activity</b> across Axelar.
     </div>
     """,
