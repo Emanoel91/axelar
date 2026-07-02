@@ -16,39 +16,6 @@ st.set_page_config(
 st.title("🛠 ITS Token Deployments")
 st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
 
-st.markdown("""
-<style>
-.card {
-    background: linear-gradient(135deg, #ddefd4, #1e293b);
-    padding: 22px;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-    color: #ffffff;
-    font-size: 16px;
-    line-height: 1.8;
-    border: 1px solid rgba(255,255,255,0.08);
-}
-
-.card a {
-    color: #ddefd4;
-    font-weight: 600;
-    text-decoration: none;
-    border-bottom: 1px dashed #ddefd4;
-    transition: 0.2s;
-}
-
-.card a:hover {
-    color: #ddefd4;
-    border-bottom: 1px solid #ddefd4;
-}
-</style>
-
-<div class="card">
-    For token deployments using Interchain Token Service (ITS), you can visit 
-    <a href="https://interchain.axelar.dev/" target="_blank">here</a>
-    .
-</div>
-""", unsafe_allow_html=True)
 # ------ SIDEBAR ---------
 
 st.sidebar.markdown(
@@ -927,3 +894,37 @@ st.dataframe(
         ),
     }
 )
+
+st.markdown("""
+<style>
+.card {
+    background: linear-gradient(135deg, #ddefd4, #1e293b);
+    padding: 22px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    color: #ffffff;
+    font-size: 16px;
+    line-height: 1.8;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.card a {
+    color: #ddefd4;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px dashed #ddefd4;
+    transition: 0.2s;
+}
+
+.card a:hover {
+    color: #ddefd4;
+    border-bottom: 1px solid #ddefd4;
+}
+</style>
+
+<div class="card">
+    For token deployments using Interchain Token Service (ITS), you can visit 
+    <a href="https://interchain.axelar.dev/" target="_blank">here</a>
+    .
+</div>
+""", unsafe_allow_html=True)
