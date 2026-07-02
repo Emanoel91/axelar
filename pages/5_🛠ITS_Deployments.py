@@ -23,7 +23,7 @@ st.markdown("""
     padding: 22px;
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-    color: #ddefd4;
+    color: #ffffff;
     font-size: 16px;
     line-height: 1.8;
     border: 1px solid rgba(255,255,255,0.08);
