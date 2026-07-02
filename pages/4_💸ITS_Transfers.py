@@ -2621,3 +2621,5 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"]{
 </style>
 
 """, unsafe_allow_html=True)
+
+st.info("🔗For ITS token transfers, visit: https://app.axelar.network/")
