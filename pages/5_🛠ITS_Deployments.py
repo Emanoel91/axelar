@@ -213,8 +213,7 @@ except Exception as e:
 # TOKEN DEPLOYMENTS CHART
 # =====================================================
 
-st.subheader("Token Deployments Over Time")
-
+st.markdown("##### Please select your desired time range:")
 col1, col2, col3 = st.columns([1,1,2])
 
 with col1:
@@ -239,7 +238,7 @@ with col3:
 # -----------------------------------------------------
 # Prepare dataframe
 # -----------------------------------------------------
-
+st.subheader("Token Deployments Over Time")
 chart_df = pd.DataFrame(data)
 
 chart_df["Deployment Date"] = pd.to_datetime(
