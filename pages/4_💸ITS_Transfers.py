@@ -175,9 +175,7 @@ st.sidebar.markdown(
 # =====================================================
 
 st.title("🌉 Interchain Token Service (ITS): Transfers Analysis")
-st.info(
-    "All data is loaded directly from Axelar public APIs."
-)
+st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
 
 # =====================================================
 # FILTERS
