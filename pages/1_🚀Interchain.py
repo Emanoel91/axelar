@@ -128,9 +128,7 @@ st.sidebar.markdown(
 # =====================================================
 st.title("🚀 Interchain Analysis")
 
-st.info(
-    "All data is loaded from Axelar public API (no database required)."
-)
+st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
 
 # =====================================================
 # FILTERS
