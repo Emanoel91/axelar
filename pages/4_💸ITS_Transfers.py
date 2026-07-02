@@ -174,7 +174,7 @@ st.sidebar.markdown(
 # TITLE
 # =====================================================
 
-st.title("🌉 Interchain Token Service (ITS): Transfers Analysis")
+st.title("🌉 ITS Token Transfers")
 st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
 
 # =====================================================
