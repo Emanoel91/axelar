@@ -19,7 +19,7 @@ st.info("⏳On-chain data retrieval may take a few moments. Please wait while th
 st.markdown("""
 <style>
 .card {
-    background: linear-gradient(135deg, #0f172a, #1e293b);
+    background: linear-gradient(135deg, #ddefd4, #1e293b);
     padding: 22px;
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.25);
