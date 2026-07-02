@@ -25,9 +25,7 @@ Higher uptime means better reliability, fewer missed blocks, and stronger networ
 """
 )
 
-st.info(
-    "Data is sourced from Axelar validator uptime snapshots."
-)
+st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
 
 # =====================================================
 # SIDEBAR
