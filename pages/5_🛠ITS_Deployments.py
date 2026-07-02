@@ -30,10 +30,10 @@ st.markdown("""
 }
 
 .card a {
-    color: #38bdf8;
+    color: #ddefd4;
     font-weight: 600;
     text-decoration: none;
-    border-bottom: 1px dashed #38bdf8;
+    border-bottom: 1px dashed #ddefd4;
     transition: 0.2s;
 }
 
