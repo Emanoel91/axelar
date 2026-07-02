@@ -9,7 +9,7 @@ st.set_page_config(
 )
 
 # --- Title -----------------------------------------------------------------------------------------------------
-st.title("📊 AXL Token Info")
+st.title("📊 AXL Token")
 
 st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
 
@@ -76,7 +76,7 @@ try:
     inflation = data.get("inflation", 0)
 
     # --- KPI Display Section -----------------------------------------------------------------------------------
-    st.markdown("### 💎 AXL Key Performance Indicators")
+    st.markdown("### 💎 AXL KPIs")
 
     st.markdown(
         """
