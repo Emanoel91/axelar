@@ -38,8 +38,8 @@ st.markdown("""
 }
 
 .card a:hover {
-    color: #0ea5e9;
-    border-bottom: 1px solid #0ea5e9;
+    color: #ddefd4;
+    border-bottom: 1px solid #ddefd4;
 }
 </style>
 
