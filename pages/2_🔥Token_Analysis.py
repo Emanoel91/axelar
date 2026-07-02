@@ -93,9 +93,7 @@ st.sidebar.markdown(
 # =====================================================
 st.title("🔥 Token Analysis")
 
-st.info(
-    "Data source: Axelar GMPChart API"
-)
+st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
 
 # =====================================================
 # FILTERS
