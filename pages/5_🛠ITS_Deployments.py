@@ -897,4 +897,4 @@ st.dataframe(
 
 st.write(" ")
 st.write(" ")
-st.info("For token deployments using Interchain Token Service (ITS), you can visit: https://interchain.axelar.dev/")
+st.info("🔗For token deployments using Interchain Token Service (ITS), you can visit: https://interchain.axelar.dev/")
