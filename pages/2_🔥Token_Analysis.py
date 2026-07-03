@@ -5,18 +5,14 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta 
 import plotly.express as px
 
-# =====================================================
-# PAGE CONFIG
-# =====================================================
+# PAGE CONFIG -----------------------------------------
 st.set_page_config(
     page_title="Axelar Mega Dashboard",
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
 
-# =====================================================
-# CSS
-# =====================================================
+# CSS ------------------------------------------------
 st.markdown("""
 <style>
 .block-container {
@@ -42,9 +38,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# =====================================================
-# SIDEBAR
-# =====================================================
+# SIDEBAR ------------------------------------------------
 st.sidebar.markdown(
     """
     <style>
@@ -88,16 +82,12 @@ st.sidebar.markdown(
     unsafe_allow_html=True
 )
 
-# =====================================================
-# TITLE
-# =====================================================
+# TITLE ------------------------------------------------
 st.title("🔥 Token Analysis")
 
 st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
 
-# =====================================================
-# FILTERS
-# =====================================================
+# FILTERS ------------------------------------------------
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
@@ -124,9 +114,7 @@ with col4:
         ["Day", "Week", "Month"]
     )
 
-# =====================================================
-# LOAD DATA
-# =====================================================
+# LOAD DATA ------------------------------------------------
 @st.cache_data(ttl=3600)
 def load_data(symbol, start_date, end_date):
 
@@ -183,9 +171,7 @@ df = load_data(
     end_date
 )
 
-# =====================================================
-# EMPTY DATA
-# =====================================================
+# EMPTY DATA ------------------------------------------------
 if df.empty:
 
     st.warning(
@@ -194,9 +180,7 @@ if df.empty:
 
     st.stop()
 
-# =====================================================
-# RESAMPLE
-# =====================================================
+# RESAMPLE ------------------------------------------------
 if timeframe == "Week":
 
     df["period"] = (
@@ -232,9 +216,7 @@ grouped = (
     .reset_index()
 )
 
-# =====================================================
-# CUMULATIVE
-# =====================================================
+# CUMULATIVE ------------------------------------------------
 grouped["cumulative_volume"] = (
     grouped["volume"]
     .cumsum()
@@ -245,9 +227,7 @@ grouped["cumulative_txs"] = (
     .cumsum()
 )
 
-# =====================================================
-# KPI CALCULATIONS
-# =====================================================
+# KPI CALCULATIONS ------------------------------------------------
 total_volume = grouped["volume"].sum()
 
 total_txs = grouped["num_txs"].sum()
@@ -258,9 +238,7 @@ avg_volume_per_tx = (
     else 0
 )
 
-# =====================================================
-# KPI ROW
-# =====================================================
+# KPI ROW ------------------------------------------------
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -284,9 +262,7 @@ with col3:
         f"${avg_volume_per_tx:,.2f}"
     )
 
-# =====================================================
-# CHART 1
-# =====================================================
+# CHART 1 ------------------------------------------------
 fig_volume = go.Figure()
 
 fig_volume.add_trace(
@@ -324,9 +300,7 @@ fig_volume.update_layout(
     )
 )
 
-# =====================================================
-# CHART 2
-# =====================================================
+# CHART 2 ------------------------------------------------
 fig_txs = go.Figure()
 
 fig_txs.add_trace(
@@ -364,9 +338,7 @@ fig_txs.update_layout(
     )
 )
 
-# =====================================================
-# CHART ROW
-# =====================================================
+# CHART ROW ------------------------------------------------
 col1, col2 = st.columns(2)
 
 with col1:
@@ -381,11 +353,8 @@ with col2:
         use_container_width=True
     )
 
-# =====================================================
-# ADDITIONAL KPI CALCULATIONS
-# =====================================================
-
-# ---------- DAILY ----------
+# ADDITIONAL KPI CALCULATIONS ------------------------------------------------
+# DAILY ----------------------------------------------------------------------
 
 daily_stats = (
     df.groupby(
@@ -402,7 +371,7 @@ avg_volume_day = daily_stats["volume"].mean()
 
 avg_tx_day = daily_stats["num_txs"].mean()
 
-# ---------- MONTHLY ----------
+# ---------- MONTHLY ---------------------------------------------
 
 monthly_stats = (
     df.groupby(
@@ -419,14 +388,10 @@ monthly_stats = (
 )
 
 avg_volume_month = monthly_stats["volume"].mean()
-
 avg_tx_month = monthly_stats["num_txs"].mean()
 
-
-# =====================================================
-# WEEKLY / MONTHLY CHANGE
-# THESE KPIs IGNORE DASHBOARD DATE FILTER
-# =====================================================
+# WEEKLY / MONTHLY CHANGE -------------------------------------------------------------
+# THESE KPIs IGNORE DASHBOARD DATE FILTER ---------------------------------------------
 
 @st.cache_data(ttl=3600)
 def load_full_history(symbol):
@@ -476,9 +441,7 @@ monthly_tx_change = 0
 
 if not full_df.empty:
 
-    # ==========================================
-    # WEEKLY
-    # ==========================================
+# WEEKLY ---------------------------------------------------------
 
     weekly = (
         full_df.groupby(
@@ -517,9 +480,7 @@ if not full_df.empty:
             max(prev_week["num_txs"], 1)
         ) * 100
 
-    # ==========================================
-    # MONTHLY
-    # ==========================================
+# MONTHLY --------------------------------------------------
 
     monthly = (
         full_df.groupby(
@@ -558,9 +519,7 @@ if not full_df.empty:
             max(prev_month["num_txs"], 1)
         ) * 100
 
-# =====================================================
-# KPI ROW 2
-# =====================================================
+# KPI ROW 2 ----------------------------------------------------
 
 st.markdown("---")
 
@@ -590,9 +549,7 @@ with col4:
         f"{avg_tx_month:,.2f}"
     )
 
-# =====================================================
-# ATH / ATL CALCULATIONS
-# =====================================================
+# ATH / ATL CALCULATIONS -----------------------------------------------
 
 ath_volume_row = daily_stats.loc[
     daily_stats["volume"].idxmax()
@@ -632,10 +589,7 @@ atl_tx_date = pd.to_datetime(
     atl_tx_row["timestamp"]
 ).strftime("%Y-%m-%d")
 
-# =====================================================
-# KPI ROW 3
-# =====================================================
-
+# KPI ROW 3 -------------------------------------------------------------
 st.markdown("---")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -716,9 +670,7 @@ with col4:
         unsafe_allow_html=True
     )
 
-# =====================================================
-# KPI ROW 4
-# =====================================================
+# KPI ROW 4 -------------------------------------------------------
 
 st.markdown("---")
 
@@ -752,12 +704,8 @@ with col4:
         f"{monthly_tx_change:,.2f}%"
     )
 
-# =====================================================
-# AVG VOLUME PER TRANSACTION ANALYSIS
-# =====================================================
-
+# AVG VOLUME PER TRANSACTION ANALYSIS -------------------------------------------
 avg_volume_df = grouped.copy()
-
 avg_volume_df["avg_volume_per_tx"] = (
     avg_volume_df["volume"] /
     avg_volume_df["num_txs"].replace(0, pd.NA)
@@ -768,9 +716,7 @@ avg_volume_df["avg_volume_per_tx"] = (
     .fillna(0)
 )
 
-# =====================================================
-# DYNAMIC MOVING AVERAGES
-# =====================================================
+# DYNAMIC MOVING AVERAGES -------------------------------------------------
 
 if timeframe == "Day":
 
@@ -805,10 +751,8 @@ avg_volume_df["ma_long"] = (
     .mean()
 )
 
-# =====================================================
-# CHART 1
-# AVG VOLUME PER TRANSACTION OVER TIME
-# =====================================================
+# CHART 1 ----------------------------------------------------------------------
+# AVG VOLUME PER TRANSACTION OVER TIME -----------------------------------------
 
 fig_avg_volume = go.Figure()
 
@@ -831,10 +775,8 @@ fig_avg_volume.update_layout(
     yaxis_title="Average Volume per Transaction"
 )
 
-# =====================================================
-# CHART 2
-# MOVING AVERAGES
-# =====================================================
+# CHART 2 -----------------------------------------------------------------
+# MOVING AVERAGES ---------------------------------------------------------
 
 fig_ma = go.Figure()
 
@@ -865,12 +807,9 @@ fig_ma.update_layout(
     yaxis_title="Average Volume per Transaction"
 )
 
-# =====================================================
-# DASHBOARD ROW
-# =====================================================
+# DASHBOARD ROW ---------------------------------------------------------
 
 st.markdown("---")
-
 st.subheader(
     "Average Volume per Transaction Analysis"
 )
@@ -974,9 +913,9 @@ def load_recent_transactions(symbol):
 
     return df
 
-# =====================================================
+ 
 # RECENT TRANSACTIONS TABLE
-# =====================================================
+ 
 
 st.markdown("---")
 
@@ -1014,9 +953,9 @@ else:
         "No recent transactions found."
     )
 
-# =====================================================
+ 
 # COHORT ANALYSIS
-# =====================================================
+ 
 
 st.markdown("---")
 st.subheader("🔥 Cohort Analysis")
@@ -1033,9 +972,9 @@ cohort_df["day_of_month"] = (
     .dt.day
 )
 
-# =====================================================
+ 
 # VOLUME HEATMAP
-# =====================================================
+ 
 
 volume_matrix = (
     cohort_df
@@ -1048,9 +987,9 @@ volume_matrix = (
     .fillna(0)
 )
 
-# =====================================================
+ 
 # TRANSACTION HEATMAP
-# =====================================================
+ 
 
 tx_matrix = (
     cohort_df
@@ -1063,9 +1002,9 @@ tx_matrix = (
     .fillna(0)
 )
 
-# =====================================================
+ 
 # PLOTS
-# =====================================================
+ 
 
 col1, col2 = st.columns(2)
 
@@ -1143,16 +1082,16 @@ with col2:
         use_container_width=True
     )
 
-# =====================================================
+ 
 # WEEKDAY ANALYSIS
-# =====================================================
+ 
 
 st.markdown("---")
 st.subheader("📅 Weekday Analysis")
 
-# =====================================================
+ 
 # PREPARE DATA
-# =====================================================
+ 
 
 weekday_df = df.copy()
 
@@ -1171,9 +1110,9 @@ weekday_order = [
     "Sunday"
 ]
 
-# =====================================================
+ 
 # DAILY DATA
-# =====================================================
+ 
 
 weekday_daily = (
     weekday_df
@@ -1192,9 +1131,9 @@ weekday_daily = (
     .reset_index()
 )
 
-# =====================================================
+ 
 # AVERAGES BY WEEKDAY
-# =====================================================
+ 
 
 avg_volume_weekday = (
     weekday_daily
@@ -1212,9 +1151,9 @@ avg_tx_weekday = (
     .reset_index()
 )
 
-# =====================================================
+ 
 # FORMATTERS
-# =====================================================
+ 
 
 def human_format(num):
 
@@ -1253,9 +1192,9 @@ def generate_colors(values):
 
     return colors
 
-# =====================================================
+ 
 # LABELS
-# =====================================================
+ 
 
 avg_volume_weekday["label"] = (
     avg_volume_weekday["volume"]
@@ -1267,15 +1206,15 @@ avg_tx_weekday["label"] = (
     .apply(human_format)
 )
 
-# =====================================================
+ 
 # CHARTS
-# =====================================================
+ 
 
 col1, col2 = st.columns(2)
 
-# =====================================================
+ 
 # AVG VOLUME BY WEEKDAY
-# =====================================================
+ 
 
 with col1:
 
@@ -1330,9 +1269,9 @@ with col1:
         use_container_width=True
     )
 
-# =====================================================
+ 
 # AVG TRANSACTIONS BY WEEKDAY
-# =====================================================
+ 
 
 with col2:
 
@@ -1387,16 +1326,16 @@ with col2:
         use_container_width=True
     )
 
-# =====================================================
+ 
 # CHAIN FLOW ANALYSIS - KPIs
-# =====================================================
+ 
 
 st.markdown("---")
 st.subheader("🔗 Chain Flow Analysis")
 
-# =====================================================
+ 
 # LOAD DATA
-# =====================================================
+ 
 
 from_time = int(
     pd.Timestamp(start_date).timestamp()
@@ -1422,9 +1361,9 @@ response.raise_for_status()
 
 chain_data = response.json()
 
-# =====================================================
+ 
 # KPI CALCULATIONS
-# =====================================================
+ 
 
 source_chains = set()
 destination_chains = set()
@@ -1481,9 +1420,9 @@ destination_names = ", ".join(
     sorted(destination_chains)
 )
 
-# =====================================================
+ 
 # KPI ROW
-# =====================================================
+ 
 
 col1, col2, col3 = st.columns(3)
 
@@ -1516,9 +1455,9 @@ with col3:
         destination_names
     )
 
-# =====================================================
+ 
 # ROUTES DATAFRAME
-# =====================================================
+ 
 
 routes_data = []
 
@@ -1574,9 +1513,9 @@ routes_df = pd.DataFrame(
     routes_data
 )
 
-# =====================================================
+ 
 # EMPTY CHECK
-# =====================================================
+ 
 
 if not routes_df.empty:
 
@@ -1586,13 +1525,13 @@ if not routes_df.empty:
         (routes_df["num_txs"] > 0)
     ]
 
-# =====================================================
+ 
 # TOP ROUTES
-# =====================================================
+ 
 
-# =====================================================
+ 
 # REMOVE ZERO VALUE ROUTES
-# =====================================================
+ 
 
 routes_volume = (
     routes_df[
@@ -1614,9 +1553,9 @@ routes_tx = (
     )
 )
 
-# =====================================================
+ 
 # NUMBER FORMAT
-# =====================================================
+ 
 
 def human_format(num):
 
@@ -1641,17 +1580,17 @@ routes_tx["label"] = (
     .apply(human_format)
 )
 
-# =====================================================
+ 
 # CHARTS
-# =====================================================
+ 
 
 st.markdown("### 🔀 Route Distribution")
 
 col1, col2 = st.columns(2)
 
-# =====================================================
+ 
 # VOLUME BY ROUTE
-# =====================================================
+ 
 
 with col1:
 
@@ -1704,9 +1643,9 @@ with col1:
         use_container_width=True
     )
 
-# =====================================================
+ 
 # TRANSACTIONS BY ROUTE
-# =====================================================
+ 
 
 with col2:
 
@@ -1759,15 +1698,15 @@ with col2:
         use_container_width=True
     )
 
-# =====================================================
+ 
 # CHAIN DISTRIBUTION ANALYSIS
-# =====================================================
+ 
 
 st.markdown("### 🧩 Chain Distribution Analysis")
 
-# =====================================================
+ 
 # BUILD DATAFRAMES
-# =====================================================
+ 
 
 source_rows = []
 destination_rows = []
@@ -1823,12 +1762,9 @@ for source in chain_data.get("source_chains", []):
 
     })
 
-# =====================================================
-# DATAFRAMES
-# =====================================================
+# DATAFRAMES ------------------------------------------
 
 source_df = pd.DataFrame(source_rows)
-
 destination_df = (
     pd.DataFrame(destination_rows)
     .groupby("chain", as_index=False)
@@ -1838,9 +1774,7 @@ destination_df = (
     })
 )
 
-# =====================================================
-# REMOVE ZERO VALUES
-# =====================================================
+# REMOVE ZERO VALUES -----------------------------------------
 
 source_df = source_df[
     (source_df["volume"] > 0) |
@@ -1852,10 +1786,7 @@ destination_df = destination_df[
     (destination_df["num_txs"] > 0)
 ]
 
-# =====================================================
-# GROUP SMALL VALUES INTO OTHERS
-# =====================================================
-
+# GROUP SMALL VALUES INTO OTHERS ------------------------------------------------
 def build_pie_data(
     df,
     value_col,
@@ -1896,10 +1827,7 @@ def build_pie_data(
 
     return top_df
 
-# =====================================================
-# PREPARE PIE DATA
-# =====================================================
-
+# PREPARE PIE DATA ------------------------------------------------------
 source_volume_pie = build_pie_data(
     source_df,
     "volume"
@@ -1920,39 +1848,26 @@ destination_tx_pie = build_pie_data(
     "num_txs"
 )
 
-# =====================================================
-# ROW 1
-# =====================================================
+# ROW 12 -----------------------------------------------------------------------
 
 col1, col2 = st.columns(2)
-
 with col1:
-
     fig = px.pie(
-
         source_volume_pie,
-
         names="chain",
         values="volume",
-
         hole=0.35
     )
 
     fig.update_traces(
-
         textinfo="label+percent",
-
         textposition="inside",
-
         insidetextorientation="radial"
     )
 
     fig.update_layout(
-
         title="Volume by Source Chain",
-
         template="plotly_dark",
-
         height=450
     )
 
@@ -1964,30 +1879,21 @@ with col1:
 with col2:
 
     fig = px.pie(
-
         source_tx_pie,
-
         names="chain",
         values="num_txs",
-
         hole=0.35
     )
 
     fig.update_traces(
-
         textinfo="label+percent",
-
         textposition="inside",
-
         insidetextorientation="radial"
     )
 
     fig.update_layout(
-
         title="Transactions by Source Chain",
-
         template="plotly_dark",
-
         height=450
     )
 
@@ -1996,39 +1902,24 @@ with col2:
         use_container_width=True
     )
 
-# =====================================================
-# ROW 2
-# =====================================================
-
+# ROW 13 -------------------------------------------------------------
 col1, col2 = st.columns(2)
-
 with col1:
-
     fig = px.pie(
-
         destination_volume_pie,
-
         names="chain",
         values="volume",
-
         hole=0.35
     )
-
     fig.update_traces(
-
         textinfo="label+percent",
-
         textposition="inside",
-
         insidetextorientation="radial"
     )
 
     fig.update_layout(
-
         title="Volume by Destination Chain",
-
         template="plotly_dark",
-
         height=450
     )
 
@@ -2040,30 +1931,21 @@ with col1:
 with col2:
 
     fig = px.pie(
-
         destination_tx_pie,
-
         names="chain",
         values="num_txs",
-
         hole=0.35
     )
 
     fig.update_traces(
-
         textinfo="label+percent",
-
         textposition="inside",
-
         insidetextorientation="radial"
     )
 
     fig.update_layout(
-
         title="Transactions by Destination Chain",
-
         template="plotly_dark",
-
         height=450
     )
 
