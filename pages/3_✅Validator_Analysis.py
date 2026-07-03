@@ -3,18 +3,14 @@ import pandas as pd
 import requests
 import plotly.express as px
 
-# =====================================================
-# PAGE CONFIG
-# =====================================================
-st.set_page_config(
+ # PAGE CONFIG
+ st.set_page_config(
     page_title="Axelar Mega Dashboard",
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
-# =====================================================
-# TITLE + DESCRIPTION
-# =====================================================
-
+ # TITLE + DESCRIPTION
+ 
 st.title("✅ Validator Analysis")
 
 st.markdown(
@@ -27,10 +23,8 @@ Higher uptime means better reliability, fewer missed blocks, and stronger networ
 
 st.info("⏳On-chain data retrieval may take a few moments. Please wait while the results load.")
 
-# =====================================================
-# SIDEBAR
-# =====================================================
-st.sidebar.markdown(
+ # SIDEBAR
+ st.sidebar.markdown(
     """
     <style>
     .sidebar-footer {
@@ -72,10 +66,8 @@ st.sidebar.markdown(
     """,
     unsafe_allow_html=True
 )
-# =====================================================
-# LOAD DATA
-# =====================================================
-
+ # LOAD DATA
+ 
 @st.cache_data(ttl=300)
 def load_uptime():
 
@@ -114,10 +106,8 @@ if df.empty:
     st.error("No validator uptime data available.")
     st.stop()
 
-# =====================================================
-# VALIDATOR STATS
-# =====================================================
-
+ # VALIDATOR STATS
+ 
 all_validators = sorted({v for lst in df["validators"] for v in lst})
 
 total_snapshots = len(df)
@@ -140,10 +130,8 @@ for v in all_validators:
 
 stats_df = pd.DataFrame(records)
 
-# =====================================================
-# METRICS BASE VALUES
-# =====================================================
-
+ # METRICS BASE VALUES
+ 
 active_df = df.copy()
 active_df["active_count"] = active_df["validators"].apply(len)
 
@@ -153,10 +141,8 @@ best_uptime = stats_df["uptime"].max()
 worst_uptime = stats_df["uptime"].min()
 avg_uptime = stats_df["uptime"].mean()
 
-# =====================================================
-# TIME RANGE (VALIDATOR STATS)
-# =====================================================
-start_time = df["timestamp"].min()
+ # TIME RANGE (VALIDATOR STATS)
+ start_time = df["timestamp"].min()
 end_time = df["timestamp"].max()
 total_span = end_time - start_time
 
@@ -168,17 +154,13 @@ To **{end_time}**
 Total span: **{total_span.days} days**
     """
 )
-# =====================================================
-# KPI FUNCTION (ARC STYLE TOOLTIP)
-# =====================================================
-
+ # KPI FUNCTION (ARC STYLE TOOLTIP)
+ 
 def kpi(label, description):
     return f"{label}", description
 
-# =====================================================
-# KPI ROW
-# =====================================================
-
+ # KPI ROW
+ 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
@@ -207,10 +189,8 @@ with col6:
 
 st.divider()
 
-# =====================================================
-# CHARTS ROW 1
-# =====================================================
-
+ # CHARTS ROW 1
+ 
 col1, col2 = st.columns(2)
 
 with col1:
@@ -239,10 +219,8 @@ with col2:
 
     st.plotly_chart(fig, use_container_width=True)
 
-# =====================================================
-# ROW 2 (NETWORK HEALTH + MISSES)
-# =====================================================
-
+ # ROW 2 (NETWORK HEALTH + MISSES)
+ 
 col1, col2 = st.columns(2)
 
 with col1:
@@ -283,10 +261,8 @@ with col2:
 
     st.plotly_chart(fig, use_container_width=True)
 
-# =====================================================
-# RANKING TABLE
-# =====================================================
-
+ # RANKING TABLE
+ 
 st.subheader("Validator Ranking")
 
 ranking = stats_df.sort_values("uptime", ascending=False).reset_index(drop=True)
@@ -294,11 +270,9 @@ ranking.index += 1
 
 st.dataframe(ranking, use_container_width=True, height=600)
 
-# ===========================================================================Part II=========================================================================
-# =====================================================
-# PROPOSED BLOCKS ANALYSIS (NEW API)
-# =====================================================
-
+# -------------------------------------------------------------------- Part II -----------------------------------------------------------------------------------
+ # PROPOSED BLOCKS ANALYSIS (NEW API)
+ 
 PROPOSED_BLOCKS_API = "https://api.axelarscan.io/validator/searchProposedBlocks"
 
 @st.cache_data(ttl=300)
@@ -327,10 +301,8 @@ prop_df = load_proposed_blocks()
 
 if not prop_df.empty:
 
-    # =====================================================
-    # TIME RANGE INFO
-    # =====================================================
-
+         # TIME RANGE INFO
+     
     st.subheader("📦 Proposed Blocks Overview")
 
     start_time = prop_df["timestamp"].min()
@@ -345,10 +317,8 @@ if not prop_df.empty:
         """
     )
 
-    # =====================================================
-    # KPI CALCULATIONS
-    # =====================================================
-
+         # KPI CALCULATIONS
+     
     total_blocks = len(prop_df)
     unique_proposers = prop_df["proposer"].nunique()
 
@@ -371,10 +341,8 @@ if not prop_df.empty:
         .mean()
     )
 
-    # =====================================================
-    # KPI ROW
-    # =====================================================
-
+         # KPI ROW
+     
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -407,10 +375,8 @@ if not prop_df.empty:
 
     st.divider()
 
-    # =====================================================
-    # CHART 1: TOP PROPOSERS
-    # =====================================================
-
+         # CHART 1: TOP PROPOSERS
+     
     col1, col2 = st.columns(2)
 
     with col1:
@@ -427,10 +393,8 @@ if not prop_df.empty:
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # =====================================================
-    # CHART 2: PIE DISTRIBUTION
-    # =====================================================
-
+         # CHART 2: PIE DISTRIBUTION
+     
     with col2:
 
         top10 = proposer_counts.head(10)
@@ -444,11 +408,9 @@ if not prop_df.empty:
 
         st.plotly_chart(fig, use_container_width=True)
 
-# ===========================================================================Part III=======================================================================
-# =====================================================
-# HEARTBEATS ANALYSIS (NEW API)
-# =====================================================
-
+# ------------------------------------------------------------------------- Part III ----------------------------------------------------------------------------------
+ # HEARTBEATS ANALYSIS (NEW API)
+ 
 HEARTBEATS_API = "https://api.axelarscan.io/validator/searchHeartbeats"
 
 @st.cache_data(ttl=300)
@@ -478,10 +440,8 @@ hb_df = load_heartbeats()
 
 if not hb_df.empty:
 
-    # =====================================================
-    # TIME RANGE
-    # =====================================================
-
+         # TIME RANGE
+     
     st.subheader("💓 Validator Heartbeats Overview")
 
     start_time = hb_df["timestamp"].min()
@@ -508,10 +468,8 @@ If these messages are not sent or are interrupted, the network may consider the 
 """
 )
 
-    # =====================================================
-    # KPI CALCULATIONS
-    # =====================================================
-
+         # KPI CALCULATIONS
+     
     total_heartbeats = len(hb_df)
     unique_senders = hb_df["sender"].nunique()
 
@@ -532,10 +490,8 @@ If these messages are not sent or are interrupted, the network may consider the 
     hb_df_sorted = hb_df.sort_values("timestamp")
     avg_heartbeat_interval = hb_df_sorted["timestamp"].diff().mean()
 
-    # =====================================================
-    # KPI ROW
-    # =====================================================
-
+         # KPI ROW
+     
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -568,10 +524,8 @@ If these messages are not sent or are interrupted, the network may consider the 
 
     st.divider()
 
-    # =====================================================
-    # TABLE
-    # =====================================================
-
+         # TABLE
+     
     st.subheader("📋 Validator Heartbeat Ranking")
 
     st.dataframe(
@@ -583,11 +537,9 @@ If these messages are not sent or are interrupted, the network may consider the 
 else:
     st.warning("No heartbeat data available.")
 
-# =====================================================================Part IV=================================================================
-# =====================================================
-# EVM POLLS ANALYSIS (UPDATED - FINAL)
-# =====================================================
-
+# -------------------------------------------------------------------------- Part IV ------------------------------------------------------------------
+ # EVM POLLS ANALYSIS (UPDATED - FINAL)
+ 
 EVM_POLLS_API = "https://api.axelarscan.io/validator/searchEVMPolls"
 
 @st.cache_data(ttl=300)
@@ -636,10 +588,8 @@ polls_df = load_evm_polls()
 
 if not polls_df.empty:
 
-    # =====================================================
-    # TIME RANGE
-    # =====================================================
-
+         # TIME RANGE
+     
     st.subheader("🗳️ EVM Polls Activity Overview")
 
     start_time = polls_df["timestamp"].min()
@@ -655,10 +605,8 @@ Total span: **{total_span.days} days**
         """
     )
 
-    # =====================================================
-    # KPI CALCULATIONS
-    # =====================================================
-
+         # KPI CALCULATIONS
+     
     total_votes = len(polls_df)
     unique_voters = polls_df["voter"].nunique()
 
@@ -679,10 +627,8 @@ Total span: **{total_span.days} days**
         if total_votes else 0
     )
 
-    # =====================================================
-    # KPI ROW
-    # =====================================================
-
+         # KPI ROW
+     
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -715,10 +661,8 @@ Total span: **{total_span.days} days**
 
     st.divider()
 
-    # =====================================================
-    # CHARTS
-    # =====================================================
-
+         # CHARTS
+     
     col1, col2 = st.columns(2)
 
     # -----------------------------------------------------
@@ -743,7 +687,7 @@ Total span: **{total_span.days} days**
     # -----------------------------------------------------
     with col2:
 
-        # تعداد رأی هر voter
+        
         voter_counts = (
             polls_df["voter"]
             .value_counts()
@@ -752,7 +696,7 @@ Total span: **{total_span.days} days**
 
         voter_counts.columns = ["voter", "votes"]
 
-        # توزیع: چند validator چند رأی داده‌اند
+    
         distribution = (
             voter_counts["votes"]
             .value_counts()
@@ -778,10 +722,8 @@ Total span: **{total_span.days} days**
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # =====================================================
-    # TABLE
-    # =====================================================
-
+         # TABLE
+     
     st.subheader("📋 Voting Participation Table")
 
     st.dataframe(
