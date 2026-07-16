@@ -156,11 +156,10 @@ st.divider()
 # Daily Users Chart
 # -----------------------------
 
-fig = px.line(
+fig = px.bar(
     df,
     x="Date",
     y="Users",
-    markers=True,
     title="Daily Active Users"
 )
 
