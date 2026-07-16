@@ -176,38 +176,6 @@ st.plotly_chart(
 )
 
 # -----------------------------
-# Transactions Chart
-# -----------------------------
-
-fig2 = px.bar(
-    df,
-    x="Date",
-    y="Transactions",
-    title="Daily Transactions"
-)
-
-st.plotly_chart(
-    fig2,
-    use_container_width=True
-)
-
-# -----------------------------
-# Volume Chart
-# -----------------------------
-
-fig3 = px.area(
-    df,
-    x="Date",
-    y="Volume",
-    title="Daily Volume"
-)
-
-st.plotly_chart(
-    fig3,
-    use_container_width=True
-)
-
-# -----------------------------
 # Table
 # -----------------------------
 
