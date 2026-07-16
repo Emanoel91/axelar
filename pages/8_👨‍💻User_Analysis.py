@@ -23,7 +23,7 @@ st.title("📈 Axelar Daily Active Users")
 
 today = datetime.now(timezone.utc).date()
 
-default_start = today - timedelta(days=30)
+default_start = today - timedelta(days=60)
 
 start_date = st.sidebar.date_input(
     "Start Date",
