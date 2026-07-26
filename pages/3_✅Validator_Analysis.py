@@ -136,8 +136,8 @@ best_uptime = stats_df["uptime"].max()
 worst_uptime = stats_df["uptime"].min()
 avg_uptime = stats_df["uptime"].mean()
 
- # TIME RANGE (VALIDATOR STATS)
- start_time = df["timestamp"].min()
+# TIME RANGE (VALIDATOR STATS)
+start_time = df["timestamp"].min()
 end_time = df["timestamp"].max()
 total_span = end_time - start_time
 
