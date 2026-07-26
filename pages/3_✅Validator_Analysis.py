@@ -184,7 +184,7 @@ with col6:
 
 st.divider()
 
- # CHARTS ROW 1
+# CHARTS ROW 1
  
 col1, col2 = st.columns(2)
 
