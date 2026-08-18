@@ -1043,43 +1043,128 @@ CONTRACT_2 = "0xB5FB4BE02232B1bBA4dC8f81dc24C26980dE9e3C"
 # Load Data
 # ==========================================================
 
+from dateutil.relativedelta import relativedelta
+
+
 @st.cache_data(ttl=600)
 def load_data(from_time, to_time):
 
-    urls = [
-        f"{BASE_URL}?contractAddress={CONTRACT_1}&fromTime={from_time}&toTime={to_time}",
-        f"{BASE_URL}?contractAddress={CONTRACT_2}&fromTime={from_time}&toTime={to_time}"
-    ]
+    # ------------------------------------------------------
+    # Convert timestamps to datetime
+    # ------------------------------------------------------
+
+    start_dt = datetime.fromtimestamp(from_time)
+    end_dt = datetime.fromtimestamp(to_time)
+
+    # ------------------------------------------------------
+    # Split date range into chunks of max 3 months
+    # ------------------------------------------------------
+
+    date_ranges = []
+
+    current_start = start_dt
+
+    while current_start <= end_dt:
+
+        current_end = min(
+            current_start + relativedelta(months=3) - relativedelta(seconds=1),
+            end_dt
+        )
+
+        date_ranges.append(
+            (
+                int(current_start.timestamp()),
+                int(current_end.timestamp())
+            )
+        )
+
+        current_start = current_end + relativedelta(seconds=1)
+
+    # ------------------------------------------------------
+    # Fetch data for each date chunk and each contract
+    # ------------------------------------------------------
 
     data = []
 
-    for url in urls:
+    contracts = [
+        CONTRACT_1,
+        CONTRACT_2
+    ]
 
-        try:
+    for chunk_from, chunk_to in date_ranges:
 
-            response = requests.get(url, timeout=30)
+        for contract in contracts:
 
-            if response.status_code == 200:
+            url = (
+                f"{BASE_URL}"
+                f"?contractAddress={contract}"
+                f"&fromTime={chunk_from}"
+                f"&toTime={chunk_to}"
+            )
 
-                js = response.json()
+            try:
 
-                if "data" in js:
-                    data.extend(js["data"])
+                response = requests.get(
+                    url,
+                    timeout=30
+                )
 
-        except Exception:
-            pass
+                if response.status_code == 200:
+
+                    js = response.json()
+
+                    if "data" in js and js["data"]:
+                        data.extend(js["data"])
+
+            except Exception as e:
+
+                # Continue with the remaining chunks/contracts
+                continue
+
+    # ------------------------------------------------------
+    # Empty result
+    # ------------------------------------------------------
 
     if len(data) == 0:
+
         return pd.DataFrame(
-            columns=["key", "volume", "num_txs"]
+            columns=[
+                "key",
+                "volume",
+                "num_txs"
+            ]
         )
+
+    # ------------------------------------------------------
+    # Convert to DataFrame
+    # ------------------------------------------------------
 
     df = pd.DataFrame(data)
 
-    df["volume"] = pd.to_numeric(df["volume"])
-    df["num_txs"] = pd.to_numeric(df["num_txs"])
+    # ------------------------------------------------------
+    # Numeric conversion
+    # ------------------------------------------------------
 
-    # Merge duplicate addresses
+    df["volume"] = pd.to_numeric(
+        df["volume"],
+        errors="coerce"
+    ).fillna(0)
+
+    df["num_txs"] = pd.to_numeric(
+        df["num_txs"],
+        errors="coerce"
+    ).fillna(0)
+
+    # ------------------------------------------------------
+    # Aggregate duplicate addresses
+    #
+    # The same address may appear:
+    # - in multiple 3-month chunks
+    # - in both contracts
+    #
+    # Therefore we sum everything by address.
+    # ------------------------------------------------------
+
     df = (
         df.groupby("key", as_index=False)
         .agg(
@@ -1089,14 +1174,6 @@ def load_data(from_time, to_time):
     )
 
     return df
-
-
-df = load_data(from_time, to_time)
-
-if df.empty:
-    st.warning("No data found.")
-    st.stop()
-
 # ==========================================================
 # Rankings
 # ==========================================================
