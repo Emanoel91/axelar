@@ -63,6 +63,34 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# ========================================================
+# Donation
+# ========================================================
+
+def render_donate_box():
+    donate_text = """
+💖 **Support This Dashboard**
+
+If you find this dashboard useful, you can support its continued development:
+
+🔹 **BTC**
+`bc1q7e9zzycg7v3jv9kwyyfh36fn6pyu66u2gl4qw8`
+
+🔹 **EVM Wallet**
+`0x621bd661e3d57da1c8237209824827f1027abf62`
+
+🔹 **TRX**
+`TQfmrWo9aruHca5F8mY9kGFmw9QWPeqDmG`
+
+🔹 **Axelar**
+`axelar1vscznk93f2feg7r90gqxz853fchwdm3hasakfx`
+
+🚀 Your support helps improve data coverage, and enhance analytics features.
+"""
+    st.info(donate_text)
+
+render_donate_box()
+
 # --- Sidebar Footer Slightly Left-Aligned ---
 st.sidebar.markdown(
     """
