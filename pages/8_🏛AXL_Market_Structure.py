@@ -48,9 +48,14 @@ st.markdown(
 # ==================================================
 @st.cache_data(ttl=300)
 def load_raw():
-    response = requests.get(API_URL, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
-    response.raise_for_status()
-    return response.json()
+    r = cffi_requests.get(
+        API_URL,
+        impersonate="chrome",
+        headers={"Referer": "https://defillama.com/"},
+        timeout=30,
+    )
+    r.raise_for_status()
+    return r.json()
 
 
 try:
