@@ -14,7 +14,6 @@ st.set_page_config(
 
 # --- Title ------------------------------------------------------------------------------------------------------------
 st.title("🏛️ AXL Market Structure (CEX & DEX)")
-st.info("⏳ Market data is fetched from the DefiLlama Markets API and may take a few moments to load.")
 
 # ==================================================
 # Configuration
