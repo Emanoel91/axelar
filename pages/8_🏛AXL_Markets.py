@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-
+from curl_cffi import requests as cffi_requests
 # --- Page Config ------------------------------------------------------------------------------------------------------
 st.set_page_config(
     page_title="Axelarscan",
