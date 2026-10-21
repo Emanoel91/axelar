@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from curl_cffi import requests as cffi_requests
+
 # --- Page Config ------------------------------------------------------------------------------------------------------
 st.set_page_config(
     page_title="Axelarscan",
@@ -14,6 +14,34 @@ st.set_page_config(
 
 # --- Title ------------------------------------------------------------------------------------------------------------
 st.title("🏛️ AXL Market Structure (CEX & DEX)")
+st.info("⏳ Market data is fetched from the DefiLlama Markets API and may take a few moments to load.")
+
+# ==================================================
+# Configuration
+# ==================================================
+API_URL = "https://defillama.com/api/public/markets/axelar"
+STABLE_QUOTES = {"usdt", "usdc", "usd", "usdh"}      # quotes that are ~USD (used for price comparison)
+SEG_LABELS = {"linear_perp": "Perp", "inverse_perp": "Perp (inverse)", "spot": "Spot"}
+SEG_COLORS = {"Perp": "#00B8F4", "Perp (inverse)": "#7B61FF", "Spot": "#FF8A00"}
+VENUE_COLORS = {"CEX": "#00B8F4", "DEX": "#FF8A00"}
+
+st.markdown(
+    """
+    <style>
+    div[data-testid="stMetricValue"] {
+        font-size: 28px;
+        font-weight: 700;
+        color: #00B8F4;
+    }
+    div[data-testid="stMetricLabel"] {
+        font-size: 15px;
+        color: #888;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # ------ SIDEBAR ------------------------------------------------
 
 st.sidebar.markdown(
@@ -59,45 +87,13 @@ st.sidebar.markdown(
     unsafe_allow_html=True
 )
 # ==================================================
-# Configuration
-# ==================================================
-API_URL = "https://defillama.com/api/public/markets/axelar"
-STABLE_QUOTES = {"usdt", "usdc", "usd", "usdh"}      # quotes that are ~USD (used for price comparison)
-SEG_LABELS = {"linear_perp": "Perp", "inverse_perp": "Perp (inverse)", "spot": "Spot"}
-SEG_COLORS = {"Perp": "#00B8F4", "Perp (inverse)": "#7B61FF", "Spot": "#FF8A00"}
-VENUE_COLORS = {"CEX": "#00B8F4", "DEX": "#FF8A00"}
-
-st.markdown(
-    """
-    <style>
-    div[data-testid="stMetricValue"] {
-        font-size: 28px;
-        font-weight: 700;
-        color: #00B8F4;
-    }
-    div[data-testid="stMetricLabel"] {
-        font-size: 15px;
-        color: #888;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# ==================================================
 # Fetch Data
 # ==================================================
 @st.cache_data(ttl=300)
 def load_raw():
-    r = cffi_requests.get(
-        API_URL,
-        impersonate="chrome",
-        headers={"Referer": "https://defillama.com/"},
-        timeout=30,
-    )
-    r.raise_for_status()
-    return r.json()
+    response = requests.get(API_URL, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+    response.raise_for_status()
+    return response.json()
 
 
 try:
@@ -317,9 +313,18 @@ with tab_overview:
     st.subheader("Volume by Quote Currency")
     q = dfm.groupby("quote", as_index=False)["volume_24h"].sum()
     q = q[q["volume_24h"] > 0].sort_values("volume_24h", ascending=False)
-    fig = px.pie(q, names="quote", values="volume_24h", hole=0.45, title="24h Volume by Quote Asset",
-                 template="plotly_white", height=450)
-    st.plotly_chart(fig, use_container_width=True)
+    col_a, col_b = st.columns(2)
+    with col_a:
+        fig = px.pie(q, names="quote", values="volume_24h", hole=0.45, title="24h Volume by Quote Asset",
+                     template="plotly_white", height=450)
+        st.plotly_chart(fig, use_container_width=True)
+    with col_b:
+        q_bar = q.sort_values("volume_24h", ascending=True)   # largest bar at the top
+        fig = px.bar(q_bar, x="volume_24h", y="quote", orientation="h",
+                     title="24h Volume by Quote Asset (USD)",
+                     labels={"volume_24h": "Volume (USD)", "quote": "Quote asset"},
+                     template="plotly_white", height=450, color_discrete_sequence=["#00B8F4"])
+        st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("24h Changes (markets with volume ≥ $10K)")
     chg = dfm[dfm["volume_24h"] >= 10_000].copy()
