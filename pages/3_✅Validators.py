@@ -19,7 +19,7 @@ st.set_page_config(
 
 # --- Title ------------------------------------------------------------------------------------------------------------
 st.title("🛡️ Axelar Validators")
-st.info("⏳ Validator data is fetched from the Axelarscan API and may take a few moments to load.")
+
 # SIDEBAR
 st.sidebar.markdown(
     """
