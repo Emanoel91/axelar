@@ -341,7 +341,7 @@ def rank_label(col, ascending=False):
 
 def cmp_bar(col, title, usd=False, asc=False, height=420):
     d = cdf.dropna(subset=[col]).sort_values(col, ascending=asc)
-    fig = px.bar(d, x="ticker", y=col, color="group", color_discrete_map=GROUP_COLORS, hover_name="name",
+    fig = px.bar(d, x="ticker", y=col, hover_name="name", color_discrete_sequence=[BLUE],
                  title=title, labels={"ticker": "Token", col: METRICS[col][0]}, template="plotly_white",
                  height=height)
     if usd and log_scale:
@@ -355,8 +355,6 @@ def signed_bar(col, title, height=420):
     fig = go.Figure(go.Bar(
         x=d["ticker"], y=d[col],
         marker_color=["green" if v >= 0 else "red" for v in d[col]],
-        marker_line_color=[BLUE if t == FOCUS else "rgba(0,0,0,0)" for t in d["ticker"]],
-        marker_line_width=[4 if t == FOCUS else 0 for t in d["ticker"]],
         hovertext=d["name"]))
     fig.add_hline(y=0, line_dash="dash", line_color="black", line_width=1)
     fig.update_layout(title=title, template="plotly_white", height=height, xaxis_title="Token",
@@ -436,8 +434,7 @@ with tab_score:
     for t in chosen:
         vals = pct_rank.loc[pct_rank["ticker"] == t, radar_metrics].iloc[0].tolist()
         fig.add_trace(go.Scatterpolar(r=vals + vals[:1], theta=theta + theta[:1], name=t, fill="toself",
-                                      opacity=0.45 if t != FOCUS else 0.7,
-                                      line=dict(color=color_map.get(t), width=4 if t == FOCUS else 2)))
+                                      opacity=0.45, line=dict(color=color_map.get(t), width=2)))
     fig.update_layout(title="Percentile Rank Across Key Dimensions (100 = best in group)", template="plotly_white",
                       height=560, polar=dict(radialaxis=dict(range=[0, 100], showticklabels=True)))
     st.plotly_chart(fig, use_container_width=True)
@@ -554,7 +551,7 @@ with tab_liq:
             pts = [(b, dv) for b, dv in zip(c["bands"], c["depth"]) if b <= 0.05]
             fig.add_trace(go.Scatter(x=[f"±{b * 100:.2f}%" for b, _ in pts], y=[dv for _, dv in pts],
                                      mode="lines+markers", name=t,
-                                     line=dict(color=color_map.get(t), width=5 if t == FOCUS else 2)))
+                                     line=dict(color=color_map.get(t), width=2)))
         fig.update_layout(title="Cumulative Depth by Distance from Mid (up to ±5%)", template="plotly_white",
                           height=420, xaxis_title="Distance from mid", yaxis_title="Depth (USD)",
                           hovermode="x unified")
