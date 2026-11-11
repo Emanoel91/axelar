@@ -2,6 +2,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 import requests
+import io
+import os
 
 # --- Page Config: Tab Title & Icon ---
 st.set_page_config(
@@ -186,6 +188,109 @@ with col2:
         )
 
 
+# -------------------------------------------------------------------
+# --- Daily history (recorded once a day by scripts/record_tvl_snapshot.py) ---
+HISTORY_URL = "https://raw.githubusercontent.com/Emanoel91/axelar/main/data/axelar_tvl_history.csv"
+HISTORY_LOCAL = "data/axelar_tvl_history.csv"   # used when the GitHub URL cannot be read (e.g. private repo)
+
+
+@st.cache_data(ttl=600)
+def load_tvl_history():
+    text = None
+    try:
+        res = requests.get(HISTORY_URL, timeout=30)
+        if res.status_code == 200:
+            text = res.text
+    except Exception:
+        pass
+    if text is None and os.path.exists(HISTORY_LOCAL):
+        with open(HISTORY_LOCAL, encoding="utf-8") as f:
+            text = f.read()
+    if text is None:
+        return pd.DataFrame(columns=["date", "category", "name", "value"])
+
+    h = pd.read_csv(io.StringIO(text))
+    h["date"] = pd.to_datetime(h["date"], errors="coerce")
+    h["value"] = pd.to_numeric(h["value"], errors="coerce")
+    h = h.dropna(subset=["date", "value"])
+    h = h.drop_duplicates(subset=["date", "category", "name"], keep="last")
+    return h.sort_values("date").reset_index(drop=True)
+
+
+history = load_tvl_history()
+n_hist_days = history["date"].nunique() if not history.empty else 0
+
+if n_hist_days < 2:
+    st.info(
+        f"📅 Daily history is recorded once a day and the charts over time need at least 2 recorded days. "
+        f"Days recorded so far: {n_hist_days}."
+    )
+
+
+def show_area(category, title, color):
+    d = history[history["category"] == category].sort_values("date")
+    if d["date"].nunique() < 2:
+        st.caption(f"{title}: waiting for at least 2 recorded days.")
+        return
+    fig = px.area(
+        d,
+        x="date",
+        y="value",
+        title=title,
+        labels={"date": "Date", "value": "USD"},
+        color_discrete_sequence=[color]
+    )
+    fig.update_layout(showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def show_share_area(category, title, color_map=None, top_n=None, note=None):
+    d = history[history["category"] == category]
+    if d["date"].nunique() < 2:
+        st.caption(f"{title}: waiting for at least 2 recorded days.")
+        return
+
+    pv = d.pivot_table(index="date", columns="name", values="value", aggfunc="last").fillna(0.0)
+    pv.columns.name = None
+    pv.index.name = "date"
+
+    if top_n and pv.shape[1] > top_n:
+        keep = list(pv.iloc[-1].sort_values(ascending=False).index[:top_n])
+        other = pv.drop(columns=keep).sum(axis=1)
+        pv = pv[keep].copy()
+        pv["Other"] = other
+        order = keep + ["Other"]
+    else:
+        order = list(pv.iloc[-1].sort_values(ascending=False).index)
+
+    long_df = pv[order].reset_index().melt(id_vars="date", var_name="name", value_name="value")
+    fig = px.area(
+        long_df,
+        x="date",
+        y="value",
+        color="name",
+        groupnorm="percent",
+        category_orders={"name": order},
+        color_discrete_map=color_map,
+        title=title,
+        labels={"date": "Date", "value": "Share of TVL (%)", "name": ""}
+    )
+    fig.update_layout(yaxis_title="Share of TVL (%)")
+    st.plotly_chart(fig, use_container_width=True)
+    if note:
+        st.caption(note)
+
+
+# --- TVL & FDV Over Time ---
+col1, col2 = st.columns(2)
+
+with col1:
+    show_area("total_tvl", "Total Axelar TVL Over Time", "#006ac9")
+
+with col2:
+    show_area("fdv", "AXL FDV Over Time", "#ff7f50")
+
+
 # --- Prepare Asset Type Pie Chart ---
 asset_type_df = unique_assets.copy()
 
@@ -237,6 +342,23 @@ with col1:
 
 with col2:
     st.plotly_chart(fig_chain, use_container_width=True)
+
+
+# --- Share of TVL by Asset Type Over Time ---
+show_share_area(
+    "asset_type",
+    "Share of TVL by Asset Type Over Time",
+    color_map={"ITS": "#0ed145", "non-ITS": "#f8f17d"}
+)
+
+
+# --- Share of TVL by Chain Over Time ---
+show_share_area(
+    "chain",
+    "Share of TVL by Chain Over Time",
+    top_n=10,
+    note="Top 10 chains by their latest TVL are shown; all other chains are grouped as 'Other'."
+)
 
 
 # -------------------------------------------------------------------
