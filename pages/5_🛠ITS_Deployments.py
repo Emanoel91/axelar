@@ -1,6 +1,40 @@
 import streamlit as st
 import pandas as pd
 import requests
+import time
+
+# HTTP HELPER (browser-like headers, retries, clear errors) ----------------------
+_BASE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    "Accept": "application/json",
+}
+
+
+def get_json(url, params=None, timeout=60, retries=3):
+    """GET a JSON payload; raises RuntimeError with the real reason on failure."""
+    headers = dict(_BASE_HEADERS)
+    if "axelarscan.io" in url:
+        headers["Origin"] = "https://axelarscan.io"
+        headers["Referer"] = "https://axelarscan.io/"
+    last_err = "unknown error"
+    for attempt in range(retries):
+        try:
+            try:
+                from curl_cffi import requests as cr
+                r = cr.get(url, params=params, headers=headers, timeout=timeout, impersonate="chrome")
+            except ImportError:
+                r = requests.get(url, params=params, headers=headers, timeout=timeout)
+            if r.status_code == 200:
+                return r.json()
+            last_err = f"HTTP {r.status_code} for {url}"
+            if r.status_code in (400, 404):
+                break
+        except Exception as e:
+            last_err = f"{type(e).__name__}: {e}"
+        time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(last_err)
+
 import plotly.graph_objects as go
 import plotly.express as px
 
@@ -112,21 +146,7 @@ API_URL = "https://api.axelarscan.io/gmp/getITSTokenDeployments"
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_deployments():
 
-    session = requests.Session()
-
-    retry = Retry(
-        total=5,
-        backoff_factor=1,
-        status_forcelist=[429, 500, 502, 503, 504],
-        allowed_methods=["GET"]
-    )
-
-    session.mount("https://", HTTPAdapter(max_retries=retry))
-
-    response = session.get(API_URL, timeout=60)
-    response.raise_for_status()
-
-    return response.json()["data"]
+    return get_json(API_URL)["data"]
 
 
 try:
@@ -207,7 +227,8 @@ try:
     )
 
 except Exception as e:
-    st.error(f"Error loading deployment data: {e}")
+    st.error(f"❌ Error loading deployment data: {e}")
+    st.stop()
 
 # =====================================================
 # TOKEN DEPLOYMENTS CHART
