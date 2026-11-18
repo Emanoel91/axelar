@@ -1,6 +1,40 @@
 import streamlit as st
 import pandas as pd
 import requests
+import time
+
+# HTTP HELPER (browser-like headers, retries, clear errors) ----------------------
+_BASE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    "Accept": "application/json",
+}
+
+
+def get_json(url, params=None, timeout=60, retries=3):
+    """GET a JSON payload; raises RuntimeError with the real reason on failure."""
+    headers = dict(_BASE_HEADERS)
+    if "axelarscan.io" in url:
+        headers["Origin"] = "https://axelarscan.io"
+        headers["Referer"] = "https://axelarscan.io/"
+    last_err = "unknown error"
+    for attempt in range(retries):
+        try:
+            try:
+                from curl_cffi import requests as cr
+                r = cr.get(url, params=params, headers=headers, timeout=timeout, impersonate="chrome")
+            except ImportError:
+                r = requests.get(url, params=params, headers=headers, timeout=timeout)
+            if r.status_code == 200:
+                return r.json()
+            last_err = f"HTTP {r.status_code} for {url}"
+            if r.status_code in (400, 404):
+                break
+        except Exception as e:
+            last_err = f"{type(e).__name__}: {e}"
+        time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(last_err)
+
 import plotly.graph_objects as go
 import plotly.express as px
 
@@ -76,10 +110,7 @@ def load_data():
 
     def load_contract(url, contract_name):
 
-        r = requests.get(url, timeout=30)
-        r.raise_for_status()
-
-        data = r.json()["data"]
+        data = get_json(url, timeout=30)["data"]
 
         df = pd.DataFrame(data)
 
@@ -121,7 +152,11 @@ def load_data():
     return df
 
 
-df = load_data()
+try:
+    df = load_data()
+except Exception as e:
+    st.error(f"❌ Could not load data from Axelarscan: {e}")
+    st.stop()
 
 # =====================================================
 # SIDEBAR
@@ -803,10 +838,7 @@ def load_data():
 
     for url in URLS:
 
-        response = requests.get(url)
-        response.raise_for_status()
-
-        data = response.json()["data"]
+        data = get_json(url)["data"]
 
         df = pd.DataFrame(data)
 
@@ -841,7 +873,11 @@ def load_data():
     return df
 
 
-df = load_data()
+try:
+    df = load_data()
+except Exception as e:
+    st.error(f"❌ Could not load data from Axelarscan: {e}")
+    st.stop()
 
 # ==========================================================
 # Historical KPIs
@@ -981,4 +1017,3 @@ with col4:
         f"{last30_tx:,}",
         delta_string(tx30_delta),
     )
-
