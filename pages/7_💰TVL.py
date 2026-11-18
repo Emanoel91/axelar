@@ -2,6 +2,40 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 import requests
+import time
+
+# HTTP HELPER (browser-like headers, retries, clear errors) ----------------------
+_BASE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    "Accept": "application/json",
+}
+
+
+def get_json(url, params=None, timeout=60, retries=3):
+    """GET a JSON payload; raises RuntimeError with the real reason on failure."""
+    headers = dict(_BASE_HEADERS)
+    if "axelarscan.io" in url:
+        headers["Origin"] = "https://axelarscan.io"
+        headers["Referer"] = "https://axelarscan.io/"
+    last_err = "unknown error"
+    for attempt in range(retries):
+        try:
+            try:
+                from curl_cffi import requests as cr
+                r = cr.get(url, params=params, headers=headers, timeout=timeout, impersonate="chrome")
+            except ImportError:
+                r = requests.get(url, params=params, headers=headers, timeout=timeout)
+            if r.status_code == 200:
+                return r.json()
+            last_err = f"HTTP {r.status_code} for {url}"
+            if r.status_code in (400, 404):
+                break
+        except Exception as e:
+            last_err = f"{type(e).__name__}: {e}"
+        time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(last_err)
+
 import io
 import os
 
@@ -64,14 +98,10 @@ st.info("⏳On-chain data retrieval may take a few moments. Please wait while th
 # --- Load API Data ---
 @st.cache_data(ttl=3600)
 def load_axelar_api():
-    url = "https://api.axelarscan.io/api/getTVL"
-    response = requests.get(url)
-
-    if response.status_code == 200:
-        return response.json()
-    else:
-        st.error(f"Failed to fetch API data: {response.status_code}")
-        return None
+    try:
+        return get_json("https://api.axelarscan.io/api/getTVL")
+    except Exception as e:
+        return {"_error": str(e)}
 
 
 data = load_axelar_api()
@@ -123,7 +153,9 @@ if data and "data" in data:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
 else:
-    st.warning("No data available from API.")
+    err = data.get("_error") if isinstance(data, dict) else None
+    st.error(f"❌ Could not load TVL data from Axelarscan: {err or 'empty response'}")
+    st.stop()
 
 
 # --- Total TVL Calculation ---
@@ -137,12 +169,12 @@ def load_axl_price_supply():
     try:
         # Price API
         price_url = "https://api.axelarscan.io/api/getTokensPrice?symbol=AXL"
-        price_res = requests.get(price_url).json()
+        price_res = get_json(price_url)
         axl_price = price_res["AXL"]["price"]
 
         # Supply API
         supply_url = "https://api.axelarscan.io/api/getTotalSupply"
-        supply_res = requests.get(supply_url).json()
+        supply_res = get_json(supply_url)
         axl_supply = float(supply_res)
 
         # FDV
@@ -365,19 +397,17 @@ show_share_area(
 # --- Chains API ---
 @st.cache_data(ttl=3600)
 def load_chains_api():
-    url = "https://api.llama.fi/v2/chains"
-    response = requests.get(url)
-
-    if response.status_code == 200:
-        return response.json()
-    else:
-        st.error(f"Failed to fetch Chains API: {response.status_code}")
+    try:
+        return get_json("https://api.llama.fi/v2/chains")
+    except Exception:
         return []
 
 
 chains_data = load_chains_api()
 
-chains_df = pd.DataFrame(chains_data)[["name", "tvl", "tokenSymbol"]]
+if not chains_data:
+    st.warning("Could not load the chains list from DefiLlama; the ranking below only includes Axelar.")
+chains_df = pd.DataFrame(chains_data, columns=["name", "tvl", "tokenSymbol"])
 chains_df.columns = ["Chain Name", "TVL (USD)", "Native Token Symbol"]
 
 # Add Axelar manually
