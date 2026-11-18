@@ -4,6 +4,37 @@ import requests
 import plotly.graph_objects as go
 from datetime import datetime, timedelta 
 import plotly.express as px
+import time
+
+# AXELARSCAN HTTP HELPER ------------------------------------------------
+_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    "Accept": "application/json",
+    "Origin": "https://axelarscan.io",
+    "Referer": "https://axelarscan.io/",
+}
+
+
+def get_json(url, timeout=60, retries=3):
+    """GET a JSON payload; raises RuntimeError with the real reason on failure."""
+    last_err = "unknown error"
+    for attempt in range(retries):
+        try:
+            try:
+                from curl_cffi import requests as cr
+                r = cr.get(url, headers=_HEADERS, timeout=timeout, impersonate="chrome")
+            except ImportError:
+                r = requests.get(url, headers=_HEADERS, timeout=timeout)
+            if r.status_code == 200:
+                return r.json()
+            last_err = f"HTTP {r.status_code} for {url}"
+            if r.status_code in (400, 404):
+                break
+        except Exception as e:
+            last_err = f"{type(e).__name__}: {e}"
+        time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(last_err)
 
 # PAGE CONFIG -----------------------------------------
 st.set_page_config(
@@ -133,14 +164,7 @@ def load_data(symbol, start_date, end_date):
         f"&toTime={to_time}"
     )
 
-    response = requests.get(
-        url,
-        timeout=60
-    )
-
-    response.raise_for_status()
-
-    data = response.json()["data"]
+    data = get_json(url).get("data", [])
 
     df = pd.DataFrame(data)
 
@@ -165,11 +189,15 @@ def load_data(symbol, start_date, end_date):
     return df
 
 
-df = load_data(
-    token_symbol,
-    start_date,
-    end_date
-)
+try:
+    df = load_data(
+        token_symbol,
+        start_date,
+        end_date
+    )
+except Exception as e:
+    st.error(f"❌ Could not load data from Axelarscan: {e}")
+    st.stop()
 
 # EMPTY DATA ------------------------------------------------
 if df.empty:
@@ -401,12 +429,7 @@ def load_full_history(symbol):
         f"?symbol={symbol}"
     )
 
-    r = requests.get(
-        url,
-        timeout=60
-    )
-
-    data = r.json()["data"]
+    data = get_json(url).get("data", [])
 
     temp = pd.DataFrame(data)
 
@@ -431,7 +454,10 @@ def load_full_history(symbol):
     return temp
 
 
-full_df = load_full_history(token_symbol)
+try:
+    full_df = load_full_history(token_symbol)
+except Exception:
+    full_df = pd.DataFrame()
 
 weekly_volume_change = 0
 weekly_tx_change = 0
@@ -838,12 +864,10 @@ def load_recent_transactions(symbol):
         f"?symbol={symbol}"
     )
 
-    r = requests.get(url, timeout=60)
-
-    if r.status_code != 200:
+    try:
+        data = get_json(url).get("data", [])
+    except Exception:
         return pd.DataFrame()
-
-    data = r.json().get("data", [])
 
     rows = []
 
@@ -1352,14 +1376,11 @@ url = (
     f"&toTime={to_time}"
 )
 
-response = requests.get(
-    url,
-    timeout=60
-)
-
-response.raise_for_status()
-
-chain_data = response.json()
+try:
+    chain_data = get_json(url)
+except Exception as e:
+    st.error(f"❌ Could not load chain flow data from Axelarscan: {e}")
+    st.stop()
 
  
 # KPI CALCULATIONS
