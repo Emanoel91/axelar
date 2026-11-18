@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import time
 import plotly.graph_objects as go
 import plotly.express as px
 
@@ -49,16 +50,47 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --------- LOAD DATA ------------------------------------------------
-@st.cache_data
-def load_data():
-
+def _fetch_interchain():
+    """Fetch the Axelarscan chart; returns (records, error_message)."""
     url = "https://api.axelarscan.io/api/interchainChart"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Accept": "application/json",
+        "Origin": "https://axelarscan.io",
+        "Referer": "https://axelarscan.io/",
+    }
+    last_err = "unknown error"
+    for attempt in range(3):
+        try:
+            try:
+                from curl_cffi import requests as cr
+                r = cr.get(url, headers=headers, timeout=30, impersonate="chrome")
+            except ImportError:
+                r = requests.get(url, headers=headers, timeout=30)
 
-    r = requests.get(url, timeout=30)
+            if r.status_code != 200:
+                last_err = f"HTTP {r.status_code}: {r.text[:200]}"
+            else:
+                payload = r.json()
+                records = payload.get("data") if isinstance(payload, dict) else payload
+                if isinstance(records, list) and records:
+                    return records, None
+                last_err = f"Unexpected response (no 'data' list): {str(payload)[:200]}"
+        except Exception as e:
+            last_err = f"{type(e).__name__}: {e}"
+        time.sleep(1.5 * (attempt + 1))
+    return None, last_err
 
-    data = r.json()["data"]
 
-    df = pd.DataFrame(data)
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_data():
+    records, err = _fetch_interchain()
+    if records is None:
+        # raise so Streamlit does NOT cache a failed result
+        raise RuntimeError(err)
+
+    df = pd.DataFrame(records)
 
     df["timestamp"] = pd.to_datetime(
         df["timestamp"],
@@ -68,7 +100,12 @@ def load_data():
     return df
 
 
-df_raw = load_data()
+try:
+    df_raw = load_data()
+except Exception as e:
+    st.error(f"❌ Could not load data from Axelarscan: {e}")
+    st.stop()
+
 df = df_raw.copy()
 
 
@@ -1182,4 +1219,3 @@ with col2:
         fig_tx,
         use_container_width=True
     )
-
