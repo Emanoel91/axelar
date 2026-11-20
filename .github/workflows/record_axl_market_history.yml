@@ -32,7 +32,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/axl_market_history.csv data/axl_market_detail_history.csv
+          git add data/axl_market_history.csv data/axl_market_detail_history.csv data/axl_market_latest.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
