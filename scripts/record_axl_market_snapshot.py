@@ -8,6 +8,7 @@ Two long-format CSV files are written (columns: date, category, name, metric, va
 
   data/axl_market_history.csv         aggregated indicators
       category = overall | segment | venue | venue_segment | exchange | quote | depth
+  data/axl_market_latest.json         latest raw API payload (dashboard fallback)
   data/axl_market_detail_history.csv  one row per market and indicator
       category = market   (name = "<Exchange> | <SYMBOL> | <segment>")
 
@@ -18,6 +19,7 @@ Usage:
     python scripts/record_axl_market_snapshot.py --date 2026-11-20 --out x.csv --out-markets y.csv
 """
 import argparse
+import json
 import math
 import os
 import sys
@@ -365,6 +367,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="data/axl_market_history.csv")
     ap.add_argument("--out-markets", default="data/axl_market_detail_history.csv")
+    ap.add_argument("--out-json", default="data/axl_market_latest.json",
+                    help="latest raw API payload; the dashboard shows it if the live API refuses the request")
     ap.add_argument("--date", default=None, help="override the snapshot date (YYYY-MM-DD)")
     args = ap.parse_args()
 
@@ -383,6 +387,12 @@ def main():
     if not agg:
         print("::error::No indicator could be computed; nothing written.")
         sys.exit(1)
+
+    folder = os.path.dirname(args.out_json)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    with open(args.out_json, "w", encoding="utf-8") as f:
+        json.dump(payload, f, separators=(",", ":"))
 
     n1, d1 = write_day(args.out, day, agg)
     n2, d2 = write_day(args.out_markets, day, det)
