@@ -1,10 +1,12 @@
+import io
+import os
 import streamlit as st
 import requests
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from curl_cffi import requests as cffi_requests
+
 # --- Page Config ------------------------------------------------------------------------------------------------------
 st.set_page_config(
     page_title="Axelarscan",
@@ -42,63 +44,15 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ------ SIDEBAR ------------------------------------------------
 
-st.sidebar.markdown(
-    """
-    <style>
-    .sidebar-footer {
-        position: fixed;
-        bottom: 20px;
-        width: 250px;
-        font-size: 13px;
-        color: gray;
-        margin-left: 5px; # -- MOVE LEFT
-        text-align: left;  
-    }
-    .sidebar-footer img {
-        width: 16px;
-        height: 16px;
-        vertical-align: middle;
-        border-radius: 50%;
-        margin-right: 5px;
-    }
-    .sidebar-footer a {
-        color: gray;
-        text-decoration: none;
-    }
-    </style>
-
-    <div class="sidebar-footer">
-        <div>
-            <a href="https://x.com/axelar" target="_blank">
-                <img src="https://img.cryptorank.io/coins/axelar1663924228506.png" alt="Axelar Logo">
-                Powered by Axelar
-            </a>
-        </div>
-        <div style="margin-top: 5px;">
-            <a href="https://x.com/0xeman_raz" target="_blank">
-                <img src="https://pbs.twimg.com/profile_images/2060406047391559681/sA9zPNKM_400x400.jpg" alt="Eman Raz">
-                Built by Eman Raz
-            </a>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 # ==================================================
 # Fetch Data
 # ==================================================
 @st.cache_data(ttl=300)
 def load_raw():
-    r = cffi_requests.get(
-        API_URL,
-        impersonate="chrome",
-        headers={"Referer": "https://defillama.com/"},
-        timeout=30,
-    )
-    r.raise_for_status()
-    return r.json()
+    response = requests.get(API_URL, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+    response.raise_for_status()
+    return response.json()
 
 
 try:
@@ -118,6 +72,26 @@ def depth_at(lst, idx):
     if isinstance(lst, list) and idx < len(lst) and lst[idx] is not None:
         return float(lst[idx])
     return np.nan
+
+
+DEPTH_CAP = 1_000_000  # some exchanges (e.g. BingX) report exactly $1,000,000 as a capped placeholder
+
+
+def clean_depth(lst):
+    """Replace capped placeholder cells ($1,000,000) and everything after them with the last real value,
+    so depth is a lower bound of the real liquidity instead of an inflated number."""
+    if not isinstance(lst, list):
+        return lst
+    out, last, capped = [], None, False
+    for x in lst:
+        if capped or (x is not None and abs(float(x) - DEPTH_CAP) < 1e-6):
+            capped = True
+            out.append(last)
+        else:
+            out.append(x)
+            if x is not None:
+                last = x
+    return out
 
 
 def fmt_usd(x):
@@ -214,6 +188,185 @@ c8.metric("📉 Perp Price Change 24h", "-" if perp_seg.get("price_change_24h") 
 st.write(" ")
 
 # ==================================================
+# Daily history (recorded once a day by scripts/record_axl_market_snapshot.py)
+# ==================================================
+HISTORY_URL = "https://raw.githubusercontent.com/Emanoel91/axelar/main/data/axl_market_history.csv"
+HISTORY_LOCAL = "data/axl_market_history.csv"      # used when the GitHub URL cannot be read (e.g. private repo)
+DETAIL_URL = "https://raw.githubusercontent.com/Emanoel91/axelar/main/data/axl_market_detail_history.csv"
+DETAIL_LOCAL = "data/axl_market_detail_history.csv"
+HIST_COLS = ["date", "category", "name", "metric", "value"]
+
+BLUE, ORANGE, PURPLE, GREEN, RED, GREY = "#00B8F4", "#FF8A00", "#7B61FF", "#2CA02C", "#D62728", "#8A8A8A"
+
+
+def _read_history(url, local):
+    text = None
+    try:
+        res = requests.get(url, timeout=30)
+        if res.status_code == 200:
+            text = res.text
+    except Exception:
+        pass
+    if text is None and os.path.exists(local):
+        with open(local, encoding="utf-8") as f:
+            text = f.read()
+    if not text:
+        return pd.DataFrame(columns=HIST_COLS)
+    h = pd.read_csv(io.StringIO(text), dtype={"category": str, "name": str, "metric": str},
+                    keep_default_na=False, na_values=[""])
+    h["date"] = pd.to_datetime(h["date"], errors="coerce")
+    h["value"] = pd.to_numeric(h["value"], errors="coerce")
+    h = h.dropna(subset=["date", "value", "name"])
+    return h.drop_duplicates(subset=["date", "category", "name", "metric"], keep="last")
+
+
+@st.cache_data(ttl=600)
+def load_history():
+    return _read_history(HISTORY_URL, HISTORY_LOCAL)
+
+
+@st.cache_data(ttl=600)
+def load_detail_history():
+    return _read_history(DETAIL_URL, DETAIL_LOCAL)
+
+
+hist_all = load_history()
+n_days_total = hist_all["date"].nunique() if not hist_all.empty else 0
+
+st.markdown("### 📈 Market History (recorded daily)")
+RANGES = {"30 days": 30, "90 days": 90, "180 days": 180, "1 year": 365, "All": None}
+hr1, hr2 = st.columns([2, 3])
+range_choice = hr1.radio("Over-time range", list(RANGES), index=len(RANGES) - 1, horizontal=True)
+if RANGES[range_choice] and not hist_all.empty:
+    hist_cut = hist_all[hist_all["date"] >= hist_all["date"].max() - pd.Timedelta(days=RANGES[range_choice])]
+else:
+    hist_cut = hist_all
+n_hist_days = hist_cut["date"].nunique() if not hist_cut.empty else 0
+hr2.caption(
+    f"Days recorded: {n_days_total}"
+    + (f"  |  from {hist_cut['date'].min():%Y-%m-%d} to {hist_cut['date'].max():%Y-%m-%d}" if n_hist_days else "")
+    + ". The API only keeps the last 24 hours, so the 'over time' charts in each tab below are built from one "
+      "snapshot per day, starting from the first recorded day.")
+if n_hist_days < 2:
+    st.info("📅 The over-time charts need at least 2 recorded days. They appear automatically after the "
+            "second daily snapshot.")
+
+HP = (hist_cut.pivot_table(index="date", columns=["category", "name", "metric"], values="value", aggfunc="last")
+      .sort_index() if n_hist_days else pd.DataFrame())
+_chart_no = [0]
+
+
+def ser(cat, name, metric):
+    """Daily series (date index) of one recorded indicator."""
+    key = (cat, name, metric)
+    if len(HP.columns) and key in HP.columns:
+        return HP[key].dropna()
+    return pd.Series(dtype=float)
+
+
+def names_for(cat, metric):
+    return [c[1] for c in HP.columns if c[0] == cat and c[2] == metric] if len(HP.columns) else []
+
+
+def _show(fig, unit, height, zero_line=False):
+    fig.update_layout(template="plotly_white", height=height, hovermode="x unified", xaxis_title="",
+                      legend=dict(orientation="h", y=-0.2), margin=dict(t=60))
+    if unit == "usd":
+        fig.update_yaxes(tickprefix="$", tickformat=".3~s", hoverformat=",.0f")
+    elif unit == "pct":
+        fig.update_yaxes(ticksuffix="%", hoverformat=",.4f")
+    else:
+        fig.update_yaxes(hoverformat=",.4f")
+    if zero_line:
+        fig.add_hline(y=0, line_dash="dash", line_color="black", line_width=1)
+    _chart_no[0] += 1
+    st.plotly_chart(fig, use_container_width=True, key=f"ot_{_chart_no[0]}")
+
+
+def ot_header(text):
+    """Section title above a row of over-time charts (hidden until there is history to draw)."""
+    if n_hist_days >= 2:
+        st.markdown(f"#### {text}")
+
+
+def _waiting(title):
+    # With fewer than 2 recorded days the notice at the top of the page already explains it.
+    if n_hist_days >= 2:
+        st.caption(f"📅 {title}: no recorded values in the selected range.")
+
+
+def ts_chart(title, specs, kind="line", unit="usd", height=400, zero_line=False, stack=False):
+    """specs = [(label, category, name, metric, color or None), ...]; kind = line | area | bar | signed_bar."""
+    if n_hist_days < 2:
+        _waiting(title)
+        return
+    fig = go.Figure()
+    n = 0
+    for label, cat, name, metric, color in specs:
+        s_ = ser(cat, name, metric)
+        if s_.empty:
+            continue
+        n += 1
+        if kind == "signed_bar":
+            fig.add_trace(go.Bar(x=s_.index, y=s_.values, name=label,
+                                 marker_color=[GREEN if v >= 0 else RED for v in s_.values]))
+        elif kind == "bar":
+            fig.add_trace(go.Bar(x=s_.index, y=s_.values, name=label, marker_color=color))
+        elif kind == "area":
+            fig.add_trace(go.Scatter(x=s_.index, y=s_.values, name=label, mode="lines",
+                                     line=dict(color=color, width=1.5),
+                                     **({"stackgroup": "one"} if stack else {"fill": "tozeroy"})))
+        else:
+            fig.add_trace(go.Scatter(x=s_.index, y=s_.values, name=label, mode="lines+markers",
+                                     line=dict(color=color, width=2), marker=dict(size=5)))
+    if n == 0:
+        _waiting(title)
+        return
+    fig.update_layout(title=title, barmode="stack" if (kind == "bar" and stack) else "group",
+                      showlegend=n > 1)
+    _show(fig, unit, height, zero_line)
+
+
+def group_chart(title, cat, metric, kind="area", unit="usd", top_n=8, height=420, color_map=None, zero_line=False):
+    """One series per name of a category. kind = area (stacked) | share (100 % stacked) | line | bar (stacked).
+
+    Only the top_n names (by latest value) are drawn; for area / share / bar the rest is grouped as 'Others'."""
+    if n_hist_days < 2:
+        _waiting(title)
+        return
+    names = names_for(cat, metric)
+    if not names:
+        _waiting(title)
+        return
+    wide = pd.DataFrame({n: ser(cat, n, metric) for n in names}).sort_index()
+    latest = wide.ffill().iloc[-1].sort_values(ascending=False)
+    keep = list(latest.index[:top_n])
+    if kind == "line":
+        fig = go.Figure()
+        for n in keep:
+            fig.add_trace(go.Scatter(x=wide.index, y=wide[n], name=n, mode="lines+markers",
+                                     line=dict(width=2, color=(color_map or {}).get(n)), marker=dict(size=4),
+                                     connectgaps=False))
+        fig.update_layout(title=title)
+        _show(fig, unit, height, zero_line)
+        return
+    data = wide[keep].fillna(0.0)
+    if len(names) > top_n:
+        data["Others"] = wide.drop(columns=keep).fillna(0.0).sum(axis=1)
+    order = list(data.columns)
+    long_df = data.reset_index().melt(id_vars="date", var_name="name", value_name="value")
+    if kind == "bar":
+        fig = px.bar(long_df, x="date", y="value", color="name", category_orders={"name": order},
+                     color_discrete_map=color_map, title=title)
+        fig.update_layout(barmode="stack")
+    else:
+        fig = px.area(long_df, x="date", y="value", color="name", category_orders={"name": order},
+                      color_discrete_map=color_map, title=title, **({"groupnorm": "percent"} if kind == "share" else {}))
+    fig.update_layout(legend_title_text="")
+    _show(fig, "pct" if kind == "share" else unit, height)
+
+
+# ==================================================
 # Inner Tabs
 # ==================================================
 tab_overview, tab_price, tab_perp, tab_liq, tab_quality, tab_raw = st.tabs([
@@ -260,6 +413,25 @@ with tab_overview:
                      color_discrete_sequence=["#00B8F4", "#B0B0B0"])
         st.plotly_chart(fig, use_container_width=True)
 
+    ot_header("📈 Over time — Volume & Open Interest by Segment")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Daily 24h Volume by Segment",
+                 [(l, "segment", l, "volume_24h", SEG_COLORS[l]) for l in SEG_LABELS.values()],
+                 kind="bar", stack=True)
+    with oc2:
+        ts_chart("Open Interest by Segment",
+                 [(l, "segment", l, "oi_usd", SEG_COLORS[l]) for l in SEG_LABELS.values()],
+                 kind="area", stack=True)
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Perp & DEX Share of Volume (%)",
+                 [("Perp share", "overall", "AXL", "perp_share_pct", BLUE),
+                  ("DEX share", "overall", "AXL", "dex_share_pct", ORANGE)], unit="pct")
+    with oc2:
+        ts_chart("Markets per Segment",
+                 [(l, "segment", l, "markets", SEG_COLORS[l]) for l in SEG_LABELS.values()], unit="num")
+
     st.subheader("CEX vs DEX (totals)")
     tot_rows = []
     for venue, segs in raw.get("totals", {}).items():
@@ -286,6 +458,18 @@ with tab_overview:
         st.plotly_chart(fig, use_container_width=True)
 
     st.dataframe(df_tot, use_container_width=True, hide_index=True)
+
+    ot_header("📈 Over time — CEX vs DEX")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        group_chart("24h Volume by Venue & Segment", "venue_segment", "volume_24h", kind="area", top_n=6)
+    with oc2:
+        group_chart("Open Interest by Venue & Segment", "venue_segment", "oi_usd", kind="area", top_n=6)
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        group_chart("Share of 24h Volume: CEX vs DEX", "venue", "volume_24h", kind="share", color_map=VENUE_COLORS)
+    with oc2:
+        group_chart("Markets by Venue", "venue", "markets", kind="line", unit="num", color_map=VENUE_COLORS)
 
     st.subheader("Volume & Open Interest by Exchange")
     vol_ex = dfm.groupby(["display_name", "segment"], as_index=False)["volume_24h"].sum()
@@ -315,6 +499,30 @@ with tab_overview:
                      title="Exchange Share of 24h Volume", template="plotly_white", height=450)
         st.plotly_chart(fig, use_container_width=True)
 
+    ot_header("📈 Over time — Exchanges")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        group_chart("Exchange Share of 24h Volume (top 8)", "exchange", "volume_24h", kind="share")
+    with oc2:
+        group_chart("24h Volume by Exchange (top 8)", "exchange", "volume_24h", kind="area")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        group_chart("Open Interest by Exchange (top 8)", "exchange", "oi_usd", kind="area")
+    with oc2:
+        ts_chart("Exchanges & Markets (coverage)",
+                 [("Exchanges", "overall", "AXL", "exchanges", BLUE),
+                  ("Markets", "overall", "AXL", "markets", ORANGE),
+                  ("Active markets (volume > 0)", "overall", "AXL", "active_markets", GREEN),
+                  ("Major CEX listings (of 6)", "overall", "AXL", "major_cex", PURPLE)], unit="num")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Volume Concentration: Top Exchange & Top 3 (% of volume)",
+                 [("Top exchange", "overall", "AXL", "top_exchange_share_pct", BLUE),
+                  ("Top 3 exchanges", "overall", "AXL", "top3_exchange_share_pct", ORANGE)], unit="pct")
+    with oc2:
+        ts_chart("Exchange HHI (0–10,000; higher = more concentrated)",
+                 [("HHI", "overall", "AXL", "exchange_hhi", PURPLE)], unit="num")
+
     st.subheader("Volume by Quote Currency")
     q = dfm.groupby("quote", as_index=False)["volume_24h"].sum()
     q = q[q["volume_24h"] > 0].sort_values("volume_24h", ascending=False)
@@ -330,6 +538,13 @@ with tab_overview:
                      labels={"volume_24h": "Volume (USD)", "quote": "Quote asset"},
                      template="plotly_white", height=450, color_discrete_sequence=["#00B8F4"])
         st.plotly_chart(fig, use_container_width=True)
+
+    ot_header("📈 Over time — Volume by Quote Asset")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        group_chart("24h Volume by Quote Asset (top 6)", "quote", "volume_24h", kind="area", top_n=6)
+    with oc2:
+        group_chart("Share of 24h Volume by Quote Asset (top 6)", "quote", "volume_24h", kind="share", top_n=6)
 
     st.subheader("24h Changes (markets with volume ≥ $10K)")
     chg = dfm[dfm["volume_24h"] >= 10_000].copy()
@@ -355,6 +570,17 @@ with tab_overview:
         fig.update_layout(title="Price Change 24h by Market (%)", template="plotly_white",
                           height=520, xaxis_title="Market", yaxis_title="Change (%)")
         st.plotly_chart(fig, use_container_width=True)
+
+    ot_header("📈 Over time — Daily Changes")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Total Volume Change vs Previous 24h (%)",
+                 [("Volume change", "overall", "AXL", "volume_change_pct", None)],
+                 kind="signed_bar", unit="pct", zero_line=True)
+    with oc2:
+        ts_chart("Price Change 24h, volume-weighted (%)",
+                 [("Price change", "overall", "AXL", "price_change_pct", None)],
+                 kind="signed_bar", unit="pct", zero_line=True)
 
 # --------------------------------------------------
 # TAB 2 — Prices & Spreads
@@ -385,6 +611,20 @@ with tab_price:
                       xaxis_title="Market", yaxis_title="Deviation (%)")
     st.plotly_chart(fig, use_container_width=True)
 
+    ot_header("📈 Over time — Price & Cross-Market Dispersion")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("AXL Price Over Time (USD-quoted markets)",
+                 [("Median", "overall", "AXL", "price_median", BLUE),
+                  ("Volume-weighted", "overall", "AXL", "price_vwap", ORANGE),
+                  ("Lowest", "overall", "AXL", "price_min", RED),
+                  ("Highest", "overall", "AXL", "price_max", GREEN)], unit="num")
+    with oc2:
+        ts_chart("Price Dispersion & Max Cross-Market Spread (%)",
+                 [("Volume-weighted dispersion", "overall", "AXL", "price_dispersion_pct", BLUE),
+                  ("Max spread (highest vs lowest)", "overall", "AXL", "max_cross_market_spread_pct", ORANGE)],
+                 unit="pct")
+
     st.subheader("Mark / Index Premium (perpetuals)")
     dfx = dfm[(dfm["segment"] == "Perp") & dfm["mark_price"].notna() & dfm["index_price"].notna()].copy()
     dfx["premium_pct"] = (dfx["mark_price"] / dfx["index_price"] - 1) * 100
@@ -398,6 +638,15 @@ with tab_price:
                           xaxis_title="Market", yaxis_title="Premium (%)")
         st.plotly_chart(fig, use_container_width=True)
 
+    ot_header("📈 Over time — Mark / Index Premium")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Mark vs Index Premium, OI-weighted (%)",
+                 [("Premium", "overall", "AXL", "mark_index_premium_pct", BLUE)], unit="pct", zero_line=True)
+    with oc2:
+        ts_chart("Average Price by Segment (API)",
+                 [(l, "segment", l, "avg_price", SEG_COLORS[l]) for l in SEG_LABELS.values()], unit="num")
+
     st.subheader("Bid/Ask Spread")
     dfs = dfm[dfm["spread_pct"].notna() & dfm["quote"].isin(STABLE_QUOTES) & (dfm["volume_24h"].fillna(0) > 0)]
     dfs = dfs.sort_values("spread_pct")
@@ -405,6 +654,15 @@ with tab_price:
                  title="Best Bid/Ask Spread (%)", labels={"market_label": "Market", "spread_pct": "Spread (%)"},
                  template="plotly_white", height=500, color_discrete_map=SEG_COLORS)
     st.plotly_chart(fig, use_container_width=True)
+
+    ot_header("📈 Over time — Bid/Ask Spread")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Bid/Ask Spread (USD-quoted markets, %)",
+                 [("Volume-weighted", "overall", "AXL", "avg_spread_pct", BLUE),
+                  ("Median", "overall", "AXL", "median_spread_pct", ORANGE)], unit="pct")
+    with oc2:
+        group_chart("Spread by Exchange (top 8 by volume, %)", "exchange", "avg_spread_pct", kind="line", unit="pct")
 
     st.subheader("Price Table")
     st.dataframe(
@@ -444,6 +702,26 @@ with tab_perp:
                            template="plotly_white", height=450, color_discrete_sequence=["#FF8A00"])
         st.plotly_chart(fig, use_container_width=True)
 
+    ot_header("📈 Over time — Funding")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Funding Rate (8h-normalised, %)",
+                 [("OI-weighted", "overall", "AXL", "funding_8h_pct", BLUE),
+                  ("Lowest market (OI ≥ $10K)", "overall", "AXL", "funding_min_pct", RED),
+                  ("Highest market (OI ≥ $10K)", "overall", "AXL", "funding_max_pct", GREEN)],
+                 unit="pct", zero_line=True)
+    with oc2:
+        ts_chart("Annualised Funding, OI-weighted (%)",
+                 [("Annualised", "overall", "AXL", "funding_annualized_pct", PURPLE)], unit="pct", zero_line=True)
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        group_chart("Funding Rate by Exchange (top 8 by volume, 8h %)", "exchange", "funding_8h_pct",
+                    kind="line", unit="pct", zero_line=True)
+    with oc2:
+        ts_chart("Share of Open Interest with Positive Funding (%)",
+                 [("Positive-funding OI share", "overall", "AXL", "funding_positive_oi_share_pct", ORANGE)],
+                 unit="pct")
+
     st.subheader("Open Interest")
     col_a, col_b = st.columns(2)
     with col_a:
@@ -463,6 +741,23 @@ with tab_perp:
                           height=500, xaxis_title="Market", yaxis_title="Change (%)")
         st.plotly_chart(fig, use_container_width=True)
 
+    ot_header("📈 Over time — Open Interest")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Total Open Interest",
+                 [("Open interest", "overall", "AXL", "oi_usd", BLUE),
+                  ("Previous-period OI", "overall", "AXL", "oi_prev_usd", GREY)], kind="line")
+    with oc2:
+        ts_chart("Open Interest Change vs Previous (%)",
+                 [("OI change", "overall", "AXL", "oi_change_pct", None)],
+                 kind="signed_bar", unit="pct", zero_line=True)
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        group_chart("Open Interest by Venue", "venue", "oi_usd", kind="area", color_map=VENUE_COLORS)
+    with oc2:
+        ts_chart("Open Interest / Perp Volume",
+                 [("OI ÷ perp volume", "overall", "AXL", "oi_to_perp_volume", PURPLE)], unit="num")
+
     st.subheader("Volume vs Open Interest")
     d = dfq[(dfq["oi_usd"] > 0) & (dfq["volume_24h"] > 0)]
     fig = px.scatter(d, x="volume_24h", y="oi_usd", size="oi_usd", color="venue", hover_name="market_label",
@@ -470,6 +765,17 @@ with tab_perp:
                      labels={"volume_24h": "Volume 24h (USD)", "oi_usd": "OI (USD)"},
                      template="plotly_white", height=550, color_discrete_map=VENUE_COLORS)
     st.plotly_chart(fig, use_container_width=True)
+
+    ot_header("📈 Over time — Perp Volume & Leverage")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Daily Perp Volume (24h)",
+                 [("Perp volume", "overall", "AXL", "perp_volume", BLUE)], kind="bar")
+    with oc2:
+        ts_chart("Max Leverage Offered (x)",
+                 [("Highest", "overall", "AXL", "max_leverage", ORANGE),
+                  ("Perp (API) max", "segment", "Perp", "leverage_max", BLUE),
+                  ("Perp (API) min", "segment", "Perp", "leverage_min", GREY)], unit="num")
 
     st.subheader("Leverage & Contract Specs")
     st.dataframe(
@@ -486,6 +792,8 @@ with tab_liq:
     st.caption("Depth values are cumulative USD liquidity within a given % distance from the mid price.")
 
     dfd = dfm[dfm["quote"].isin(STABLE_QUOTES)].copy()
+    dfd["depth_bid_usd"] = dfd["depth_bid_usd"].apply(clean_depth)   # same cleaning as the recorded history
+    dfd["depth_ask_usd"] = dfd["depth_ask_usd"].apply(clean_depth)
     agg_bid = [np.nansum([depth_at(x, i) for x in dfd["depth_bid_usd"]]) for i in range(len(BANDS))]
     agg_ask = [np.nansum([depth_at(x, i) for x in dfd["depth_ask_usd"]]) for i in range(len(BANDS))]
     band_lbl = [f"±{b * 100:.2f}%" for b in BANDS]
@@ -496,6 +804,34 @@ with tab_liq:
     fig.update_layout(title="Cumulative Depth by Distance from Mid Price", template="plotly_white", height=500,
                       xaxis_title="Distance from mid", yaxis_title="Depth (USD)", hovermode="x unified")
     st.plotly_chart(fig, use_container_width=True)
+
+    ot_header("📈 Over time — Aggregate Depth")
+    _i2 = int(np.argmin([abs(b - 0.02) for b in BANDS])) if BANDS else None
+    _lbl2 = band_lbl[_i2] if _i2 is not None else ""
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Total Depth within ±1%, ±2%, ±5% (bid + ask)",
+                 [("±1%", "overall", "AXL", "depth_1pct", GREEN),
+                  ("±2%", "overall", "AXL", "depth_2pct", BLUE),
+                  ("±5%", "overall", "AXL", "depth_5pct", ORANGE)], kind="line")
+    with oc2:
+        ts_chart(f"Bid vs Ask Depth within {_lbl2}",
+                 [("Bids", "depth", _lbl2, "bid", GREEN), ("Asks", "depth", _lbl2, "ask", RED)], kind="line")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Depth Imbalance at ±2% ((bid − ask) / total, %)",
+                 [("Imbalance", "overall", "AXL", "depth_imbalance_2pct_pct", PURPLE)],
+                 kind="signed_bar", unit="pct", zero_line=True)
+    with oc2:
+        ts_chart("Depth (±2%) ÷ 24h Volume",
+                 [("Depth ÷ volume", "overall", "AXL", "depth_to_volume", BLUE)], unit="num")
+    if n_hist_days >= 2 and names_for("depth", "total"):
+        _wide = pd.DataFrame({n: ser("depth", n, "total") for n in names_for("depth", "total")}).sort_index()
+        _wide = _wide[sorted(_wide.columns, key=lambda t: float(t.replace("±", "").replace("%", "")))]
+        _fig = go.Figure(go.Heatmap(z=_wide.T.values, x=_wide.index, y=list(_wide.columns),
+                                    colorscale="Blues", colorbar_title="USD"))
+        _fig.update_layout(title="Total Depth by Distance from Mid Price, Over Time", yaxis_title="Distance from mid")
+        _show(_fig, "num", 420)
 
     st.subheader("Depth by Exchange at a Chosen Band")
     band_idx = st.select_slider(
@@ -518,6 +854,15 @@ with tab_liq:
                  color_discrete_map={"Bid": "green", "Ask": "red"})
     st.plotly_chart(fig, use_container_width=True)
 
+    ot_header("📈 Over time — Depth at the Chosen Band & by Exchange")
+    _bl = band_lbl[band_idx]
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart(f"Bid vs Ask Depth within {_bl} (band selected above)",
+                 [("Bids", "depth", _bl, "bid", GREEN), ("Asks", "depth", _bl, "ask", RED)], kind="line")
+    with oc2:
+        group_chart("Depth within ±2% by Exchange (top 8)", "exchange", "depth_2pct", kind="area")
+
     st.subheader("Single Market Order Book")
     depth_markets = dfm[dfm["depth_bid_usd"].notna() & dfm["depth_ask_usd"].notna()]["market_label"].tolist()
     sel = st.selectbox("Select market", depth_markets, index=0)
@@ -539,6 +884,15 @@ with tab_liq:
                  labels={"market_label": "Market", "nvol_active_liquidity": "Active liquidity (USD)"},
                  template="plotly_white", height=500, color_discrete_map=SEG_COLORS)
     st.plotly_chart(fig, use_container_width=True)
+
+    ot_header("📈 Over time — Active Liquidity")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Total Active Liquidity (normalised-volume model)",
+                 [("Active liquidity", "overall", "AXL", "active_liquidity_usd", BLUE)], kind="area")
+    with oc2:
+        ts_chart("Normalised Volume Ratio (% of reported)",
+                 [("Normalised ÷ reported", "overall", "AXL", "nvol_normalized_ratio_pct", ORANGE)], unit="pct")
 
 # --------------------------------------------------
 # TAB 5 — Fees & Data Quality
@@ -563,6 +917,16 @@ with tab_quality:
                      title="Maker Fee (%)", labels={"display_name": "Exchange", "maker_fee_pct": "Fee (%)"},
                      template="plotly_white", height=450, color_discrete_map=SEG_COLORS)
         st.plotly_chart(fig, use_container_width=True)
+
+    ot_header("📈 Over time — Trading Fees")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Average Fees, volume-weighted (%)",
+                 [("Taker", "overall", "AXL", "avg_taker_fee_pct", BLUE),
+                  ("Maker", "overall", "AXL", "avg_maker_fee_pct", ORANGE)], unit="pct")
+    with oc2:
+        group_chart("Taker Fee by Exchange (top 8 by volume, %)", "exchange", "taker_fee_pct", kind="line",
+                    unit="pct")
 
     st.subheader("Reported vs Normalised Volume")
     st.caption("Normalised volume adjusts reported volume by what the order-book liquidity can plausibly support. "
@@ -591,6 +955,17 @@ with tab_quality:
         fig = px.pie(status, names="status", values="count", hole=0.45,
                      title="Normalised-Volume Coverage Status", template="plotly_white", height=380)
         st.plotly_chart(fig, use_container_width=True)
+
+    ot_header("📈 Over time — Reported vs Normalised Volume")
+    oc1, oc2 = st.columns(2)
+    with oc1:
+        ts_chart("Reported vs Normalised Volume (USD)",
+                 [("Reported", "overall", "AXL", "nvol_reported", GREY),
+                  ("Normalised", "overall", "AXL", "nvol_normalized", BLUE)], kind="line")
+    with oc2:
+        ts_chart("API Totals vs Sum of Markets (volume, USD)",
+                 [("Sum of markets", "overall", "AXL", "volume_24h", BLUE),
+                  ("API total_volume_24h", "overall", "AXL", "api_total_volume", ORANGE)], kind="line")
 
     st.subheader("Data Freshness")
     now_utc = pd.Timestamp.now(tz="UTC")
@@ -631,5 +1006,43 @@ with tab_raw:
 
     with st.expander("Show raw API JSON"):
         st.json(raw, expanded=False)
+
+with tab_raw:
+    st.subheader("📈 Single Market Over Time")
+    detail = load_detail_history()
+    if not hist_all.empty:
+        _cut = hist_cut["date"].min() if n_hist_days else None
+        if _cut is not None:
+            detail = detail[detail["date"] >= _cut]
+    if n_hist_days < 2 or detail.empty:
+        st.caption("Per-market history appears after at least 2 recorded days.")
+    else:
+        _vol_last = (detail[detail["metric"] == "volume_24h"].sort_values("date")
+                     .groupby("name")["value"].last().sort_values(ascending=False))
+        m1, m2 = st.columns(2)
+        market_pick = m1.selectbox("Market (sorted by latest volume)", list(_vol_last.index), key="ot_market")
+        METRIC_OPTS = {"volume_24h": "24h volume (USD)", "oi_usd": "Open interest (USD)",
+                       "funding_8h_pct": "Funding 8h (%)", "price": "Price", "spread_pct": "Bid/ask spread (%)"}
+        metric_pick = m2.selectbox("Indicator", list(METRIC_OPTS), format_func=METRIC_OPTS.get, key="ot_metric")
+        d = detail[(detail["name"] == market_pick) & (detail["metric"] == metric_pick)].sort_values("date")
+        if d.empty:
+            st.caption("This market has no recorded values for the selected indicator.")
+        else:
+            if metric_pick == "volume_24h":
+                fig = go.Figure(go.Bar(x=d["date"], y=d["value"], marker_color=BLUE))
+            elif metric_pick == "funding_8h_pct":
+                fig = go.Figure(go.Bar(x=d["date"], y=d["value"],
+                                       marker_color=[GREEN if v >= 0 else RED for v in d["value"]]))
+            else:
+                fig = go.Figure(go.Scatter(x=d["date"], y=d["value"], mode="lines+markers",
+                                           line=dict(color=BLUE, width=2)))
+            fig.update_layout(title=f"{market_pick} — {METRIC_OPTS[metric_pick]}", showlegend=False)
+            _show(fig, "usd" if metric_pick in ("volume_24h", "oi_usd") else
+                  ("pct" if metric_pick.endswith("pct") else "num"), 420,
+                  zero_line=metric_pick == "funding_8h_pct")
+
+    if not hist_all.empty:
+        st.download_button("⬇️ Download aggregated history (CSV)", hist_all.to_csv(index=False).encode("utf-8"),
+                           file_name="axl_market_history.csv", mime="text/csv")
 
 st.caption("Source: DefiLlama Markets API — https://defillama.com/api/public/markets/axelar")
