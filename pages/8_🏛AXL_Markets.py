@@ -1,5 +1,7 @@
 import io
+import json
 import os
+import time
 import streamlit as st
 import requests
 import pandas as pd
@@ -48,18 +50,60 @@ st.markdown(
 # ==================================================
 # Fetch Data
 # ==================================================
+LATEST_URL = "https://raw.githubusercontent.com/Emanoel91/axelar/main/data/axl_market_latest.json"
+LATEST_LOCAL = "data/axl_market_latest.json"
+_BROWSER_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "application/json",
+    "Referer": "https://defillama.com/",
+}
+
+
 @st.cache_data(ttl=300)
 def load_raw():
-    response = requests.get(API_URL, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
-    response.raise_for_status()
-    return response.json()
+    """Live API first (browser-like request); if DefiLlama refuses the server, use the latest recorded snapshot.
+
+    Returns (payload, note) where note is None for live data."""
+    errors = []
+    for attempt in range(2):
+        try:
+            try:
+                from curl_cffi import requests as cr
+                r = cr.get(API_URL, headers=_BROWSER_HEADERS, timeout=30, impersonate="chrome")
+            except ImportError:
+                r = requests.get(API_URL, headers=_BROWSER_HEADERS, timeout=30)
+            if r.status_code == 200:
+                return r.json(), None
+            errors.append(f"HTTP {r.status_code}")
+        except Exception as e:
+            errors.append(f"{type(e).__name__}: {e}")
+        time.sleep(1.5)
+
+    snap = None
+    try:
+        r = requests.get(LATEST_URL, timeout=30)
+        if r.status_code == 200:
+            snap = r.json()
+    except Exception:
+        pass
+    if snap is None and os.path.exists(LATEST_LOCAL):
+        with open(LATEST_LOCAL, encoding="utf-8") as f:
+            snap = json.load(f)
+    if snap is None:
+        raise RuntimeError("live API failed (" + "; ".join(errors) + ") and no recorded snapshot is available yet")
+    return snap, ("⚠️ DefiLlama refused the live request (" + "; ".join(errors) +
+                  "). Showing the latest recorded snapshot instead — last updated: "
+                  + str(snap.get("last_updated", "unknown")) + ".")
 
 
 try:
-    raw = load_raw()
+    raw, data_note = load_raw()
 except Exception as e:
     st.error(f"❌ Error fetching market data: {e}")
     st.stop()
+if data_note:
+    st.warning(data_note)
 
 BANDS = raw.get("depth_bands", [])
 
