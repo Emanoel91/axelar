@@ -26,7 +26,7 @@ st.info("ℹ️ This tab shows how AXL's market structure evolves day by day com
 PROJECTS = [
     ("Axelar", "AXL", "https://axelar.network/", "https://x.com/axelar",
      "https://images.cryptorank.io/coins/150x150.axelar1663924228506.png"),
-    ("Across Protocol", "ACX", "https://across.to/", "https://x.com/AcrossProtocol",
+    ("Across", "ACX", "https://across.to/", "https://x.com/AcrossProtocol",
      "https://images.cryptorank.io/coins/150x150.across_protocol1668170687266.png"),
     ("Celer Network", "CELR", "https://www.celer.network/", "https://x.com/CelerNetwork",
      "https://images.cryptorank.io/coins/150x150.celer_network1687449599680.png"),
