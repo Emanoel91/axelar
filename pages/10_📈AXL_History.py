@@ -1,6 +1,5 @@
 import io
 import os
-
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -21,7 +20,50 @@ st.info("ℹ️ This tab shows how AXL's market structure evolves day by day com
         "cross-chain projects: trading volume (perp, spot and DEX share), derivatives (open interest, funding, "
         "leverage), liquidity and pricing (price, spreads, order-book depth, fees), exchange coverage, and AXL's "
         "ratio and rank versus the peer median over time, plus data-quality checks and a downloadable history table.")
+# ------ SIDEBAR ------------------------------------------------
 
+st.sidebar.markdown(
+    """
+    <style>
+    .sidebar-footer {
+        position: fixed;
+        bottom: 20px;
+        width: 250px;
+        font-size: 13px;
+        color: gray;
+        margin-left: 5px; # -- MOVE LEFT
+        text-align: left;  
+    }
+    .sidebar-footer img {
+        width: 16px;
+        height: 16px;
+        vertical-align: middle;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    .sidebar-footer a {
+        color: gray;
+        text-decoration: none;
+    }
+    </style>
+
+    <div class="sidebar-footer">
+        <div>
+            <a href="https://x.com/axelar" target="_blank">
+                <img src="https://img.cryptorank.io/coins/axelar1663924228506.png" alt="Axelar Logo">
+                Powered by Axelar
+            </a>
+        </div>
+        <div style="margin-top: 5px;">
+            <a href="https://x.com/0xeman_raz" target="_blank">
+                <img src="https://pbs.twimg.com/profile_images/2060406047391559681/sA9zPNKM_400x400.jpg" alt="Eman Raz">
+                Built by Eman Raz
+            </a>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 # --- Tracked projects (static info + logos) --------------------------------------------------------------------------
 PROJECTS = [
     ("Axelar", "AXL", "https://axelar.network/", "https://x.com/axelar",
