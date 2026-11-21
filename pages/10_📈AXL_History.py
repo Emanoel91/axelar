@@ -14,54 +14,37 @@ st.set_page_config(
     page_icon="https://axelarscan.io/logos/logo.png",
     layout="wide"
 )
-# ------ SIDEBAR ------------------------------------------------
 
-st.sidebar.markdown(
-    """
-    <style>
-    .sidebar-footer {
-        position: fixed;
-        bottom: 20px;
-        width: 250px;
-        font-size: 13px;
-        color: gray;
-        margin-left: 5px; # -- MOVE LEFT
-        text-align: left;  
-    }
-    .sidebar-footer img {
-        width: 16px;
-        height: 16px;
-        vertical-align: middle;
-        border-radius: 50%;
-        margin-right: 5px;
-    }
-    .sidebar-footer a {
-        color: gray;
-        text-decoration: none;
-    }
-    </style>
-
-    <div class="sidebar-footer">
-        <div>
-            <a href="https://x.com/axelar" target="_blank">
-                <img src="https://img.cryptorank.io/coins/axelar1663924228506.png" alt="Axelar Logo">
-                Powered by Axelar
-            </a>
-        </div>
-        <div style="margin-top: 5px;">
-            <a href="https://x.com/0xeman_raz" target="_blank">
-                <img src="https://pbs.twimg.com/profile_images/2060406047391559681/sA9zPNKM_400x400.jpg" alt="Eman Raz">
-                Built by Eman Raz
-            </a>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 # --- Title ------------------------------------------------------------------------------------------------------------
 st.title("📈 AXL vs Competitors — Daily History")
-st.info("ℹ️ One snapshot is recorded per day by a GitHub Action (scripts/record_market_snapshot.py). "
-        "Charts fill in over time: every new day adds one point per token.")
+st.info("ℹ️ This tab shows how AXL's market structure evolves day by day compared with nine competing "
+        "cross-chain projects: trading volume (perp, spot and DEX share), derivatives (open interest, funding, "
+        "leverage), liquidity and pricing (price, spreads, order-book depth, fees), exchange coverage, and AXL's "
+        "ratio and rank versus the peer median over time, plus data-quality checks and a downloadable history table.")
+
+# --- Tracked projects (static info + logos) --------------------------------------------------------------------------
+PROJECTS = [
+    ("Axelar", "AXL", "https://axelar.network/", "https://x.com/axelar",
+     "https://images.cryptorank.io/coins/150x150.axelar1663924228506.png"),
+    ("Across Protocol", "ACX", "https://across.to/", "https://x.com/AcrossProtocol",
+     "https://images.cryptorank.io/coins/150x150.across_protocol1668170687266.png"),
+    ("Celer Network", "CELR", "https://www.celer.network/", "https://x.com/CelerNetwork",
+     "https://images.cryptorank.io/coins/150x150.celer_network1687449599680.png"),
+    ("deBridge", "DBR", "https://debridge.finance/", "https://x.com/debridge",
+     "https://images.cryptorank.io/coins/150x150.de_bridge1731403726914.png"),
+    ("Hyperlane", "HYPER", "https://www.hyperlane.xyz/", "https://x.com/hyperlane",
+     "https://images.cryptorank.io/coins/150x150.hyperlane1723539277647.png"),
+    ("ChainLink", "LINK", "https://chain.link/", "https://x.com/chainlink",
+     "https://images.cryptorank.io/coins/150x150.chain_link1766138155970.png"),
+    ("Stargate Finance", "STG", "https://stargate.finance/", "https://x.com/StargateFinance",
+     "https://images.cryptorank.io/coins/150x150.stargate%20finance1648025694253.png"),
+    ("Hypercall (Prev. Synapse)", "SYN", "https://hypercall.xyz/", "https://x.com/SynapseProtocol",
+     "https://images.cryptorank.io/coins/150x150.hypercall_prev_synapse1789560658129.png"),
+    ("Wormhole", "W", "https://wormhole.com/", "https://x.com/wormhole",
+     "https://images.cryptorank.io/coins/150x150.wormhole1791808276803.png"),
+    ("LayerZero", "ZRO", "https://layerzero.network/", "https://x.com/LayerZero_Core",
+     "https://images.cryptorank.io/coins/150x150.layer_zero1668092808242.png"),
+]
 
 # ==================================================
 # Configuration
@@ -70,6 +53,12 @@ HISTORY_URL = "https://raw.githubusercontent.com/Emanoel91/axelar/main/data/mark
 LOCAL_PATH = "data/market_history.csv"      # used when the GitHub URL cannot be read (e.g. private repo)
 FOCUS = "AXL"
 BLUE = "#00B8F4"
+# one fixed colour per token, used in every chart and in the project cards
+TOKEN_COLORS = {
+    "ZRO": "#000000", "W": "#7167bd", "SYN": "#11b20c", "STG": "#989898", "LINK": "#0847f7",
+    "HYPER": "#d632b7", "DBR": "#fafe33", "CELR": "#fdeca6", "AXL": "#ff9b36", "ACX": "#6cf9d7",
+}
+AXL_COLOR = TOKEN_COLORS["AXL"]
 
 st.markdown(
     """
@@ -87,6 +76,28 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+st.markdown("### 🔗 Tracked Projects")
+for _row in (PROJECTS[:5], PROJECTS[5:]):
+    for _col, (_name, _tick, _site, _x, _logo) in zip(st.columns(5), _row):
+        _col.markdown(
+            f"""
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;
+                        border:1px solid rgba(128,128,128,0.25);border-left:5px solid {TOKEN_COLORS[_tick]};
+                        margin-bottom:10px;">
+                <img src="{_logo}" alt="{_name}" style="width:42px;height:42px;border-radius:50%;">
+                <div style="line-height:1.35;">
+                    <div style="font-weight:700;">{_name} <span style="opacity:.6;font-weight:500;">({_tick})</span></div>
+                    <div style="font-size:13px;">
+                        <a href="{_site}" target="_blank" style="text-decoration:none;">🌐 Website</a>
+                        &nbsp;·&nbsp;
+                        <a href="{_x}" target="_blank" style="text-decoration:none;">𝕏 Twitter</a>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 MAJOR_CEX = ["Binance", "Coinbase", "OKX", "Bybit", "Upbit", "Kraken"]   # same list as the recorder
 
@@ -245,55 +256,50 @@ if cdf["date"].nunique() < 2:
     st.info("Only one day is available in the selected range, so each token shows a single point. "
             "Lines appear from the second recorded day.")
 
-palette = [c for c in px.colors.qualitative.Bold if c.lower() != BLUE.lower()]
-color_map = {FOCUS: BLUE}
-for i, t in enumerate([x for x in ticker_order if x != FOCUS]):
-    color_map[t] = palette[i % len(palette)]
+palette = list(px.colors.qualitative.Bold)
+color_map = {}
+for i, t in enumerate(ticker_order):
+    color_map[t] = TOKEN_COLORS.get(t, palette[i % len(palette)])
 
 # ==================================================
 # Header KPIs — AXL latest day vs previous recorded day
 # ==================================================
 latest_date = hist["date"].max()
 last_capture = hist["captured_at_utc"].max()
-st.markdown("### 💎 Recording Status & AXL Latest Values")
+first_capture = hist["captured_at_utc"].min()
+st.markdown("### 📋 Recording Status")
 s1, s2, s3, s4 = st.columns(4)
 s1.metric("📅 Days Recorded", f"{n_days}")
-s2.metric("🗓️ First → Last Day", f"{min_d} → {max_d}")
-s3.metric("🪙 Tokens", f"{len(ticker_order)}")
-s4.metric("🕒 Last Snapshot (UTC)", "-" if pd.isna(last_capture) else last_capture.strftime("%Y-%m-%d %H:%M"))
-st.caption(f"Data source: {source}. Each day's values describe the 24 hours before that snapshot.")
-
-axl_hist = hist[hist["ticker"] == FOCUS].sort_values("date")
-axl_last = axl_hist.iloc[-1]
-axl_prev = axl_hist.iloc[-2] if len(axl_hist) >= 2 else None
-day_slice = hist[hist["date"] == axl_last["date"]]
-
-
-def kpi(col, label, key, ascending=False):
-    kind = METRICS[key][1]
-    val = axl_last[key]
-    s = day_slice[["ticker", key]].dropna().sort_values(key, ascending=ascending).reset_index(drop=True)
-    rank = "n/a"
-    if FOCUS in set(s["ticker"]):
-        rank = f"#{int(s.index[s['ticker'] == FOCUS][0]) + 1} of {len(s)}"
-    delta = None
-    if axl_prev is not None and pd.notna(val) and pd.notna(axl_prev[key]) and axl_prev[key] != 0:
-        delta = f"{(val / axl_prev[key] - 1) * 100:+.1f}% vs previous day"
-    col.metric(f"{label} · {rank}", fmt_metric(val, kind), delta)
-
-
-k1, k2, k3, k4 = st.columns(4)
-kpi(k1, "📊 24h Volume", "volume_24h")
-kpi(k2, "🧾 Open Interest", "oi_usd")
-kpi(k3, "🌊 Depth ±2%", "depth_2pct")
-kpi(k4, "🏦 Exchanges", "exchanges")
-st.write(" ")
+s2.metric("🕒 First Snapshot (UTC)", "-" if pd.isna(first_capture) else first_capture.strftime("%Y-%m-%d %H:%M"))
+s3.metric("🕒 Last Snapshot (UTC)", "-" if pd.isna(last_capture) else last_capture.strftime("%Y-%m-%d %H:%M"))
+s4.metric("🪙 Tokens", f"{len(ticker_order)}")
+st.caption("Each day's values describe the 24 hours before that snapshot💡.")
 
 # ==================================================
 # Chart helpers
 # ==================================================
+# Per-chart presentation (title / chart type). Metrics not listed keep the default line-with-markers chart.
+CHART_CFG = {
+    "volume_24h": {"title": "Trading Volume Over Time", "kind": "line"},
+    "volume_change_pct": {"title": "24h Volume Change Over Time", "kind": "bar"},
+    "perp_volume": {"title": "Perp Volume Over Time", "kind": "line"},
+    "spot_volume": {"title": "Spot Volume Over Time", "kind": "line"},
+    "perp_share_pct": {"title": "Perp Share of Volume Over Time (%)", "kind": "area"},
+    "dex_share_pct": {"title": "DEX Share of Volume Over Time (%)", "kind": "area"},
+    "price_change_pct": {"title": "Daily Price Change Over Time", "kind": "line"},
+}
+FULL_WIDTH = {"price_change_pct"}     # drawn alone on a full-width row
+
+
+def hex_to_rgba(hex_color, alpha):
+    h = hex_color.lstrip("#")
+    return f"rgba({int(h[0:2], 16)},{int(h[2:4], 16)},{int(h[4:6], 16)},{alpha})"
+
+
 def line_fig(col):
     label, kind, _ = METRICS[col]
+    cfg = CHART_CFG.get(col, {})
+    ctype = cfg.get("kind", "line_markers")
     d = cdf[["date", "ticker", "name", col]].sort_values(["ticker", "date"]).copy()
     if smooth:
         d[col] = d.groupby("ticker")[col].transform(lambda s: s.rolling(7, min_periods=1).mean())
@@ -305,26 +311,48 @@ def line_fig(col):
     d = d.dropna(subset=[col])
     if d.empty:
         return None
-    title = label + (" — indexed (first day = 100)" if indexed else "") + (" — 7d avg" if smooth else "")
-    fig = px.line(d, x="date", y=col, color="ticker", markers=True, hover_name="name",
-                  color_discrete_map=color_map, title=title,
+    title = cfg.get("title", label) + (" — indexed (first day = 100)" if indexed else "") + (" — 7d avg" if smooth else "")
+    common = dict(x="date", y=col, color="ticker", hover_name="name", color_discrete_map=color_map, title=title,
                   labels={"date": "Date", col: "Index" if indexed else label, "ticker": "Token"},
                   template="plotly_white", height=420)
+    if ctype == "bar":
+        fig = px.bar(d, barmode="group", **common)
+    elif ctype == "area":
+        fig = px.line(d, markers=False, **common)
+        for tr in fig.data:                                   # translucent fill, not stacked across tokens
+            tr.update(fill="tozeroy", fillcolor=hex_to_rgba(color_map.get(tr.name, "#888888"), 0.25))
+    elif ctype == "line":
+        fig = px.line(d, markers=False, **common)
+    else:
+        fig = px.line(d, markers=True, **common)
     if log_scale and kind == "usd" and not indexed:
         fig.update_yaxes(type="log")
     return fig
 
 
 def render_group(prefix, keys):
-    for i in range(0, len(keys), 2):
-        cols = st.columns(2)
-        for c, k in zip(cols, keys[i:i + 2]):
-            with c:
-                fig = line_fig(k)
-                if fig is None:
-                    st.info(f"No data yet: {METRICS[k][0]}")
-                else:
-                    st.plotly_chart(fig, use_container_width=True, key=f"{prefix}_{k}")
+    rows, pending = [], []
+    for k in keys:
+        if k in FULL_WIDTH:
+            if pending:
+                rows.append(pending)
+                pending = []
+            rows.append([k])
+        else:
+            pending.append(k)
+            if len(pending) == 2:
+                rows.append(pending)
+                pending = []
+    if pending:
+        rows.append(pending)
+    for row in rows:
+        cols = [st] if len(row) == 1 and row[0] in FULL_WIDTH else st.columns(2)
+        for c, k in zip(cols, row):
+            fig = line_fig(k)
+            if fig is None:
+                c.info(f"No data yet: {METRICS[k][0]}")
+            else:
+                c.plotly_chart(fig, use_container_width=True, key=f"{prefix}_{k}")
 
 
 # ==================================================
@@ -371,7 +399,7 @@ with tab_rel:
         with col_a:
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=pv.index, y=pv[FOCUS], mode="lines+markers", name="AXL",
-                                     line=dict(color=BLUE, width=2)))
+                                     line=dict(color=AXL_COLOR, width=2)))
             fig.add_trace(go.Scatter(x=pv.index, y=med, mode="lines+markers", name="Peer median",
                                      line=dict(color="#7F7F7F", width=2, dash="dash")))
             fig.update_layout(title=f"{label}: AXL vs Peer Median", template="plotly_white", height=420,
@@ -385,7 +413,7 @@ with tab_rel:
                 st.info("The peer median is zero or missing, so the ratio cannot be drawn.")
             else:
                 fig = go.Figure(go.Scatter(x=ratio.index, y=ratio.values, mode="lines+markers", name="AXL ÷ median",
-                                           line=dict(color=BLUE, width=2)))
+                                           line=dict(color=AXL_COLOR, width=2)))
                 fig.add_hline(y=1, line_dash="dash", line_color="black", line_width=1)
                 fig.update_layout(title=f"{label}: AXL ÷ Peer Median", template="plotly_white", height=420,
                                   xaxis_title="Date", yaxis_title="Ratio (1 = same as median)",
@@ -396,7 +424,7 @@ with tab_rel:
         ranks = pv.rank(axis=1, method="min", ascending=asc)[FOCUS].dropna()
         counts = pv.notna().sum(axis=1).reindex(ranks.index)
         fig = go.Figure(go.Scatter(x=ranks.index, y=ranks.values, mode="lines+markers", name="AXL rank",
-                                   line=dict(color=BLUE, width=2),
+                                   line=dict(color=AXL_COLOR, width=2),
                                    customdata=counts.values,
                                    hovertemplate="%{x|%Y-%m-%d}<br>Rank %{y} of %{customdata}<extra></extra>"))
         fig.update_yaxes(autorange="reversed", dtick=1)
